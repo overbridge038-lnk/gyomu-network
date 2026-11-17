@@ -26,8 +26,11 @@ GitHub Pages（main / root）で公開：https://overbridge038-lnk.github.io/gyo
 | shogo-matome.html | 照合結果まとめ | PC。見本データ（作業者名入りの照合記録）は Public のため外した（SAMPLE=null）。charset の宣言を足した |
 | kanri-sheet.html | 管理シート作成ツール（協豊・FTS広田・三五） | PC。単体の協豊・FTS広田版より新しい（PDF対応）ので、まとめ版だけを入れた |
 | sango-zaiko.html | 三五 在庫管理ツール | PC |
+| shukka-naiji.html | 出荷内示 月度表（事務所） | PC（2026-11-17 追加。前の「出荷内示原紙」の置き場所） |
+| shikyu-naiji.html | 支給内示 月度表（受入・素材） | PC（2026-11-17 追加） |
+| shukka-houkoku.html | 出荷数報告書 作成（事務所） | PC（2026-11-17 追加） |
 - ver（日付）がなかったツールには、見出しに「ver 2026-11-17」を足した（中身は変えていない）
-- まだ届いていない：積載効率プランナー・在庫カウント・売上・仕入照合・出荷指示書QR照合・かんばんカウンター・出荷内示原紙
+- まだ届いていない：積載効率プランナー・在庫カウント・売上・仕入照合・出荷指示書QR照合・かんばんカウンター
 - tools/ のツールは表紙の sw.js が保存する（保存した版を先に使う）。ツールを直したら tools.js の ver と SITE_VER を上げること。CDN（Excelライブラリ・フォント）を使うツールは、一度Wi-Fiで開くと保存されてオフラインでも動く
 
 ## 決まりごと

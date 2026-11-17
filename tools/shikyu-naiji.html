@@ -1,0 +1,679 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>支給内示 月度表</title>
+<style>
+:root{
+  --bg:#f4f5f7; --panel:#fff; --ink:#1d232b; --sub:#5b6573; --line:#cfd5dd; --line2:#e4e8ee;
+  --accent:#1f5fae; --accent-ink:#fff; --red:#d1242f; --redbg:#fff0f0;
+  --ohno:#dcf6fb; --mikawa:#e3f8dc; --wkend:#fde2ee;--sat:#d9f6fb; --total:#e6e6fb; --calc:#1f4fd6;
+  --warn:#9a6700; --warnbg:#fff8e1;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Yu Gothic UI","Meiryo","Hiragino Sans",system-ui,sans-serif;font-size:14px}
+header{background:#14263f;color:#fff;padding:12px 16px;display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;position:sticky;top:0;z-index:20}
+header h1{font-size:17px;margin:0 8px 0 0;font-weight:700;letter-spacing:.04em}
+header h1 .ver{font-size:12px;font-weight:400;color:#b8c6da;margin-left:8px;letter-spacing:0}
+.ctl{display:flex;align-items:center;gap:6px}
+.ctl label{font-size:12px;color:#b8c6da}
+select,button,input[type=text]{font:inherit}
+select{padding:5px 8px;border-radius:6px;border:1px solid #4a5d79;background:#22385a;color:#fff}
+button{padding:6px 12px;border-radius:6px;border:1px solid var(--line);background:#fff;color:var(--ink);cursor:pointer;font-weight:600}
+button:hover{filter:brightness(.96)}
+button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+header button{border-color:#4a5d79;background:#22385a;color:#fff}
+header button.primary{background:#2f7ae5;border-color:#2f7ae5}
+.spacer{flex:1}
+main{padding:14px 16px 40px;max-width:100%}
+#drop{border:2px dashed #9fb3cf;border-radius:10px;background:#fff;padding:14px;text-align:center;color:var(--sub);margin-bottom:12px;cursor:pointer}
+#drop.over{background:#eaf2ff;border-color:var(--accent);color:var(--accent)}
+#drop b{color:var(--ink)}
+.cards{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:12px}
+.card{background:var(--panel);border:1px solid var(--line2);border-radius:10px;padding:10px 14px;min-width:150px}
+.card .k{font-size:12px;color:var(--sub)}
+.card .v{font-size:20px;font-weight:700;font-variant-numeric:tabular-nums}
+.card.red .v{color:var(--red)}
+.notice{background:var(--warnbg);color:var(--warn);border:1px solid #f0d58a;border-radius:8px;padding:8px 12px;margin-bottom:12px;display:none}
+.notice button{margin-left:8px;padding:3px 10px}
+.legend{font-size:12px;color:var(--sub);margin:0 0 6px;display:flex;flex-wrap:wrap;gap:6px 14px}
+.legend i{display:inline-block;width:12px;height:12px;border:1px solid var(--line);vertical-align:-2px;margin-right:4px}
+.sheetwrap{overflow:auto;background:#fff;border:1px solid var(--line);border-radius:8px;max-height:calc(100vh - 230px)}
+table.sheet{border-collapse:separate;border-spacing:0;font-size:12.5px;font-variant-numeric:tabular-nums}
+.sheet th,.sheet td{border-right:1px solid var(--line2);border-bottom:1px solid var(--line2);padding:3px 5px;white-space:nowrap}
+.sheet thead th{position:sticky;top:0;background:#eef1f5;z-index:5;font-weight:600;font-size:12px}
+.sheet thead th.wk{background:var(--wkend)}
+.sheet .nm{position:sticky;left:0;background:#fff;z-index:3;min-width:210px;max-width:230px;white-space:normal;line-height:1.25}
+.sheet thead .nm{z-index:6;background:#eef1f5}
+.sheet .nm small{display:block;color:var(--sub);font-size:10.5px}
+.sheet .cap{text-align:right;color:var(--sub);min-width:38px}
+.sheet td.d{text-align:right;min-width:42px}
+.sheet td.d.wk{background:#fdf3fb}
+.sheet td.sum{text-align:right;font-weight:700;min-width:60px;background:#f7f8fa}
+.sheet tr.ohno td,.sheet tr.ohno .nm{background:var(--ohno)}
+.sheet tr.mikawa td,.sheet tr.mikawa .nm{background:var(--mikawa)}
+.sheet tr.calc td.d,.sheet tr.calc td.sum{color:var(--calc)}
+.sheet tr.calc .nm{color:var(--calc);font-weight:600;text-align:right}
+.sheet tr.big td{font-weight:700;font-size:14px}
+.sheet tr.total td,.sheet tr.total .nm{background:var(--total);font-weight:700}
+.sheet tr.gap td{background:#fafbfc;height:14px;border-right:0}
+.sheet tr.grpend td,.sheet tr.grpend .nm{border-bottom:2px solid #8a96a8}
+.sheet td.chg{color:var(--red);font-weight:700}
+.sheet td.chg.hl{background:var(--redbg)!important;outline:1px solid #f3b3b7;outline-offset:-1px}
+.sheet td.inp{padding:0}
+.sheet td.inp input{width:100%;min-width:42px;border:0;background:transparent;text-align:right;padding:3px 5px;font:inherit;color:#7a3e00}
+.sheet td.inp input:focus{outline:2px solid var(--accent);background:#fff}
+.sheet tr.manual .nm::after{content:"手入力";font-size:10px;color:#7a3e00;background:#fff1de;border-radius:4px;padding:0 4px;margin-left:4px;white-space:nowrap;display:inline-block}
+h2{font-size:15px;margin:22px 0 8px}
+table.chg{border-collapse:collapse;background:#fff;border:1px solid var(--line);font-size:13px}
+table.chg th,table.chg td{border-bottom:1px solid var(--line2);padding:5px 10px;text-align:left}
+table.chg td.n{text-align:right;font-variant-numeric:tabular-nums}
+table.chg .up{color:#0a7a3a;font-weight:700}.chg .dn{color:var(--red);font-weight:700}
+.muted{color:var(--sub);font-size:12px}
+dialog{border:1px solid var(--line);border-radius:10px;padding:16px 18px;max-width:640px}
+dialog h3{margin:0 0 10px;font-size:15px}
+dialog table{border-collapse:collapse;width:100%;font-size:13px}
+dialog td{padding:5px 4px;border-bottom:1px solid var(--line2)}
+dialog select{background:#fff;color:var(--ink);border-color:var(--line);max-width:300px}
+.toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#1d232b;color:#fff;padding:10px 16px;border-radius:8px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:50}
+.toast.show{opacity:1}
+@media (max-width:700px){header h1{width:100%}.sheet .nm{min-width:150px}}
+@media print{
+  @page{size:A3 landscape;margin:8mm}
+  header,#drop,.notice,.noprint,dialog,.toast{display:none!important}
+  body{background:#fff}
+  main{padding:0}
+  .sheetwrap{overflow:visible;max-height:none;border:0}
+  .sheet thead th,.sheet .nm{position:static}
+  table.sheet{font-size:9px}
+  .sheet td.inp input{color:#000}
+  .printhead{display:block!important}
+}
+.printhead{display:none;font-size:14px;font-weight:700;margin-bottom:6px}
+.sheet thead th.sat{background:#c9f1f8}
+.sheet thead th.wk{background:#fbd3e4}
+.sheet td.d.sat{background:#f0fbfd}
+.sheet td.d.wk{background:#fdf1f6}
+.sheet tr.sec td{background:#14263f!important;color:#fff;font-weight:700;font-size:12px;padding:4px 8px;border-bottom:0}
+.sheet tr.sec.mikawa td{background:#1f6b3a!important}
+.sheet tr.sec.nansei td{background:#1d5f8a!important}
+.sheet tr.sec .nm{position:sticky;left:0;z-index:4}
+</style>
+</head>
+<body>
+<header>
+  <h1>支給内示 月度表<span class="ver">ver 2026-11-17</span></h1>
+  <div class="ctl"><label for="selMonth">月度</label><select id="selMonth"></select></div>
+  <div class="ctl"><label for="selVer">版</label><select id="selVer"></select></div>
+  <div class="spacer"></div>
+  <button id="btnLoad" class="primary">支給ファイル読込</button>
+  <button id="btnXlsx">Excel出力</button>
+  <button id="btnPrint">印刷</button>
+  <button id="btnMap">品番の割当</button>
+  <button id="btnMore">バックアップ…</button>
+  <input type="file" id="file" accept=".xlsx,.xlsm,.xls" hidden>
+  <input type="file" id="fileJson" accept=".json" hidden>
+</header>
+<main>
+  <div id="drop">支給ファイル（例：<b>支給10-3.xlsx</b>）をここにドラッグ＆ドロップ、またはクリックして選択 ― 「sch」シートの支給数を月度表に反映し、<b>前に読み込んだ版</b>と比べて変わった日を赤字にします（前回あり→今回空欄の日は赤字で <b>0</b> を表示）</div>
+  <div class="notice" id="notice"></div>
+  <div class="cards" id="cards"></div>
+  <div class="printhead" id="printhead"></div>
+  <div class="legend noprint">
+    <span><i style="background:var(--ohno)"></i>南星キャリックス便（緑台車）</span>
+    <span><i style="background:var(--mikawa)"></i>三河様 1便（南星便）</span>
+    <span><i style="background:var(--sat)"></i>土</span>
+    <span><i style="background:var(--wkend)"></i>日</span>
+    <span style="color:var(--red);font-weight:700">赤字＝前回から変更（赤字の0＝前回あり→今回なし）</span>
+    <span style="color:var(--calc)">青字＝箱数・台車数（数量÷収容数）</span>
+    <span style="color:#7a3e00">手入力行はセルに直接入力（自動保存）</span>
+  </div>
+  <div class="sheetwrap"><table class="sheet" id="sheet"></table></div>
+  <h2 class="noprint">変更一覧（前回 → 今回）</h2>
+  <div id="changes" class="noprint"></div>
+  <h2 class="noprint">台数照合（sch の台数 ⇔ 月度表の計算）</h2>
+  <div id="checks" class="noprint"></div>
+</main>
+
+<dialog id="dlgMap">
+  <h3>品番の割当</h3>
+  <p class="muted">支給ファイル（sch）の品目コードを、月度表のどの行に入れるかを設定します。未割当の品番は表に反映されません。</p>
+  <table id="mapTable"></table>
+  <div style="margin-top:12px;text-align:right"><button id="mapClose" class="primary">閉じる</button></div>
+</dialog>
+<dialog id="dlgMore">
+  <h3>バックアップ</h3>
+  <p class="muted">データはこのPCのブラウザ内に自動保存されています。PC入替えや別PCで使うときはバックアップを書き出して読み込んでください。</p>
+  <div style="display:flex;gap:8px;flex-wrap:wrap">
+    <button id="bkSave">バックアップを書き出す (.json)</button>
+    <button id="bkLoad">バックアップを読み込む</button>
+    <button id="verDel">表示中の版を削除</button>
+  </div>
+  <div style="margin-top:12px;text-align:right"><button id="moreClose" class="primary">閉じる</button></div>
+</dialog>
+<div class="toast" id="toast"></div>
+
+<script>
+const TOOL_VER='2026-11-17';
+/* ====== 支給内示原紙レイアウト定義（原紙の行番号に対応） ====== */
+const ROWS = [
+  {r:6, a:'南', pn:'82126-TTA7-J000-SB-0000', label:'SIDE FRAME COMP INN R,RR BACK', car:'2RG', kind:'in', sec:'nansei'},
+  {r:7, a:'星', label:'箱数', kind:'calc', src:6, cap:14},
+  {r:8, a:'キャリッ', c:'（14）', kind:'check'},
+  {r:9, pn:'82526-TTA7-J000-SB-0000', label:'SIDE FRAME COMP INN L,RR BACK', car:'2RG', kind:'in'},
+  {r:10, label:'箱数', kind:'calc', src:9, cap:14},
+  {r:11, a:'ク', c:'（14）', kind:'check'},
+  {r:12, a:'ス', pn:'82129-TTE8-J000-SA-0000', label:'PANEL PARTATION BOARD', car:'2RG+', kind:'in'},
+  {r:13, a:'便', label:'箱数（12）', kind:'calc', src:12, cap:12, cls:'grpend'},
+  {r:14, pn:'82136-TTE8-J000-SA-0000-W', label:'FOOT PIPE SUB COMP', car:'2RG+', kind:'in', cls:'ohno'},
+  {r:15, label:'緑台車 H型 白（140）', kind:'calc', src:14, cap:140, cls:'ohno grpend'},
+  {r:16, pn:'82136-TXA9-J000-SA-0000', label:'FOOT PIPE SUB COMP,RR CUSH', car:'2RY', kind:'in', cls:'ohno'},
+  {r:17, label:'緑台車 H型 黄（140）', kind:'calc', src:16, cap:140, cls:'ohno grpend'},
+  {r:18, pn:'82168-TDE5-J010-M1-0000', label:'FOOT PIPE R,RR CUSH（210）', car:'2RP', kind:'in', sec:'other'},
+  {r:19, pn:'82568-TDE5-J010-M1-0000', label:'FOOT PIPE L,RR CUSH（210）', car:'2RP', kind:'in'},
+  {r:20, c:'緑台車', kind:'check', prevEnd:true},
+  {r:21, pn:'82126-TDE5-J000-SB-0000', label:'SIDE FRAME COMP INN R（40）', car:'2RP', kind:'in'},
+  {r:22, pn:'82526-TDE5-J000-SB-0000', label:'SIDE FRAME COMP INN L（40）', car:'2RP', kind:'in'},
+  {r:23, kind:'check', prevEnd:true},
+  {r:24, pn:'81136-TF08-J010-35-0000', label:'REC LEVER A R F/C（150）', car:'', kind:'in'},
+  {r:25, label:'箱数', kind:'calc', src:24, cap:150},
+  {r:26, pn:'81536-TF08-J010-35-0000', label:'REC LEVER A L F/C（150）', car:'', kind:'in'},
+  {r:27, label:'箱数', kind:'calc', src:26, cap:150},
+  {r:28, pn:'81536-TP80-J000-UA-0000-3', label:'LEVER RECLINING COMP（200）', car:'', kind:'in'},
+  {r:29, kind:'check', prevEnd:true},
+  {r:30, pn:'82136-TTA7-J000-SB-0001', label:'FOOT COMP R,RR CUSH（60）', car:'2RG', kind:'in', cls:'mikawa', sec:'mikawa'},
+  {r:31, pn:'82536-TTA7-J000-SB-0001', label:'FOOT COMP L,RR CUSH（60）', car:'2RG', kind:'in', cls:'mikawa'},
+  {r:32, a:'南', label:'青デカ 総台数', kind:'calc', src:31, cap:60, cls:'mikawa grpend', chk:'2RG'},
+  {r:33, kind:'check'},
+  {r:34, pn:'82136-TZA0-J010-SA-0000', label:'FOOT PIPE SUB COMP R,RR CUSH（70）', car:'2FJ', kind:'in', cls:'mikawa'},
+  {r:35, a:'星', pn:'82536-TZA0-J000-SA-0000', label:'FOOT PIPE SUB COMP L,RR CUSH（70）', car:'2FJ', kind:'in', cls:'mikawa'},
+  {r:36, label:'濃緑 総台車', kind:'calc', src:35, cap:70, cls:'mikawa grpend', chk:'2FJ'},
+  {r:37, kind:'check'},
+  {r:38, a:'便', pn:'82136-32R4-J000-SB-0000', label:'FOOT COMP R,RR CUSH（60）', car:'3RB', kind:'in', cls:'mikawa'},
+  {r:39, pn:'82536-32R4-J000-SB-0000', label:'FOOT COMP L,RR CUSH（60）', car:'3RB', kind:'in', cls:'mikawa'},
+  {r:40, label:'青デカ 総台数', kind:'calc', src:39, cap:60, cls:'mikawa grpend', chk:'3RB'},
+  {r:41, label:'【三河様 1便引取り台数】', kind:'sum', srcs:[32,36,40], cls:'mikawa big', chk:'合計'},
+];
+const SECTIONS = {nansei:'南星キャリックス便', other:'その他', mikawa:'三河様 1便（南星便）'};
+/* 支給ファイル(sch)の品目コード → 原紙の行（原紙と末尾が違う品番もここで対応付け） */
+const DEFAULT_MAP = {
+  '82126-TTA7-J000-SB-0000':6,  '82526-TTA7-J000-SB-0000':9,
+  '82129-TTE8-J000-SA-0001-W':12,'82129-TTE8-J000-SA-0000':12,
+  '82136-TTE8-J000-SA-0000-W':14,
+  '82136-TXA9-J000-SA-0000-W':16,'82136-TXA9-J000-SA-0000':16,
+  '82168-TDE5-J010-M1-0000':18, '82568-TDE5-J010-M1-0000':19,
+  '82126-TDE5-J000-SB-0000':21, '82526-TDE5-J000-SB-0000':22,
+  '81136-TF08-J010-35-0003':24, '81136-TF08-J010-35-0000':24,
+  '81536-TF08-J010-35-0003':26, '81536-TF08-J010-35-0000':26,
+  '81536-TP80-J000-UA-0000-3':28,
+  '82136-TTA7-J000-SB-0001':30, '82536-TTA7-J000-SB-0001':31,
+  '82136-TZA0-J000-SA-0000':34, '82136-TZA0-J010-SA-0000':34, '82536-TZA0-J000-SA-0000':35,
+  '82136-32R4-J000-SB-0000':38, '82536-32R4-J000-SB-0000':39,
+};
+const SEED = {"2026-10":{"versions":[{"label":"10-3","kno":3,"source":"支給10-3.xlsx","loadedAt":"2026-10-14T14:30:00+09:00","note":"赤字は10-3時点の原紙の赤字（前回値不明）","parts":{"82129-TTE8-J000-SA-0001-W":{"name":"PANEL PARTATION BOARD(溶接)","src":"社内","qty":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"diff":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]},"82136-TTE8-J000-SA-0000-W":{"name":"FOOT PIPE SUB COMP（溶接）","src":"社内","qty":[0,0,0,0,0,140,0,0,0,0,0,140,0,0,0,140,0,0,0,0,0,0,140,0,0,0,0,0,140,0,0],"diff":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"flag":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0]},"82136-TXA9-J000-SA-0000-W":{"name":"FOOT PIPE SUB COMP,RR CUSH","src":"社内","qty":[280,140,0,0,140,140,140,140,140,0,0,140,280,140,280,140,0,0,140,140,0,0,280,0,0,140,280,280,280,280,0],"diff":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]},"82136-TZA0-J000-SA-0000":{"name":"FOOT PIPE SUB COMP R,RR CUSH","src":"社内","qty":[420,280,0,0,280,420,280,280,420,0,0,280,280,420,280,280,0,0,420,280,280,280,280,0,0,280,280,420,280,280,0],"diff":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]},"82536-TZA0-J000-SA-0000":{"name":"FOOT PIPE SUB COMP L,RR CUSH","src":"社内","qty":[420,280,0,0,280,420,280,280,420,0,0,280,280,420,280,280,0,0,420,280,280,280,280,0,0,280,280,420,280,280,0],"diff":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]},"82136-32R4-J000-SB-0000":{"name":"FOOT COMP R,RR CUSH","src":"社内","qty":[600,600,0,0,840,840,720,840,720,0,0,720,840,840,720,840,0,0,720,840,720,720,840,0,0,840,840,840,840,840,0],"diff":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"flag":[1,1,0,0,1,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0]},"82536-32R4-J000-SB-0000":{"name":"FOOT COMP L,RR CUSH","src":"社内","qty":[600,600,0,0,840,840,720,840,720,0,0,720,840,840,720,840,0,0,720,840,720,720,840,0,0,840,840,840,840,840,0],"diff":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"flag":[1,1,0,0,1,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0]},"82136-TTA7-J000-SB-0001":{"name":"FOOT COMP R,RR CUSH","src":"社内","qty":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,120,0,0,0,0,0,0,0,0,0,0],"diff":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]},"82536-TTA7-J000-SB-0001":{"name":"FOOT COMP L,RR CUSH","src":"社内","qty":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,120,0,0,0,0,0,0,0,0,0,0],"diff":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]},"81136-TF08-J010-35-0003":{"name":"REC LEVER A R F/C","src":"山中工業","qty":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"diff":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]},"81536-TF08-J010-35-0003":{"name":"REC LEVER A L F/C","src":"山中工業","qty":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"diff":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]},"82126-TTA7-J000-SB-0000":{"name":"SIDE FRAME COMP INN R,RR BACK","src":"シンダイ","qty":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"diff":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]},"82526-TTA7-J000-SB-0000":{"name":"SIDE FRAME COMP INN L,RR BACK","src":"シンダイ","qty":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"diff":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]}},"check":{"2FJ":[6,4,0,0,4,6,4,4,6,0,0,4,4,6,4,4,0,0,6,4,4,4,4,0,0,4,4,6,4,4,0],"3RB":[10,10,0,0,14,14,12,14,12,0,0,12,14,14,12,14,0,0,12,14,12,12,14,0,0,14,14,14,14,14,0],"2RG":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,0,0,0,0,0,0,0,0,0,0],"合計":[16,14,0,0,18,20,16,18,18,0,0,16,18,20,16,18,0,0,18,18,18,16,18,0,0,18,18,20,18,18,0]}}],"manual":{}}};
+const STORE_KEY = 'shikyu-naiji-geppo-v1';
+const WD = ['日','月','火','水','木','金','土'];
+
+let state = load();
+let cur = {month:null, ver:null};
+function load(){
+  let s=null;
+  try{ s=JSON.parse(localStorage.getItem(STORE_KEY)||'null'); }catch(e){}
+  if(!s||!s.months) s={months:{},map:{}};
+  for(const m in SEED){ if(!s.months[m]) s.months[m]=JSON.parse(JSON.stringify(SEED[m])); }
+  if(!s.map) s.map={};
+  return s;
+}
+function save(){ try{ localStorage.setItem(STORE_KEY,JSON.stringify(state)); }catch(e){ toast('ブラウザへの保存に失敗しました（バックアップを書き出してください）'); } }
+function mapOf(){ return Object.assign({},DEFAULT_MAP,state.map); }
+function toast(t){ const el=document.getElementById('toast'); el.textContent=t; el.classList.add('show'); clearTimeout(toast._t); toast._t=setTimeout(()=>el.classList.remove('show'),2800); }
+function ym(m){ const [y,mm]=m.split('-').map(Number); return {y,m:mm,days:new Date(y,mm,0).getDate()}; }
+function wday(y,m,d){ return new Date(y,m-1,d).getDay(); }
+function isWk(y,m,d){ const w=wday(y,m,d); return w===0||w===6; }
+function fmt(v,dec){ if(v===null||v===undefined||v===''||v===0) return ''; if(dec) return (Math.round(v*10)/10).toLocaleString('ja-JP'); return Number(v).toLocaleString('ja-JP'); }
+function blank(){ return Array(31).fill(0); }
+function esc(s){ return String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function fmtDate(s){ if(!s) return ''; const d=new Date(s); return isNaN(d)?'':`${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')} 読込`; }
+
+/* ====== 計算 ====== */
+function compute(month,verIdx){
+  const rec=state.months[month]; const ver=rec.versions[verIdx]; const map=mapOf();
+  const vals={}, diffs={}, flags={}, src={}, partOf={};
+  for(const pn in (ver?ver.parts:{})){
+    const row=map[pn]; if(!row) continue;
+    const p=ver.parts[pn];
+    vals[row]=(vals[row]||blank()).map((v,i)=>v+(p.qty[i]||0));
+    diffs[row]=(diffs[row]||blank()).map((v,i)=>v+((p.diff&&p.diff[i])||0));
+    flags[row]=(flags[row]||blank()).map((v,i)=>v||((p.flag&&p.flag[i])?1:0));
+    src[row]='file'; partOf[row]=(partOf[row]||[]).concat([{pn,name:p.name}]);
+  }
+  for(const def of ROWS){
+    if(def.kind!=='in'||src[def.r]) continue;
+    vals[def.r]=(rec.manual&&rec.manual[def.r])?rec.manual[def.r].slice():blank();
+    src[def.r]='manual';
+  }
+  for(const def of ROWS) if(def.kind==='calc') vals[def.r]=vals[def.src].map(v=>v/def.cap);
+  for(const def of ROWS) if(def.kind==='sum') vals[def.r]=blank().map((_,i)=>def.srcs.reduce((a,r)=>a+(vals[r][i]||0),0));
+  return {vals,diffs,flags,src,partOf,ver};
+}
+
+/* ====== 描画 ====== */
+function render(){
+  const months=Object.keys(state.months).sort().reverse();
+  if(!cur.month||!state.months[cur.month]) cur.month=months[0];
+  const selM=document.getElementById('selMonth');
+  selM.innerHTML=months.map(m=>{const {y,m:mm}=ym(m);return `<option value="${m}">${String(y).slice(2)}年${mm}月度</option>`}).join('');
+  selM.value=cur.month;
+  const rec=state.months[cur.month];
+  if(cur.ver===null||cur.ver>=rec.versions.length) cur.ver=rec.versions.length-1;
+  const selV=document.getElementById('selVer');
+  selV.innerHTML=rec.versions.map((v,i)=>`<option value="${i}">${esc(v.label)}${i===rec.versions.length-1?'（最新）':''}</option>`).join('')||'<option>―</option>';
+  selV.value=cur.ver;
+
+  const {y,m,days}=ym(cur.month);
+  const C=compute(cur.month,cur.ver);
+  const changes=[];
+  let h='<thead><tr><th class="nm">品目 / 品番</th><th class="cap">車種<br>収容</th>';
+  for(let d=1;d<=days;d++){ const w=wday(y,m,d); h+=`<th class="${w===6?'sat':w===0?'wk':''}">${m}/${d}<br><span style="font-weight:400">${WD[w]}</span></th>`; }
+  h+='<th>小計</th></tr></thead><tbody>';
+  for(let i=0;i<ROWS.length;i++){
+    const def=ROWS[i];
+    if(def.sec){ h+=`<tr class="sec ${def.sec}"><td class="nm" colspan="2">${esc(SECTIONS[def.sec])}</td><td colspan="${days+1}"></td></tr>`; }
+    if(def.kind==='check') continue;
+    const nxt=ROWS[i+1];
+    const v=C.vals[def.r]; const isIn=def.kind==='in'; const manual=isIn&&C.src[def.r]==='manual';
+    const end=(nxt&&nxt.kind==='check'&&nxt.prevEnd)?' grpend':'';
+    const cls=[def.cls||'', def.kind==='calc'?'calc':'', manual?'manual':''].join(' ')+end;
+    let nm=esc(def.label);
+    if(isIn){
+      const fp=(C.partOf[def.r]||[]).map(p=>p.pn).filter(p=>p!==def.pn);
+      nm+=`<small>${esc(def.pn)}${fp.length?`<br>支給ファイル：${esc(fp.join(' / '))}`:''}</small>`;
+    }
+    h+=`<tr class="${cls}"><td class="nm">${nm}</td><td class="cap">${isIn?esc(def.car):(def.cap||'')}</td>`;
+    let sum=0;
+    for(let d=1;d<=days;d++){
+      const val=v[d-1]||0; sum+=val; const w=wday(y,m,d); const wk=w===6?' sat':w===0?' wk':'';
+      if(manual){
+        h+=`<td class="d inp${wk}"><input data-r="${def.r}" data-d="${d}" inputmode="numeric" value="${val?val:''}" aria-label="${esc(def.label)} ${d}日"></td>`;
+      }else{
+        const df=isIn&&C.diffs[def.r]?C.diffs[def.r][d-1]:0;
+        const fl=isIn&&C.flags[def.r]?C.flags[def.r][d-1]:0;
+        let c='d'+wk, t='';
+        if(df||fl){
+          c+=' chg hl';
+          if(df){ t=` title="前回 ${(val-df).toLocaleString()} → 今回 ${val.toLocaleString()}（${df>0?'+':''}${df}）"`; changes.push({row:def.label,d,before:val-df,after:val,df}); }
+          else { t=` title="原紙で赤字の箇所（前回値不明）"`; changes.push({row:def.label,d,before:null,after:val,df:null}); }
+        }
+        h+=`<td class="${c}"${t}>${(df||fl)&&!val&&isIn?'0':fmt(val,def.kind!=='in')}</td>`;
+      }
+    }
+    h+=`<td class="sum">${def.kind==='sum'?'':fmt(sum,def.kind==='calc')}</td></tr>`;
+  }
+  h+='</tbody>';
+  document.getElementById('sheet').innerHTML=h;
+
+  const ver=C.ver; let ng=[], checked=false;
+  if(ver&&ver.check){
+    for(const def of ROWS){ if(!def.chk||!ver.check[def.chk]) continue; checked=true;
+      for(let d=1;d<=days;d++){ const a=Math.round((C.vals[def.r][d-1]||0)*100)/100, b=ver.check[def.chk][d-1]||0; if(a!==b) ng.push({k:def.chk,label:def.label,d,a,b}); } }
+  }
+  const ck=document.getElementById('checks');
+  ck.innerHTML=!checked?'<p class="muted">この版には sch の台数行がありません。</p>':
+    ng.length?`<table class="chg"><thead><tr><th>項目</th><th>日</th><th>sch</th><th>月度表</th></tr></thead><tbody>${ng.map(n=>`<tr><td>${esc(n.k)}（${esc(n.label)}）</td><td class="n">${n.d}日</td><td class="n">${n.b}</td><td class="n dn">${n.a}</td></tr>`).join('')}</tbody></table>`:
+    '<p style="color:#0a7a3a;font-weight:700">OK：2RG・2FJ・3RB台数と合計（三河様 1便引取り台数）が、全日 sch と一致しています。</p>';
+
+  const unmapped=ver?Object.keys(ver.parts).filter(pn=>!mapOf()[pn]):[];
+  const tot41=C.vals[41].reduce((a,b)=>a+b,0);
+  document.getElementById('cards').innerHTML=`
+    <div class="card"><div class="k">表示中</div><div class="v">${String(y).slice(2)}年${m}月度 ${ver?esc(ver.label):''}</div></div>
+    <div class="card"><div class="k">三河様 1便引取り台数（月計）</div><div class="v">${fmt(tot41,true)||0}</div></div>
+    <div class="card ${changes.length?'red':''}"><div class="k">前回からの変更</div><div class="v">${changes.length} 箇所</div></div>
+    <div class="card ${checked&&ng.length?'red':''}"><div class="k">sch台数照合</div><div class="v" style="color:${!checked?'inherit':ng.length?'var(--red)':'#0a7a3a'}">${!checked?'―':ng.length?'NG '+ng.length+'件':'OK'}</div></div>
+    <div class="card"><div class="k">読込元</div><div class="v" style="font-size:14px">${ver?esc(ver.source||'')+'<br><span class="muted">'+fmtDate(ver.loadedAt)+'</span>':'―'}</div></div>`;
+  document.getElementById('printhead').textContent=`五和製作所　${m}月度　支給内示書　（${ver?ver.label:''}）　ツール ver ${TOOL_VER}`;
+  const nt=document.getElementById('notice');
+  const notes=[];
+  if(unmapped.length) notes.push(`未割当の品番が ${unmapped.length} 件あります（表に反映されていません）：${unmapped.map(esc).join('、')}<button id="ntMap">割当する</button>`);
+  if(ver&&ver.note) notes.push(esc(ver.note));
+  if(ver&&ver.firstOfMonth) notes.push('この月で最初に読み込んだ版のため、比較する前回の版がありません（赤字なし）。');
+  if(notes.length){ nt.style.display='block'; nt.innerHTML=notes.join('<br>'); const b=document.getElementById('ntMap'); if(b) b.onclick=openMap; }
+  else nt.style.display='none';
+
+  const ch=document.getElementById('changes');
+  ch.innerHTML=changes.length?`<table class="chg"><thead><tr><th>品目</th><th>日</th><th>前回</th><th>今回</th><th>差</th></tr></thead><tbody>${changes.map(c=>`<tr><td>${esc(c.row)}</td><td class="n">${c.d}日（${WD[wday(y,m,c.d)]}）</td><td class="n">${c.before===null?'―':c.before.toLocaleString()}</td><td class="n">${c.after.toLocaleString()}</td><td class="n ${c.df>0?'up':'dn'}">${c.df===null?'―':(c.df>0?'+':'')+c.df.toLocaleString()}</td></tr>`).join('')}</tbody></table>`:'<p class="muted">この版では前回からの変更はありません。</p>';
+}
+
+/* ====== 手入力 ====== */
+document.getElementById('sheet').addEventListener('change',e=>{
+  const t=e.target; if(t.tagName!=='INPUT') return;
+  const r=+t.dataset.r, d=+t.dataset.d;
+  const n=Number(String(t.value).replace(/[０-９]/g,c=>String.fromCharCode(c.charCodeAt(0)-0xFEE0)).replace(/[,，\s]/g,''))||0;
+  const rec=state.months[cur.month]; rec.manual=rec.manual||{};
+  rec.manual[r]=rec.manual[r]||blank(); rec.manual[r][d-1]=n; save(); render();
+  const nx=document.querySelector(`input[data-r="${r}"][data-d="${d+1}"]`); if(nx) nx.focus();
+});
+
+/* ====== xlsx読込（外部ライブラリ不要の簡易リーダー） ====== */
+async function unzip(buf){
+  const dv=new DataView(buf), u8=new Uint8Array(buf), files={};
+  let eocd=-1;
+  for(let i=buf.byteLength-22;i>=Math.max(0,buf.byteLength-70000);i--){ if(dv.getUint32(i,true)===0x06054b50){eocd=i;break;} }
+  if(eocd<0) throw new Error('Excelファイル(.xlsx)として読めません');
+  const n=dv.getUint16(eocd+10,true); let p=dv.getUint32(eocd+16,true);
+  const td=new TextDecoder();
+  for(let k=0;k<n;k++){
+    if(dv.getUint32(p,true)!==0x02014b50) break;
+    const method=dv.getUint16(p+10,true), csize=dv.getUint32(p+20,true);
+    const nl=dv.getUint16(p+28,true), el=dv.getUint16(p+30,true), cl=dv.getUint16(p+32,true), lo=dv.getUint32(p+42,true);
+    const name=td.decode(u8.subarray(p+46,p+46+nl));
+    files[name]={method,csize,lo};
+    p+=46+nl+el+cl;
+  }
+  return {
+    has:name=>!!files[name],
+    async text(name){
+      const f=files[name]; if(!f) return null;
+      const start=f.lo+30+dv.getUint16(f.lo+26,true)+dv.getUint16(f.lo+28,true);
+      const data=u8.slice(start,start+f.csize);
+      if(f.method===0) return td.decode(data);
+      const ds=new DecompressionStream('deflate-raw');
+      const out=await new Response(new Blob([data]).stream().pipeThrough(ds)).arrayBuffer();
+      return td.decode(out);
+    }
+  };
+}
+function xmlDoc(s){ return new DOMParser().parseFromString(s,'application/xml'); }
+function byTag(node,tag){ return Array.from(node.getElementsByTagNameNS('*',tag)); }
+function colNum(ref){ let n=0; for(const ch of ref){ const c=ch.charCodeAt(0); if(c>=65&&c<=90) n=n*26+c-64; else break; } return n; }
+async function readXlsx(buf){
+  const z=await unzip(buf);
+  const wbx=xmlDoc(await z.text('xl/workbook.xml'));
+  const rels=xmlDoc(await z.text('xl/_rels/workbook.xml.rels'));
+  const relMap={}; byTag(rels,'Relationship').forEach(r=>relMap[r.getAttribute('Id')]=r.getAttribute('Target'));
+  let ss=[]; const sst=await z.text('xl/sharedStrings.xml');
+  if(sst) ss=byTag(xmlDoc(sst),'si').map(si=>byTag(si,'t').filter(t=>!t.parentNode||t.parentNode.localName!=='rPh').map(t=>t.textContent).join(''));
+  const sheets=[];
+  for(const s of byTag(wbx,'sheet')){
+    const rid=s.getAttributeNS('http://schemas.openxmlformats.org/officeDocument/2006/relationships','id')||s.getAttribute('r:id');
+    let tgt=relMap[rid]||''; tgt=tgt.startsWith('/')?tgt.slice(1):('xl/'+tgt.replace(/^\.\//,''));
+    sheets.push({name:s.getAttribute('name'),path:tgt});
+  }
+  return {
+    names:sheets.map(s=>s.name),
+    async sheet(name){
+      const sh=sheets.find(s=>s.name===name); const x=await z.text(sh.path);
+      const doc=xmlDoc(x); const aoa=[];
+      for(const c of byTag(doc,'c')){
+        const ref=c.getAttribute('r'); const col=colNum(ref)-1; const row=parseInt(ref.replace(/^[A-Z]+/,''),10)-1;
+        const t=c.getAttribute('t'); const v=byTag(c,'v')[0]; let val=null;
+        if(t==='s') val=v?ss[+v.textContent]:null;
+        else if(t==='inlineStr') val=byTag(c,'t').map(e=>e.textContent).join('');
+        else if(t==='str'||t==='e') val=v?v.textContent:null;
+        else if(t==='b') val=v?v.textContent==='1':null;
+        else if(v&&v.textContent!=='') val=Number(v.textContent);
+        if(val===null||val==='') continue;
+        (aoa[row]=aoa[row]||[])[col]=val;
+      }
+      for(let i=0;i<aoa.length;i++) if(!aoa[i]) aoa[i]=[];
+      return aoa;
+    }
+  };
+}
+function serialToYMD(n){ const d=new Date(Date.UTC(1899,11,30)+Math.round(n)*86400000); return {y:d.getUTCFullYear(),m:d.getUTCMonth()+1,d:d.getUTCDate()}; }
+
+
+/* ====== 支給ファイル（sch）の解析 ====== */
+function parseSch(aoa,fileName){
+  let hr=-1,pc=-1;
+  for(let r=0;r<Math.min(aoa.length,30)&&hr<0;r++){ const row=aoa[r]||[]; for(let c=0;c<row.length;c++){ if(String(row[c]??'').trim()==='品目コード'){hr=r;pc=c;break;} } }
+  if(hr<0) throw new Error('「sch」シートに「品目コード」の見出しが見つかりません');
+  const dcols=[]; let y=0,m=0;
+  // 日付見出し（2列目以降は「前日+1」の数式のことがあるため、値が空でも連番として扱う）
+  let prevSerial=null; const hdr=aoa[hr];
+  for(let c=pc+1;c<Math.max(hdr.length,pc+40);c++){
+    let v=hdr[c];
+    if(typeof v==='number'&&v>20000) prevSerial=v;
+    else if((v===undefined||v===null||v==='')&&prevSerial!==null) { v=prevSerial+1; prevSerial=v; }
+    else { if(dcols.length) break; else continue; }
+    const p=serialToYMD(v); if(!y){y=p.y;m=p.m;} if(p.m!==m) break; dcols.push({c,d:p.d});
+  }
+  if(!dcols.length) throw new Error('日付の列が見つかりません');
+  const parts={}, check={};
+  const CHK={'2FJ台数':'2FJ','3RB台数':'3RB','2RG台数':'2RG','合計':'合計'};
+  for(let r=hr+1;r<aoa.length;r++){
+    const row=aoa[r]||[]; const pn=String(row[pc]??'').trim();
+    const qty=blank(); for(const {c,d} of dcols) qty[d-1]=Number(row[c])||0;
+    if(pn){ parts[pn]={name:String(row[pc+1]??'').trim(),src:String(row[pc+2]??'').trim(),qty}; continue; }
+    for(let c=0;c<dcols[0].c;c++){ const k=CHK[String(row[c]??'').trim()]; if(k){ if(dcols.some(({c:cc})=>typeof row[cc]==='number')) check[k]=qty; break; } }
+  }
+  if(!Object.keys(parts).length) throw new Error('品目データが見つかりません');
+  const fm=String(fileName).match(/(\d{1,2})\s*[-－ー_]\s*(\d{1,2})/);
+  return {month:`${y}-${String(m).padStart(2,'0')}`, label:fm?`${+fm[1]}-${+fm[2]}`:null, kno:fm?+fm[2]:null, parts, check};
+}
+async function handleFile(f){
+  try{
+    const book=await readXlsx(await f.arrayBuffer());
+    const sn=book.names.find(n=>n.trim().toLowerCase()==='sch')||book.names[0];
+    const p=parseSch(await book.sheet(sn),f.name);
+    const rec=state.months[p.month]||(state.months[p.month]={versions:[],manual:{}});
+    const {m}=ym(p.month);
+    if(p.kno===null){ const mx=rec.versions.reduce((a,v)=>Math.max(a,v.kno||0),0); p.kno=mx+1; p.label=`${m}-${p.kno}`; }
+    // 前回の版（この版より前で一番新しい版）と比較して差を計算
+    const prev=rec.versions.filter(v=>(v.kno||0)<p.kno).sort((a,b)=>(b.kno||0)-(a.kno||0))[0];
+    for(const pn in p.parts){
+      const q=p.parts[pn].qty, pq=prev&&prev.parts[pn]?prev.parts[pn].qty:blank();
+      p.parts[pn].diff=prev?q.map((v,i)=>v-(pq[i]||0)):blank();
+    }
+    if(prev){ for(const pn in prev.parts){ if(!p.parts[pn]&&prev.parts[pn].qty.some(x=>x)){ const pq=prev.parts[pn]; p.parts[pn]={name:pq.name,src:pq.src,qty:blank(),diff:pq.qty.map(x=>-x)}; } } }
+    const v={label:p.label,kno:p.kno,source:f.name,loadedAt:new Date().toISOString(),parts:p.parts,check:p.check,prevLabel:prev?prev.label:null,firstOfMonth:!prev};
+    const i=rec.versions.findIndex(x=>x.label===p.label);
+    if(i>=0) rec.versions[i]=v; else rec.versions.push(v);
+    rec.versions.sort((a,b)=>(a.kno||0)-(b.kno||0));
+    save(); cur.month=p.month; cur.ver=rec.versions.findIndex(x=>x.label===p.label); render();
+    const {y}=ym(p.month);
+    toast(`${String(y).slice(2)}年${m}月度 ${p.label} を反映しました（${Object.keys(p.parts).length}品番${prev?'／'+prev.label+'と比較':''}）`);
+  }catch(e){ console.error(e); toast('読込エラー：'+e.message); }
+}
+const fi=document.getElementById('file');
+document.getElementById('btnLoad').onclick=()=>fi.click();
+document.getElementById('drop').onclick=()=>fi.click();
+fi.onchange=()=>{ const f=fi.files[0]; if(f) handleFile(f); fi.value=''; };
+const drop=document.getElementById('drop');
+['dragenter','dragover'].forEach(ev=>document.addEventListener(ev,e=>{e.preventDefault();drop.classList.add('over');}));
+['dragleave','drop'].forEach(ev=>document.addEventListener(ev,e=>{e.preventDefault();if(ev==='drop'||e.target===drop)drop.classList.remove('over');}));
+document.addEventListener('drop',e=>{ const f=e.dataTransfer.files[0]; if(f) handleFile(f); });
+document.getElementById('selMonth').onchange=e=>{cur.month=e.target.value;cur.ver=null;render();};
+document.getElementById('selVer').onchange=e=>{cur.ver=+e.target.value;render();};
+document.getElementById('btnPrint').onclick=()=>window.print();
+
+/* ====== 品番の割当 ====== */
+function openMap(){
+  const rec=state.months[cur.month]; const ver=rec.versions[cur.ver]; const map=mapOf();
+  const pns=ver?Object.keys(ver.parts):Object.keys(DEFAULT_MAP);
+  const opts=ROWS.filter(d=>d.kind==='in');
+  document.getElementById('mapTable').innerHTML=pns.map(pn=>{
+    const nm=ver&&ver.parts[pn]?ver.parts[pn].name:'';
+    return `<tr><td>${esc(pn)}<br><span class="muted">${esc(nm)}</span></td><td><select data-pn="${esc(pn)}"><option value="">（反映しない）</option>${opts.map(o=>`<option value="${o.r}" ${map[pn]===o.r?'selected':''}>${esc(o.label)}（${esc(o.pn)}）</option>`).join('')}</select></td></tr>`;
+  }).join('');
+  document.getElementById('dlgMap').showModal();
+}
+document.getElementById('btnMap').onclick=openMap;
+document.getElementById('mapTable').addEventListener('change',e=>{ const pn=e.target.dataset.pn, v=e.target.value; state.map[pn]=v?+v:0; save(); render(); });
+document.getElementById('mapClose').onclick=()=>document.getElementById('dlgMap').close();
+
+/* ====== バックアップ ====== */
+document.getElementById('btnMore').onclick=()=>document.getElementById('dlgMore').showModal();
+document.getElementById('moreClose').onclick=()=>document.getElementById('dlgMore').close();
+document.getElementById('bkSave').onclick=()=>dl(new Blob([JSON.stringify(state)],{type:'application/json'}),`支給内示_バックアップ_${new Date().toISOString().slice(0,10)}.json`);
+const fj=document.getElementById('fileJson');
+document.getElementById('bkLoad').onclick=()=>fj.click();
+fj.onchange=async()=>{ try{ const s=JSON.parse(await fj.files[0].text()); if(!s.months) throw 0; state=s; if(!state.map) state.map={}; save(); cur={month:null,ver:null}; render(); toast('バックアップを読み込みました'); }catch(e){ toast('バックアップファイルが正しくありません'); } fj.value=''; };
+document.getElementById('verDel').onclick=()=>{
+  const rec=state.months[cur.month]; if(!rec.versions.length) return;
+  const lab=rec.versions[cur.ver].label;
+  if(!confirm(`版「${lab}」を削除しますか？`)) return;
+  rec.versions.splice(cur.ver,1); if(!rec.versions.length&&!Object.keys(rec.manual||{}).length) delete state.months[cur.month];
+  cur.ver=null; save(); render(); toast(`版「${lab}」を削除しました`);
+};
+function dl(blob,name){ const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; document.body.appendChild(a); a.click(); setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},500); }
+
+/* ====== xlsx書出し（外部ライブラリ不要の簡易ライター） ====== */
+const CRC_T=(()=>{const t=new Uint32Array(256);for(let n=0;n<256;n++){let c=n;for(let k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;t[n]=c>>>0;}return t;})();
+function crc32(u8){ let c=0xFFFFFFFF; for(let i=0;i<u8.length;i++) c=CRC_T[(c^u8[i])&255]^(c>>>8); return (c^0xFFFFFFFF)>>>0; }
+function zipStore(entries){
+  const te=new TextEncoder(); const chunks=[]; const central=[]; let off=0;
+  for(const e of entries){
+    const name=te.encode(e.name), data=te.encode(e.text), crc=crc32(data);
+    const h=new DataView(new ArrayBuffer(30));
+    h.setUint32(0,0x04034b50,true); h.setUint16(4,20,true); h.setUint16(6,0x0800,true); h.setUint16(8,0,true);
+    h.setUint16(10,0,true); h.setUint16(12,0x21,true); h.setUint32(14,crc,true); h.setUint32(18,data.length,true); h.setUint32(22,data.length,true);
+    h.setUint16(26,name.length,true); h.setUint16(28,0,true);
+    chunks.push(new Uint8Array(h.buffer),name,data);
+    const c=new DataView(new ArrayBuffer(46));
+    c.setUint32(0,0x02014b50,true); c.setUint16(4,20,true); c.setUint16(6,20,true); c.setUint16(8,0x0800,true); c.setUint16(10,0,true);
+    c.setUint16(12,0,true); c.setUint16(14,0x21,true); c.setUint32(16,crc,true); c.setUint32(20,data.length,true); c.setUint32(24,data.length,true);
+    c.setUint16(28,name.length,true); c.setUint32(42,off,true);
+    central.push(new Uint8Array(c.buffer),name);
+    off+=30+name.length+data.length;
+  }
+  const csize=central.reduce((a,b)=>a+b.length,0);
+  const e=new DataView(new ArrayBuffer(22));
+  e.setUint32(0,0x06054b50,true); e.setUint16(8,entries.length,true); e.setUint16(10,entries.length,true); e.setUint32(12,csize,true); e.setUint32(16,off,true);
+  return new Blob([...chunks,...central,new Uint8Array(e.buffer)],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+}
+const xe=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+class XSheet{
+  constructor(name){ this.name=name; this.cells={}; this.merges=[]; this.cols={}; this.rowsH={}; this.freeze=null; }
+  set(ref,v,style){ this.cells[ref]=Object.assign(this.cells[ref]||{}, v===undefined?{}:{v}, style?{s:style}:{}); }
+}
+class XBook{
+  constructor(){ this.sheets=[]; this.fonts=['<font><sz val="10"/><name val="游ゴシック"/><family val="3"/><charset val="128"/></font>']; this.fills=['<fill><patternFill patternType="none"/></fill>','<fill><patternFill patternType="gray125"/></fill>']; this.xfs=['<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>']; this.keys={}; }
+  add(name){ const s=new XSheet(name); this.sheets.push(s); return s; }
+  style({b=false,sz=10,color=null,fill=null,border=false,fmt=0,h=null,v='center',wrap=false}={}){
+    const key=JSON.stringify([b,sz,color,fill,border,fmt,h,v,wrap]); if(this.keys[key]!==undefined) return this.keys[key];
+    const fx=`<font>${b?'<b/>':''}<sz val="${sz}"/>${color?`<color rgb="${color}"/>`:''}<name val="游ゴシック"/><family val="3"/><charset val="128"/></font>`;
+    let fi=this.fonts.indexOf(fx); if(fi<0){ this.fonts.push(fx); fi=this.fonts.length-1; }
+    let fl=0; if(fill){ const fx2=`<fill><patternFill patternType="solid"><fgColor rgb="${fill}"/><bgColor indexed="64"/></patternFill></fill>`; fl=this.fills.indexOf(fx2); if(fl<0){ this.fills.push(fx2); fl=this.fills.length-1; } }
+    const al=`<alignment${h?` horizontal="${h}"`:''} vertical="${v}"${wrap?' wrapText="1"':''}/>`;
+    this.xfs.push(`<xf numFmtId="${fmt}" fontId="${fi}" fillId="${fl}" borderId="${border?1:0}" xfId="0" applyNumberFormat="1" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1">${al}</xf>`);
+    return this.keys[key]=this.xfs.length-1;
+  }
+  sheetXml(s){
+    const rows={};
+    for(const ref in s.cells){ const r=parseInt(ref.replace(/^[A-Z]+/,''),10); (rows[r]=rows[r]||[]).push(ref); }
+    let x='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">';
+    x+='<sheetPr><pageSetUpPr fitToPage="1"/></sheetPr>';
+    x+='<sheetViews><sheetView workbookViewId="0" zoomScale="85">';
+    if(s.freeze) x+=`<pane xSplit="${s.freeze.x}" ySplit="${s.freeze.y}" topLeftCell="${colL(s.freeze.x+1)}${s.freeze.y+1}" activePane="bottomRight" state="frozen"/>`;
+    x+='</sheetView></sheetViews><sheetFormatPr defaultRowHeight="15"/>';
+    const cn=Object.keys(s.cols).map(Number).sort((a,b)=>a-b);
+    if(cn.length) x+='<cols>'+cn.map(c=>`<col min="${c}" max="${c}" width="${s.cols[c]}" customWidth="1"/>`).join('')+'</cols>';
+    x+='<sheetData>';
+    for(const r of Object.keys(rows).map(Number).sort((a,b)=>a-b)){
+      const refs=rows[r].sort((a,b)=>colNum(a)-colNum(b));
+      x+=`<row r="${r}"${s.rowsH[r]?` ht="${s.rowsH[r]}" customHeight="1"`:''}>`;
+      for(const ref of refs){
+        const c=s.cells[ref], st=c.s?` s="${c.s}"`:''; const v=c.v;
+        if(v===undefined||v===null||v==='') x+=`<c r="${ref}"${st}/>`;
+        else if(typeof v==='object'&&v.f!==undefined) x+=`<c r="${ref}"${st}><f>${xe(v.f)}</f>${typeof v.r==='number'&&isFinite(v.r)?`<v>${v.r}</v>`:''}</c>`;
+        else if(typeof v==='number') x+=`<c r="${ref}"${st}><v>${v}</v></c>`;
+        else x+=`<c r="${ref}"${st} t="inlineStr"><is><t xml:space="preserve">${xe(v)}</t></is></c>`;
+      }
+      x+='</row>';
+    }
+    x+='</sheetData>';
+    if(s.merges.length) x+=`<mergeCells count="${s.merges.length}">${s.merges.map(m=>`<mergeCell ref="${m}"/>`).join('')}</mergeCells>`;
+    x+='<pageMargins left="0.3" right="0.3" top="0.4" bottom="0.4" header="0.2" footer="0.2"/>';
+    x+='<pageSetup paperSize="8" orientation="landscape" fitToWidth="1" fitToHeight="1"/>';
+    return x+'</worksheet>';
+  }
+  blob(){
+    const NS='xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"';
+    const files=[];
+    files.push({name:'[Content_Types].xml',text:`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>${this.sheets.map((s,i)=>`<Override PartName="/xl/worksheets/sheet${i+1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`).join('')}</Types>`});
+    files.push({name:'_rels/.rels',text:'<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>'});
+    files.push({name:'xl/workbook.xml',text:`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<workbook ${NS} xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><bookViews><workbookView/></bookViews><sheets>${this.sheets.map((s,i)=>`<sheet name="${xe(s.name)}" sheetId="${i+1}" r:id="rId${i+1}"/>`).join('')}</sheets><calcPr calcId="191029" fullCalcOnLoad="1"/></workbook>`});
+    files.push({name:'xl/_rels/workbook.xml.rels',text:`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${this.sheets.map((s,i)=>`<Relationship Id="rId${i+1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet${i+1}.xml"/>`).join('')}<Relationship Id="rId${this.sheets.length+1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>`});
+    const bd='<color rgb="FF999999"/>';
+    files.push({name:'xl/styles.xml',text:`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<styleSheet ${NS}><numFmts count="2"><numFmt numFmtId="164" formatCode="#,##0;\\-#,##0;&quot;&quot;"/><numFmt numFmtId="165" formatCode="#,##0.0;\\-#,##0.0;&quot;&quot;"/></numFmts><fonts count="${this.fonts.length}">${this.fonts.join('')}</fonts><fills count="${this.fills.length}">${this.fills.join('')}</fills><borders count="2"><border><left/><right/><top/><bottom/><diagonal/></border><border><left style="thin">${bd}</left><right style="thin">${bd}</right><top style="thin">${bd}</top><bottom style="thin">${bd}</bottom><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="${this.xfs.length}">${this.xfs.join('')}</cellXfs><cellStyles count="1"><cellStyle name="標準" xfId="0" builtinId="0"/></cellStyles></styleSheet>`});
+    this.sheets.forEach((s,i)=>files.push({name:`xl/worksheets/sheet${i+1}.xml`,text:this.sheetXml(s)}));
+    return zipStore(files);
+  }
+}
+function colL(n){ let s=''; while(n>0){ const m=(n-1)%26; s=String.fromCharCode(65+m)+s; n=Math.floor((n-1)/26);} return s; }
+
+
+/* ====== Excel出力（支給内示原紙のレイアウト） ====== */
+function buildXlsx(month,verIdx){
+  const {y,m,days}=ym(month);
+  const C=compute(month,verIdx); const ver=C.ver;
+  const sheetName=`${String(y).slice(2)}年${m}月度`;
+  const B=new XBook(); const ws=B.add(sheetName);
+  ws.freeze={x:4,y:5};
+  ws.cols={1:4.5,2:27,3:36,4:8,36:10};
+  for(let c=5;c<=35;c++) ws.cols[c]=6.6;
+  const CYAN='FFCCFFFF', GREEN='FFCCFFCC', SAT='FF00FFFF', SUN='FFFF99CC', BLUE='FF0000FF', RED='FFFF0000', MAG='FFFF00FF';
+  ws.set('B2',`五和製作所　${m}月度　支給内示書`,B.style({b:true,sz:14}));
+  const vm=ver?String(ver.label).match(/(\d+)-(\d+)/):null;
+  if(vm){ const s=B.style({b:true,sz:26,color:MAG,h:'center'}); ws.set('AF2',+vm[1],s); ws.merges.push('AF2:AG4'); ws.set('AI2',+vm[2],s); ws.merges.push('AI2:AJ4'); }
+  const hs=B.style({b:true,sz:9,border:true,h:'center'});
+  ws.set('A5','',hs); ws.set('B5','品番',hs); ws.set('C5','品目',hs); ws.set('D5','',hs);
+  for(let d=1;d<=31;d++){ const L=colL(4+d); if(d>days){ ws.set(L+'5','',hs); continue; } const w=wday(y,m,d); ws.set(L+'5',`${m}/${d}`,B.style({b:true,sz:9,border:true,h:'center',fill:w===6?SAT:w===0?SUN:null})); }
+  ws.set('AJ5','小　計',hs); ws.rowsH[5]=18;
+  const rowFill=r=>r>=14&&r<=17?CYAN:(r>=30&&r<=41?GREEN:null);
+  const changes=[];
+  const aStyle=r=>B.style({b:true,sz:14,color:BLUE,h:'center',fill:rowFill(r),border:true});
+  for(const def of ROWS){
+    const r=def.r, f=rowFill(r), v=C.vals[r]||blank();
+    ws.rowsH[r]=def.kind==='check'?14:(def.kind==='sum'?22:18);
+    ws.set('A'+r,def.a&&def.a!=='キャリッ'?def.a:'',aStyle(r));
+    const bd=B.style({border:true,fill:f,sz:9});
+    if(def.kind==='in'){
+      ws.set('B'+r,def.pn,bd); ws.set('C'+r,def.label,bd); ws.set('D'+r,def.car,B.style({border:true,fill:f,sz:8,h:'center'}));
+      for(let d=1;d<=31;d++){
+        const ref=colL(4+d)+r;
+        if(d>days){ ws.set(ref,'',B.style({border:true,fill:f})); continue; }
+        const val=v[d-1]||0, df=C.diffs[r]?C.diffs[r][d-1]:0, fl=C.flags[r]?C.flags[r][d-1]:0, red=!!(df||fl);
+        ws.set(ref,red&&!val?0:(val||''),B.style({border:true,fill:f,fmt:red&&!val?3:164,color:red?RED:null,b:red}));
+        if(red) changes.push([def.label,def.pn,d,df?val-df:'―',val,df||'―']);
+      }
+      ws.set('AJ'+r,{f:`SUM(E${r}:AI${r})`,r:v.reduce((a,b)=>a+b,0)},B.style({border:true,fill:f,fmt:164,h:'right'}));
+    }else if(def.kind==='calc'){
+      ws.set('B'+r,'',bd); ws.set('C'+r,def.label,B.style({border:true,fill:f,b:true,h:'right',color:BLUE}));
+      ws.set('D'+r,def.cap,B.style({border:true,fill:f,sz:9,h:'center'}));
+      for(let d=1;d<=31;d++){ const L=colL(4+d), ref=L+r; if(d>days){ ws.set(ref,'',B.style({border:true,fill:f})); continue; }
+        ws.set(ref,{f:`IF(N(${L}${def.src})=0,"",${L}${def.src}/$D$${r})`,r:v[d-1]||''},B.style({border:true,fill:f,b:true,color:BLUE,h:'right'})); }
+      ws.set('AJ'+r,'',B.style({border:true,fill:f}));
+    }else if(def.kind==='sum'){
+      ws.set('B'+r,'',bd); ws.set('C'+r,'【三河様　1便引取り台数】',B.style({border:true,fill:f,b:true,h:'center'})); ws.set('D'+r,'',bd);
+      for(let d=1;d<=31;d++){ const L=colL(4+d), ref=L+r; if(d>days){ ws.set(ref,'',B.style({border:true,fill:f})); continue; }
+        const ex=def.srcs.map(s=>`N(${L}${s})`).join('+');
+        ws.set(ref,{f:`IF((${ex})=0,"",${ex})`,r:v[d-1]||''},B.style({border:true,fill:f,b:true,sz:12,h:'right'})); }
+      ws.set('AJ'+r,'',B.style({border:true,fill:f}));
+    }else{
+      ws.set('B'+r,'',bd); ws.set('C'+r,def.c||'',B.style({border:true,fill:f,h:'right',sz:9,b:true,color:'FF008000'}));
+      ws.set('D'+r,'ｃｈｅｃｋ',B.style({border:true,fill:f,sz:8,color:RED}));
+      for(let d=1;d<=31;d++) ws.set(colL(4+d)+r,'',B.style({border:true,fill:f}));
+      ws.set('AJ'+r,'',B.style({border:true,fill:f}));
+    }
+  }
+  ws.set('A8','キ\nャ\nリ\nッ',B.style({b:true,sz:14,color:BLUE,h:'center',wrap:true,border:true})); ws.merges.push('A8:A10');
+  ws.set('A43',ver?`出典：${ver.source||''}（${ver.label}${ver.prevLabel?'／前回 '+ver.prevLabel+' と比較':''}）　赤字＝前回から変更あり（赤字の0＝前回あり→今回なし）　ツール ver ${TOOL_VER}`:'',B.style({sz:9,color:'FF666666'}));
+  const w2=B.add('変更一覧'); w2.cols={1:34,2:27,3:8,4:10,5:10,6:10};
+  const h2=B.style({b:true,border:true,fill:'FFEEF1F5',h:'center'}), c2=B.style({border:true}), n2=B.style({border:true,fmt:164,h:'right'}), r2=B.style({border:true,fmt:164,color:RED,b:true,h:'right'});
+  w2.set('A1',`${sheetName}　${ver?ver.label:''}　前回${ver&&ver.prevLabel?'（'+ver.prevLabel+'）':''}からの変更（${changes.length}件）`,B.style({b:true,sz:12}));
+  ['品目','品番','日','前回','今回','差'].forEach((t,i)=>w2.set(colL(i+1)+'3',t,h2));
+  changes.forEach((c,i)=>{ const r=4+i; w2.set('A'+r,c[0],c2); w2.set('B'+r,c[1],c2); w2.set('C'+r,`${c[2]}日`,c2); w2.set('D'+r,c[3],n2); w2.set('E'+r,c[4],n2); w2.set('F'+r,c[5],r2); });
+  return {blob:B.blob(),name:`支給内示_${sheetName}_${ver?ver.label:''}.xlsx`,sheetName};
+}
+function exportXlsx(){
+  try{ const o=buildXlsx(cur.month,cur.ver); dl(o.blob,o.name); toast(`${o.sheetName} をExcelに出力しました`); }
+  catch(e){ console.error(e); toast('Excel出力エラー：'+e.message); }
+}
+document.getElementById('btnXlsx').onclick=exportXlsx;
+
+render();
+</script>
+</body>
+</html>

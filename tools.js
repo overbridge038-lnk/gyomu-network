@@ -9,7 +9,7 @@
      「新しい版があります」と表示されます
    ========================================================= */
 
-var SITE_VER = '2026-11-17b';
+var SITE_VER = '2026-11-17c';
 
 /* GitHub Pages の場所（各ツールのリポジトリはここの下にある） */
 var BASE = 'https://overbridge038-lnk.github.io/';
@@ -33,11 +33,11 @@ var MAP_WALLS = [];
 var AREAS = [
   { id: 'office', icon: '🏢', name: '事務所',
     names: { id: 'Kantor', tl: 'Opisina', en: 'Office' },
-    x: 40, y: 50, w: 280, h: 130, tools: ['uriage', 'kanri-sheet', 'shukka-more-auto'] },
+    x: 40, y: 50, w: 280, h: 130, tools: ['uriage', 'kanri-sheet', 'shukka-more-auto', 'naiji', 'shukka-houkoku'] },
 
   { id: 'ukeire', icon: '📥', name: '受入・素材',
     names: { id: 'Penerimaan', tl: 'Receiving', en: 'Receiving' },
-    x: 40, y: 400, w: 170, h: 130, tools: [] },
+    x: 40, y: 400, w: 170, h: 130, tools: ['shikyu-naiji'] },
 
   { id: 'kake', icon: '🪝', name: '掛け',
     names: { id: 'Gantung', tl: 'Hanging', en: 'Hanging' },
@@ -161,9 +161,17 @@ var TOOLS = [
     desc: '売上伝票と仕入明細を照合してOK/NG判定',
     file: 'tools/uriage-shiire.html', ver: '2026-11-11' },
 
-  { id: 'naiji', icon: '📅', name: '出荷内示原紙',
-    desc: '出荷データから月度表を作る',
-    file: 'tools/shukka-naiji.html', ver: '2026-10-14' },
+  { id: 'naiji', icon: '📅', name: '出荷内示 月度表',
+    desc: '出荷ファイルの注文数を月度表に入れ、前回から変わった日を赤字で知らせる',
+    file: 'tools/shukka-naiji.html', ver: '2026-11-17' },
+
+  { id: 'shikyu-naiji', icon: '🚚', name: '支給内示 月度表',
+    desc: '支給ファイルの支給数を月度表に入れ、変わった日を赤字・台数も照合',
+    file: 'tools/shikyu-naiji.html', ver: '2026-11-17' },
+
+  { id: 'shukka-houkoku', icon: '📝', name: '出荷数報告書 作成',
+    desc: '発注データ（CSV／PDF）から出荷数報告書を作って印刷。両方入れると突き合わせ',
+    file: 'tools/shukka-houkoku.html', ver: '2026-11-17' },
 
   { id: 'tsumitsuke', icon: '🧱', name: '積み付け表 作成ツール',
     desc: 'タイムライン早見表から便ごとの積み付け表を作って印刷',

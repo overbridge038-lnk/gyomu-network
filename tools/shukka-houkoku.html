@@ -1,0 +1,548 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>出荷数報告書 作成</title>
+<style>
+:root{--bg:#eef0f3;--ink:#1d232b;--sub:#5b6573;--line:#cfd5dd;--accent:#1f5fae;--red:#c62828;--ok:#0a7a3a;--warnbg:#fff8e1;--warn:#8a5a00}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Yu Gothic UI","Meiryo","Hiragino Sans",system-ui,sans-serif;font-size:14px}
+header{background:#14263f;color:#fff;padding:12px 16px;display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center;position:sticky;top:0;z-index:20}
+header h1{font-size:17px;margin:0 8px 0 0;letter-spacing:.04em}
+header h1 .ver{font-size:12px;font-weight:400;color:#b8c6da;margin-left:8px;letter-spacing:0}
+.spacer{flex:1}
+button{font:inherit;padding:6px 12px;border-radius:6px;border:1px solid #4a5d79;background:#22385a;color:#fff;cursor:pointer;font-weight:600}
+button.primary{background:#2f7ae5;border-color:#2f7ae5}
+main{padding:14px 16px 40px}
+#drop{border:2px dashed #9fb3cf;border-radius:10px;background:#fff;padding:14px;text-align:center;color:var(--sub);margin-bottom:12px;cursor:pointer}
+#drop.over{background:#eaf2ff;border-color:var(--accent);color:var(--accent)}
+#drop b{color:var(--ink)}
+.cards{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:12px}
+.card{background:#fff;border:1px solid #e1e5ea;border-radius:10px;padding:10px 14px;min-width:140px}
+.card .k{font-size:12px;color:var(--sub)}
+.card .v{font-size:20px;font-weight:700;font-variant-numeric:tabular-nums}
+.card.red .v{color:var(--red)} .card.ok .v{color:var(--ok)}
+.src{background:#fff;border:1px solid #e1e5ea;border-radius:10px;padding:8px 14px;margin-bottom:12px;font-size:13px;color:var(--sub);line-height:1.7}
+.src b{color:var(--ink)}
+.msg{border-radius:8px;padding:8px 12px;margin-bottom:12px;display:none}
+.msg.warn{background:var(--warnbg);color:var(--warn);border:1px solid #f0d58a}
+.pages{display:flex;flex-direction:column;align-items:center;gap:18px}
+/* ===== 報告書ページ（A4縦） ===== */
+.page{background:#fff;width:210mm;min-height:297mm;padding:9mm 8mm 8mm;box-shadow:0 2px 10px rgba(0,0,0,.15);font-family:"Yu Gothic","Meiryo",sans-serif;color:#000}
+.ph{display:flex;align-items:flex-end;border-bottom:1.5px solid #000;padding-bottom:3px;margin-bottom:0}
+.ph .t{font-weight:700;font-size:13pt}
+.ph .sk{margin-left:auto;margin-right:16mm;font-size:10pt}
+.ph .sk span{display:inline-block;min-width:22mm;text-align:center;font-size:12pt;font-weight:700}
+.ph .pl{font-size:10pt;font-weight:700}
+table.rep{width:100%;border-collapse:collapse;table-layout:fixed;font-size:9pt}
+table.rep th,table.rep td{border:1px solid #000;padding:0 2px;height:7.6mm;text-align:center;vertical-align:middle;overflow:hidden}
+table.rep th{height:6mm;font-size:7.5pt;font-weight:600}
+table.rep td.koujou{font-size:15pt;font-weight:700;writing-mode:vertical-rl;letter-spacing:.6em;border-right:1px solid #000}
+table.rep td.se{font-weight:700;font-size:10pt}
+table.rep td.pn{font-size:9.5pt}
+table.rep td.cap{font-size:9.5pt}
+table.rep td.hat{font-size:13pt;font-weight:700;color:#0b3d91}
+table.rep td.hat.frac{color:var(--red)}
+table.rep td.bt{font-size:7.5pt}
+table.rep td.bik{font-size:7pt;text-align:left;color:#444;white-space:nowrap}
+table.rep td.nouhin{font-size:10pt;font-weight:700}
+.g05{background:#f2f2f2}.g15{background:#d9d9d9}.g25{background:#bfbfbf}
+.ann{margin-top:4mm;border:1.5px solid var(--red);border-radius:2mm;padding:2.5mm 3mm;font-size:8.5pt;color:#000}
+.ann h3{margin:0 0 1.5mm;font-size:9.5pt;color:var(--red)}
+.ann table{border-collapse:collapse;width:100%;font-size:8.5pt}
+.ann th,.ann td{border:1px solid #999;padding:1px 4px;text-align:left}
+.ann td.n{text-align:right}
+.ann .none{color:#666}
+.foot{margin-top:2mm;font-size:7pt;color:#666;text-align:right}
+dialog#dlgItems{border:1px solid var(--line);border-radius:12px;padding:16px 18px;width:min(920px,96vw);max-height:92vh}
+dialog#dlgItems::backdrop{background:rgba(20,38,63,.35)}
+.dh{display:flex;align-items:center;justify-content:space-between}
+.dh h3{margin:0;font-size:16px}
+.x{background:none;border:0;color:var(--sub);font-size:22px;padding:0 6px}
+.muted{color:var(--sub);font-size:12.5px;margin:6px 0 10px}
+.addf{display:flex;flex-wrap:wrap;gap:8px 10px;align-items:flex-end;background:#f4f7fb;border:1px solid #dfe6ef;border-radius:10px;padding:10px 12px}
+.addf label{display:flex;flex-direction:column;font-size:12px;color:var(--sub);gap:3px}
+.addf input,.addf select,.items input{font:inherit;padding:5px 7px;border:1px solid #c3ccd8;border-radius:6px;background:#fff;color:var(--ink)}
+.addf input[name=se],.addf input[name=cap]{width:90px}.addf input[name=pn]{width:150px}.addf input[name=bt]{width:110px}
+.ferr{width:100%;color:var(--red);font-size:12.5px;min-height:1em}
+.itemsWrap{max-height:46vh;overflow:auto;margin-top:10px;border:1px solid #e1e5ea;border-radius:8px}
+table.items{border-collapse:collapse;width:100%;font-size:13px}
+table.items th{position:sticky;top:0;background:#eef1f5;text-align:left;padding:5px 8px;font-weight:600}
+table.items td{border-top:1px solid #edf0f3;padding:3px 8px}
+table.items td.n{text-align:right;font-variant-numeric:tabular-nums}
+table.items tr.new td{background:#eefaf1}
+table.items .tag{font-size:11px;background:#d8f3df;color:#0a7a3a;border-radius:4px;padding:0 5px;margin-left:4px}
+table.items input{width:100%;padding:3px 5px}
+.sub{background:#fff;color:var(--ink);border:1px solid var(--line);font-weight:600;padding:5px 10px}
+.sub.danger{color:var(--red)}
+.mini{padding:2px 8px;font-size:12px;background:#fff;color:var(--ink);border:1px solid var(--line)}
+.mini.add{background:var(--ok);border-color:var(--ok);color:#fff}
+.dfoot{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#1d232b;color:#fff;padding:10px 16px;border-radius:8px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:50}
+.toast.show{opacity:1}
+@media print{
+  @page{size:A4 portrait;margin:0}
+  header,#drop,.cards,.src,.msg,.noprint,.toast{display:none!important}
+  body{background:#fff} main{padding:0}
+  .pages{gap:0;display:block}
+  .page{box-shadow:none;page-break-after:always;break-after:page;width:210mm;min-height:auto;height:296mm}
+  .page:last-child{page-break-after:auto;break-after:auto}
+  *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+}
+</style>
+</head>
+<body>
+<header>
+  <h1>出荷数報告書 作成<span class="ver">ver 2026-11-17</span></h1>
+  <div class="spacer"></div>
+  <button id="btnLoad" class="primary">発注データ読込（CSV／PDF）</button>
+  <button id="btnPrint">印刷・PDF保存</button>
+  <button id="btnMaster">品目の追加・管理</button>
+  <button id="btnClear">クリア</button>
+  <input type="file" id="file" accept=".csv,.pdf,.PDF,.CSV" multiple hidden>
+  <input type="file" id="fileMaster" accept=".xlsx" hidden>
+  <input type="file" id="fileItemsJson" accept=".json" hidden>
+</header>
+<main>
+  <div id="drop">発注データ（<b>H〇〇〇〇.csv</b> または <b>H〇〇〇〇PRN.PDF</b>）をここにドラッグ＆ドロップ、またはクリックして選択 ― 両方入れると CSV と PDF の内容も突き合わせます</div>
+  <div class="msg warn" id="warn"></div>
+  <div class="cards" id="cards"></div>
+  <div class="src" id="src"></div>
+  <div class="pages" id="pages"></div>
+</main>
+<div class="toast" id="toast"></div>
+<dialog id="dlgItems">
+  <div class="dh"><h3>品目の追加・管理</h3><button class="x" id="itemsClose" aria-label="閉じる">×</button></div>
+  <p class="muted">新しい品番が立ち上がったら、ここで報告書に追加します。追加した品目はこのPCに保存され、次回から報告書に表示されます。</p>
+  <form id="addForm" class="addf" autocomplete="off">
+    <label>背番<input name="se" required inputmode="numeric" placeholder="例 4120"></label>
+    <label>品番<input name="pn" required placeholder="例 12345-67890"></label>
+    <label>収容数<input name="cap" required inputmode="numeric" placeholder="例 40"></label>
+    <label>箱種（特殊箱のみ）<input name="bt" placeholder="空欄でOK"></label>
+    <label>追加先<select name="page"></select></label>
+    <button type="submit" class="primary">＋ 追加</button>
+    <div class="ferr" id="addErr"></div>
+  </form>
+  <div class="itemsWrap"><table class="items" id="itemsTable"></table></div>
+  <div class="dfoot">
+    <button type="button" class="sub" id="itemsExport">品目を書き出す（.json）</button>
+    <button type="button" class="sub" id="itemsImport">品目を読み込む（.json）</button>
+    <button type="button" class="sub" id="itemsXlsx">出荷数報告書.xlsx から一括読込</button>
+    <button type="button" class="sub danger" id="itemsReset">最初の品目に戻す</button>
+  </div>
+</dialog>
+
+<script>
+const TOOL_VER='2026-11-17';
+/* ===== 出荷数報告書の品目（現場出荷表〈岡崎〉(1)(2)より） ===== */
+const DEFAULT_MASTER = [{"name":"現場出荷表〈岡崎〉  (1)","koujou":"岡崎工場","merges":["I6:I7","D3:D34","J6:J7"],"rows":[{"r":3,"se":"3795","pn":"74417-60050","cap":15,"bt":null,"fe":"theme0:-0.15","fg":null,"fi":null,"fj":"theme0:-0.25","fl":null},{"r":4,"se":"3927","pn":"77778-60030","cap":60,"bt":null,"fe":null,"fg":null,"fi":null,"fj":"theme0:-0.25","fl":null},{"r":5,"se":"3282","pn":"74483-76010","cap":200,"bt":null,"fe":"theme0:-0.15","fg":null,"fi":null,"fj":"theme0:-0.25","fl":null},{"r":6,"se":"3298","pn":"28559-11020","cap":80,"bt":"RG332","fe":"theme0:-0.05","fg":"theme0:-0.05","fi":"theme0:-0.05","fj":null,"fl":null},{"r":7,"se":"3299","pn":"28559-11040","cap":80,"bt":null,"fe":"theme0:-0.05","fg":"theme0:-0.05","fi":null,"fj":null,"fl":null},{"r":8,"se":"3313","pn":"58967-26090","cap":80,"bt":null,"fe":null,"fg":null,"fi":null,"fj":"theme0:-0.25","fl":null},{"r":9,"se":"3370","pn":"52137-48040","cap":14,"bt":96,"fe":"theme0:-0.05","fg":"theme0:-0.05","fi":"theme0:-0.05","fj":null,"fl":null},{"r":10,"se":"3400","pn":"89678-71010","cap":6,"bt":99,"fe":"theme0:-0.05","fg":"theme0:-0.05","fi":"theme0:-0.05","fj":null,"fl":null},{"r":11,"se":"3436","pn":"82715-42Q90","cap":12,"bt":null,"fe":null,"fg":null,"fi":null,"fj":"theme0:-0.25","fl":null},{"r":12,"se":"3603","pn":"53651-V1010","cap":80,"bt":null,"fe":null,"fg":null,"fi":null,"fj":"theme0:-0.25","fl":null},{"r":13,"se":"3604","pn":"53652-V1010","cap":100,"bt":null,"fe":null,"fg":null,"fi":null,"fj":"theme0:-0.25","fl":null},{"r":14,"se":"3764","pn":"32924-60220","cap":70,"bt":null,"fe":null,"fg":null,"fi":null,"fj":"theme0:-0.25","fl":null},{"r":15,"se":"3786","pn":"48637-60010","cap":40,"bt":null,"fe":"theme0:-0.15","fg":null,"fi":null,"fj":"theme0:-0.25","fl":null},{"r":16,"se":"3789","pn":"48864-60050","cap":10,"bt":null,"fe":"theme0:-0.15","fg":null,"fi":null,"fj":"theme0:-0.25","fl":null},{"r":17,"se":"3793","pn":"61748-60100","cap":45,"bt":null,"fe":"theme0:-0.15","fg":null,"fi":null,"fj":"theme0:-0.25","fl":null},{"r":18,"se":"3794","pn":"74417-60060","cap":15,"bt":null,"fe":null,"fg":null,"fi":null,"fj":"theme0:-0.25","fl":null},{"r":19,"se":"3796","pn":"74418-60020","cap":150,"bt":null,"fe":null,"fg":null,"fi":null,"fj":"theme0:-0.25","fl":null},{"r":20,"se":"3798","pn":"77750-60100","cap":30,"bt":null,"fe":null,"fg":null,"fi":null,"fj":"theme0:-0.25","fl":null},{"r":21,"se":"3815","pn":"82715-6AX30","cap":40,"bt":null,"fe":null,"fg":null,"fi":null,"fj":"theme0:-0.25","fl":null},{"r":22,"se":"3830","pn":"89573-60090","cap":12,"bt":136,"fe":"theme0:-0.05","fg":"theme0:-0.05","fi":"theme0:-0.05","fj":null,"fl":null},{"r":23,"se":"3851","pn":"51783-60040","cap":55,"bt":null,"fe":"theme0:-0.15","fg":null,"fi":null,"fj":"theme0:-0.25","fl":null},{"r":24,"se":"3852","pn":"51784-60010","cap":55,"bt":null,"fe":null,"fg":null,"fi":null,"fj":"theme0:-0.25","fl":null},{"r":25,"se":"3853","pn":"88688-60E90","cap":16,"bt":null,"fe":null,"fg":null,"fi":null,"fj":"theme0:-0.25","fl":null},{"r":26,"se":"3854","pn":"88688-60F00","cap":40,"bt":null,"fe":null,"fg":null,"fi":null,"fj":"theme0:-0.25","fl":null},{"r":27,"se":"3855","pn":"58395-30020","cap":40,"bt":null,"fe":"theme0:-0.15","fg":null,"fi":null,"fj":"theme0:-0.25","fl":null},{"r":28,"se":"3856","pn":"58396-30050","cap":40,"bt":null,"fe":"theme0:-0.15","fg":null,"fi":null,"fj":"theme0:-0.25","fl":null},{"r":29,"se":"3858","pn":"82715-6AW60","cap":60,"bt":null,"fe":"theme0:-0.15","fg":null,"fi":null,"fj":"theme0:-0.25","fl":null},{"r":30,"se":"3873","pn":"G1240-30090","cap":15,"bt":null,"fe":"theme0:-0.15","fg":null,"fi":null,"fj":"theme0:-0.25","fl":null},{"r":31,"se":"3874","pn":"G1242-30180","cap":15,"bt":null,"fe":"theme0:-0.15","fg":null,"fi":null,"fj":"theme0:-0.25","fl":null},{"r":32,"se":"3889","pn":"52144-35190","cap":150,"bt":null,"fe":null,"fg":null,"fi":null,"fj":"theme0:-0.25","fl":null},{"r":33,"se":"3899","pn":"89573-60120","cap":12,"bt":151,"fe":"theme0:-0.05","fg":"theme0:-0.05","fi":"theme0:-0.05","fj":null,"fl":null},{"r":34,"se":"3900","pn":"32923-60260","cap":100,"bt":null,"fe":"theme0:-0.15","fg":null,"fi":null,"fj":"theme0:-0.25","fl":null}]},{"name":"現場出荷表〈岡崎〉  (2)","koujou":"岡崎工場","merges":["D3:D30"],"rows":[{"r":3,"se":"3901","pn":"32924-60290","cap":200,"bt":null,"fe":"theme0:-0.15","fg":null,"fi":null,"fj":"theme0:-0.25","fl":null},{"r":4,"se":"3903","pn":"82729-60880","cap":55,"bt":null,"fe":"theme0:-0.15","fg":null,"fi":null,"fj":"theme0:-0.25","fl":null},{"r":5,"se":"3904","pn":"89667-60350","cap":15,"bt":null,"fe":null,"fg":null,"fi":null,"fj":"theme0:-0.25","fl":null},{"r":6,"se":"3905","pn":"G1240-60010","cap":15,"bt":null,"fe":"theme0:-0.15","fg":null,"fi":null,"fj":"theme0:-0.25","fl":null},{"r":7,"se":"3906","pn":"G1240-60020","cap":90,"bt":null,"fe":"theme0:-0.15","fg":null,"fi":null,"fj":"theme0:-0.25","fl":null},{"r":8,"se":"3907","pn":"51446-60230","cap":40,"bt":null,"fe":null,"fg":null,"fi":null,"fj":"theme0:-0.25","fl":null},{"r":9,"se":"3908","pn":"G1242-60010","cap":100,"bt":null,"fe":"theme0:-0.15","fg":null,"fi":null,"fj":"theme0:-0.25","fl":null},{"r":10,"se":"3909","pn":"82729-60A70","cap":70,"bt":null,"fe":"theme0:-0.15","fg":null,"fi":null,"fj":"theme0:-0.25","fl":null},{"r":11,"se":"3910","pn":"82729-60B00","cap":800,"bt":null,"fe":"theme0:-0.15","fg":null,"fi":null,"fj":"theme0:-0.25","fl":null},{"r":12,"se":"3930","pn":"G2327-42020","cap":60,"bt":null,"fe":"theme0:-0.15","fg":null,"fi":null,"fj":"theme0:-0.25","fl":null},{"r":13,"se":"4010","pn":"52431-37050","cap":50,"bt":null,"fe":"theme0:-0.15","fg":null,"fi":null,"fj":"theme0:-0.25","fl":null},{"r":14,"se":"3978","pn":"52521-42110","cap":40,"bt":null,"fe":null,"fg":null,"fi":null,"fj":"theme0:-0.25","fl":null},{"r":15,"se":"4005","pn":"52297-30070","cap":20,"bt":null,"fe":null,"fg":null,"fi":null,"fj":"theme0:-0.25","fl":null},{"r":16,"se":"4025","pn":"52521-33150","cap":70,"bt":null,"fe":null,"fg":null,"fi":null,"fj":"theme0:-0.25","fl":null},{"r":17,"se":"4009","pn":"G909L-42010","cap":20,"bt":"RG332","fe":"theme0:-0.05","fg":"theme0:-0.05","fi":"theme0:-0.05","fj":null,"fl":null},{"r":18,"se":"3994","pn":"87121-42180","cap":5,"bt":null,"fe":"theme0:-0.15","fg":null,"fi":null,"fj":"theme0:-0.25","fl":null},{"r":19,"se":"3995","pn":"82715-42U40","cap":20,"bt":null,"fe":"theme0:-0.15","fg":null,"fi":null,"fj":"theme0:-0.25","fl":null},{"r":20,"se":"4002","pn":"89668-42120","cap":15,"bt":null,"fe":"theme0:-0.15","fg":null,"fi":null,"fj":"theme0:-0.25","fl":null},{"r":21,"se":"4003","pn":"G91H3-42010","cap":6,"bt":null,"fe":"theme0:-0.15","fg":null,"fi":null,"fj":"theme0:-0.25","fl":null},{"r":22,"se":"4007","pn":"82715-42W70","cap":15,"bt":null,"fe":null,"fg":null,"fi":null,"fj":"theme0:-0.25","fl":null},{"r":23,"se":"4030","pn":"89668-33330","cap":15,"bt":null,"fe":null,"fg":null,"fi":null,"fj":"theme0:-0.25","fl":null},{"r":24,"se":"4031","pn":"G92FD-33010","cap":20,"bt":null,"fe":"theme0:-0.15","fg":null,"fi":null,"fj":"theme0:-0.25","fl":null},{"r":25,"se":"4032","pn":"G9141-33020","cap":20,"bt":null,"fe":"theme0:-0.15","fg":null,"fi":null,"fj":"theme0:-0.25","fl":null},{"r":26,"se":"4039","pn":"82715-3T050","cap":10,"bt":null,"fe":"theme0:-0.15","fg":null,"fi":null,"fj":"theme0:-0.25","fl":null},{"r":27,"se":"4078","pn":"16611-10040","cap":60,"bt":null,"fe":null,"fg":null,"fi":null,"fj":"theme0:-0.25","fl":null},{"r":28,"se":"4079","pn":"88688-48640","cap":70,"bt":null,"fe":null,"fg":null,"fi":null,"fj":"theme0:-0.25","fl":null},{"r":29,"se":"4080","pn":"G92FC-48010","cap":15,"bt":null,"fe":null,"fg":null,"fi":null,"fj":"theme0:-0.25","fl":null},{"r":30,"se":"4096","pn":"87822-78010","cap":40,"bt":173,"fe":"theme0:-0.05","fg":"theme0:-0.05","fi":"theme0:-0.05","fj":null,"fl":null},{"r":31,"se":"","pn":"","cap":null,"bt":null,"fe":null,"fg":null,"fi":null,"fj":null,"fl":null},{"r":32,"se":"","pn":"","cap":null,"bt":null,"fe":null,"fg":null,"fi":null,"fj":null,"fl":null},{"r":33,"se":"","pn":"","cap":null,"bt":null,"fe":null,"fg":null,"fi":null,"fj":null,"fl":null},{"r":34,"se":"","pn":"","cap":null,"bt":null,"fe":null,"fg":null,"fi":null,"fj":null,"fl":null}]}];
+const STORE_KEY='shukka-houkoku-master-v1';
+let MASTER=DEFAULT_MASTER;
+try{ const m=JSON.parse(localStorage.getItem(STORE_KEY)||'null'); if(m&&m.length) MASTER=m; }catch(e){}
+const DATA={csv:null,pdf:null};
+
+function toast(t){ const el=document.getElementById('toast'); el.textContent=t; el.classList.add('show'); clearTimeout(toast._t); toast._t=setTimeout(()=>el.classList.remove('show'),2800); }
+function esc(s){ return String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+const num=s=>Number(String(s??'').replace(/[,\s]/g,''))||0;
+const basePn=p=>String(p||'').trim().replace(/-00$/,'');
+const md=s=>{ s=String(s||''); if(/^\d{8}$/.test(s)) return `${+s.slice(4,6)}/${+s.slice(6,8)}`; const m=s.match(/(\d{2})\/(\d{2})\/(\d{2})/); return m?`${+m[2]}/${+m[3]}`:s; };
+
+/* ===== CSV（シフトJIS）読込 ===== */
+function parseCsv(buf,name){
+  let text; try{ text=new TextDecoder('shift_jis').decode(buf); }catch(e){ text=new TextDecoder().decode(buf); }
+  const rows=[], info={file:name};
+  for(const line of text.split(/\r?\n/)){
+    const t=line.trim(); if(!t) continue;
+    if(/^HD/.test(t)){ info.header=t.split(/\s+/)[0]; continue; }
+    if(/^TR/.test(t)) continue;
+    const f=t.split(',').map(x=>x.replace(/^"|"$/g,''));
+    if(!/^[AZC]$/.test(f[0])||f.length<20) continue;
+    rows.push({kubun:f[0],hatsu:f[1],se:String(f[6]).trim(),pn:f[7].trim(),cap:num(f[8]),noban:f[9],date:f[10],bin:f[11],box:num(f[16]),qty:num(f[17]),bt:(f[19]||'').trim()});
+  }
+  if(!rows.length) throw new Error('CSVに発注明細（A行）が見つかりません');
+  if(info.header){ const m=info.header.match(/^HD(\d{8})(\d{6})/); if(m) info.created=`${+m[1].slice(4,6)}/${+m[1].slice(6,8)} ${m[2].slice(0,2)}:${m[2].slice(2,4)}`; }
+  return {rows,info};
+}
+
+/* ===== PDF（発注データリスト）読込 ===== */
+function latin1(u8){ let s=''; for(let i=0;i<u8.length;i+=8192) s+=String.fromCharCode.apply(null,u8.subarray(i,i+8192)); return s; }
+function unescLit(s){ const out=[]; for(let i=0;i<s.length;i++){ const c=s.charCodeAt(i); if(c!==92){ out.push(c&255); continue; } const n=s[i+1];
+  const map={n:10,r:13,t:9,b:8,f:12}; if(map[n]!==undefined){ out.push(map[n]); i++; }
+  else if(/[0-7]/.test(n)){ let o=''; let j=i+1; while(j<s.length&&o.length<3&&/[0-7]/.test(s[j])){o+=s[j];j++;} out.push(parseInt(o,8)&255); i=j-1; }
+  else if(n==='\r'||n==='\n'){ i++; } else { out.push(n.charCodeAt(0)&255); i++; } }
+  return out; }
+function u16be(bytes){ let s=''; for(let i=0;i+1<bytes.length;i+=2) s+=String.fromCharCode((bytes[i]<<8)|bytes[i+1]); return s; }
+async function inflate(u8){ const ds=new DecompressionStream('deflate'); return new Uint8Array(await new Response(new Blob([u8]).stream().pipeThrough(ds)).arrayBuffer()); }
+async function pdfLines(buf){
+  const u8=new Uint8Array(buf); const s=latin1(u8);
+  const items=[]; let page=0;
+  const re=/<<([^]*?)>>\s*stream\r?\n?/g; let m;
+  while((m=re.exec(s))){
+    const start=re.lastIndex; const end=s.indexOf('endstream',start); if(end<0) break;
+    let content=s.slice(start,end);
+    if(/\/FlateDecode/.test(m[1])){ try{ content=latin1(await inflate(u8.subarray(start,end))); }catch(e){ continue; } }
+    if(!/T[Jj]/.test(content)) continue;
+    const tre=/\/F\d+\s+([\d.]+)\s+Tf[^]*?(-?[\d.]+)\s+(-?[\d.]+)\s+Td\s*\[([^]*?)\]\s*TJ/g; let t;
+    let found=false;
+    while((t=tre.exec(content))){
+      found=true; let txt=''; const arr=t[4];
+      const tk=/<([0-9a-fA-F\s]*)>|\(((?:\\[^]|[^\\)])*)\)/g; let k;
+      while((k=tk.exec(arr))){
+        let bytes;
+        if(k[1]!==undefined){ const h=k[1].replace(/\s/g,''); bytes=[]; for(let i=0;i<h.length;i+=2) bytes.push(parseInt(h.substr(i,2),16)); }
+        else bytes=unescLit(k[2]);
+        txt+=u16be(bytes);
+      }
+      items.push({page,y:+t[3],x:+t[2],txt});
+    }
+    if(found) page++;
+  }
+  items.sort((a,b)=>a.page-b.page||b.y-a.y||a.x-b.x);
+  return items.map(i=>i.txt.replace(/\uFFFD/g,''));
+}
+async function parsePdf(buf,name){
+  const lines=await pdfLines(buf);
+  if(!lines.length) throw new Error('PDFから文字を読み取れませんでした（発注データリスト形式のPDFを選んでください）');
+  const rows=[], info={file:name};
+  const seen=new Set();
+  for(const L of lines){
+    let m;
+    if((m=L.match(/作成日時：\s*(\d\d)\/(\d\d)\/(\d\d)\s+(\d\d:\d\d)/))) info.created=`${+m[2]}/${+m[3]} ${m[4]}`;
+    else if((m=L.match(/仕入先\s*：\s*(.+?)\s+御中/))) info.shiire=m[1].replace(/\s{2,}/g,' ').trim();
+    else if((m=L.match(/明細件数\s*：\s*(\d+)/))) info.count=+m[1];
+    else if((m=L.match(/発信元\s*：\s*(.+?)\s{3,}\(/))) info.hasshin=m[1].replace(/\s{2,}/g,' ').trim();
+    const r=L.match(/^\s*(\d+)\.\s+([AZC])\s+(\d)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\d\d\/\d\d\/\d\d)\s+(\d+)\s+([\d,]+)\s+([\d,]+)\s+([\d,]+)/);
+    if(r&&!seen.has(r[1])){ seen.add(r[1]);
+      rows.push({no:+r[1],kubun:r[2],hatsu:r[3],noban:r[4],se:r[6],pn:r[7],bt:r[8],date:'20'+r[9].replace(/\//g,''),bin:r[10],cap:num(r[11]),box:num(r[12]),qty:num(r[13])}); }
+  }
+  if(!rows.length) throw new Error('PDFに発注明細が見つかりません');
+  return {rows,info};
+}
+
+/* ===== 照合と描画 ===== */
+function analyze(){
+  const src=DATA.csv||DATA.pdf; if(!src) return null;
+  const bySe={}, byPn={};
+  MASTER.forEach((pg,pi)=>pg.rows.forEach(r=>{ if(r.se){ bySe[r.se]={pi,r}; byPn[basePn(r.pn)]={pi,r}; } }));
+  const agg={}; const unlisted=[], issues=[], cancels=[];
+  for(const o of src.rows){
+    if(o.kubun==='C'){ cancels.push(o); continue; }
+    if(o.kubun==='Z') continue;
+    let hit=bySe[o.se], how='背番';
+    if(!hit){ hit=byPn[basePn(o.pn)]; how='品番'; }
+    if(!hit){ unlisted.push(o); continue; }
+    const r=hit.r; const key=r.se;
+    const cap=o.cap||r.cap; const boxes=cap?o.qty/cap:o.box;
+    const a=agg[key]||(agg[key]={boxes:0,qty:0,orders:[],dates:new Set()});
+    a.boxes+=boxes; a.qty+=o.qty; a.orders.push(o); a.dates.add(md(o.date)+(o.bin&&o.bin!=='01'?`(${+o.bin}便)`:''));
+    if(how==='品番') issues.push(`${r.se} ${r.pn}：発注データの背番は ${o.se}（品番で照合）`);
+    if(basePn(o.pn)!==basePn(r.pn)&&how==='背番') issues.push(`${r.se}：報告書の品番 ${r.pn} ／ 発注データ ${o.pn}`);
+    if(r.cap&&o.cap&&r.cap!==o.cap) issues.push(`${r.se} ${r.pn}：報告書の収容数 ${r.cap} ／ 発注データ ${o.cap}`);
+    if(o.box&&Math.abs(o.box-boxes)>1e-9) issues.push(`${r.se} ${r.pn}：箱数 ${o.box} と 数量÷収容数 ${round1(boxes)} が一致しません`);
+  }
+  // 合算・端数は備考欄ではなく余白の注記に記載
+  for(const se in agg){ const a=agg[se], r=bySe[se].r;
+    if(a.orders.length>1) issues.push(`${se} ${r.pn}：${a.orders.length}件の発注を合算（${a.orders.map(o=>`${md(o.date)} ${+o.bin}便 ${o.qty.toLocaleString()}個`).join('＋')}）`);
+    const b=round1(a.boxes); if(!Number.isInteger(b)&&r.cap){ const whole=Math.floor(a.boxes), rest=a.qty-whole*r.cap; issues.push(`${se} ${r.pn}：収容数で割り切れません（${a.qty.toLocaleString()}個 ＝ ${whole}箱－${rest}個）`); } }
+  // CSVとPDFの突合せ
+  let cross=null;
+  if(DATA.csv&&DATA.pdf){
+    const k=o=>[o.kubun,o.se,basePn(o.pn),o.cap,o.qty,o.date,o.bin].join('|');
+    const a=DATA.csv.rows.map(k).sort(), b=DATA.pdf.rows.map(k).sort();
+    const onlyA=a.filter(x=>!b.includes(x)), onlyB=b.filter(x=>!a.includes(x));
+    cross={ok:!onlyA.length&&!onlyB.length&&a.length===b.length,csv:a.length,pdf:b.length,onlyA,onlyB};
+  }
+  return {src,agg,unlisted,issues,cancels,cross};
+}
+const round1=v=>Math.round(v*100)/100;
+
+function render(){
+  const A=analyze();
+  const pages=document.getElementById('pages');
+  const dates=A?[...new Set(A.src.rows.map(o=>md(o.date)))]:[];
+  const oneDate=dates.length===1?dates[0]:'';
+  let html='';
+  MASTER.forEach((pg,pi)=>{
+    // 注記を入れる最終ページは、末尾の空き行を詰めて余白を確保
+    const isLast=pi===MASTER.length-1;
+    const pgRows=(isLast&&A)?trimTail(pg.rows):pg.rows;
+    pg={...pg,rows:pgRows};
+    const rowsN=pg.rows.length;
+    html+=`<section class="page"><div class="ph"><span class="t">㈱高木製作所　出荷数報告書</span><span class="sk">支給日 <span>　／　</span></span><span class="pl">岡崎工場</span></div>`;
+    html+=`<table class="rep"><colgroup><col style="width:6%"><col style="width:9%"><col style="width:15%"><col style="width:7%"><col style="width:10%"><col style="width:8.5%"><col style="width:9.5%"><col style="width:10%"><col style="width:8%"><col style="width:17%"></colgroup>`;
+    html+=`<thead><tr><th>工場</th><th>背番</th><th>品番</th><th>収容数</th><th>発注数<br>（箱）</th><th>箱種</th><th>入荷数<br>（空箱）</th><th>出荷数</th><th>納入日</th><th>備考<br>(過不足理由等)</th></tr></thead><tbody>`;
+    const spans={}; (pg.merges||[]).forEach(m=>{ const mm=m.match(/^([A-Z]+)(\d+):([A-Z]+)(\d+)$/); if(mm&&mm[1]===mm[3]&&mm[1]!=='D') spans[mm[1]+mm[2]]=+mm[4]-+mm[2]+1, [...Array(+mm[4]-+mm[2])].forEach((_,i)=>spans[mm[1]+(+mm[2]+i+1)]=0); });
+    pg.rows.forEach((r,i)=>{
+      const a=A&&r.se?A.agg[r.se]:null;
+      html+='<tr>';
+      if(i===0) html+=`<td class="koujou" rowspan="${rowsN}">${esc(pg.koujou||'岡崎工場')}</td>`;
+      html+=`<td class="se ${fcls(r.fe)}">${esc(r.se)}</td><td class="pn ${fcls(r.fg?r.fe:null)}">${esc(r.pn)}</td><td class="cap ${fcls(r.fg)}">${r.cap??''}</td>`;
+      let hat='', hc='hat';
+      // 備考欄は原紙どおり「箱整数　箱－　個」のまま（コメントは追加しない。気づいた点は余白の注記へ）
+      if(a){ const b=round1(a.boxes); hat=String(b); if(!Number.isInteger(b)) hc+=' frac'; }
+      const bik='　　箱整数　　　箱－　　個';
+      html+=`<td class="${hc}">${hat}</td>`;
+      const ki='I'+r.r, kj='J'+r.r;
+      if(spans[ki]!==0) html+=`<td class="bt ${fcls(r.fi)}"${spans[ki]>1?` rowspan="${spans[ki]}"`:''}>${esc(r.bt??'')}</td>`;
+      if(spans[kj]!==0) html+=`<td class="${fcls(r.fj)}"${spans[kj]>1?` rowspan="${spans[kj]}"`:''}></td>`;
+      const nd=a?([...a.dates].join(' ')):'';
+      html+=`<td></td><td class="nouhin">${i===0?(oneDate||'／'):(a&&!oneDate?esc(nd):'')}</td><td class="bik">${esc(bik)}</td></tr>`;
+    });
+    html+='</tbody></table>';
+    if(isLast&&A) html+=annotation(A);
+    html+=`<div class="foot">${A?`発注データ：${esc(A.src.info.file)}　作成 ${esc(A.src.info.created||'')}　／　発注数＝数量÷収容数（箱）　／　`:''}ツール ver ${TOOL_VER}</div></section>`;
+  });
+  pages.innerHTML=html;
+  renderSummary(A);
+}
+function trimTail(rows){ let n=rows.length; while(n>0&&!rows[n-1].se&&!rows[n-1].pn) n--; return rows.slice(0,n); }
+function fcls(f){ if(!f) return ''; if(/-0\.0[0-9]/.test(f)) return 'g05'; if(/-0\.1/.test(f)) return 'g15'; if(/-0\.[2-9]/.test(f)) return 'g25'; return ''; }
+function annotation(A){
+  let h='<div class="ann"><h3>【注記】出荷数報告書に記載のない発注データ</h3>';
+  if(A.unlisted.length){
+    h+='<table><thead><tr><th>背番</th><th>品番</th><th>箱種</th><th>収容数</th><th>発注数（箱）</th><th>数量</th><th>納入日・便</th><th class="noprint"></th></tr></thead><tbody>';
+    h+=A.unlisted.map(o=>`<tr><td>${esc(o.se)}</td><td>${esc(o.pn)}</td><td>${esc(o.bt)}</td><td class="n">${o.cap}</td><td class="n"><b>${round1(o.cap?o.qty/o.cap:o.box)}</b></td><td class="n">${o.qty.toLocaleString()}</td><td>${md(o.date)} ${+o.bin}便</td><td class="noprint"><button class="mini add" data-add-se="${esc(o.se)}" data-add-pn="${esc(basePn(o.pn))}" data-add-cap="${o.cap}">報告書に追加</button></td></tr>`).join('');
+    h+='</tbody></table>';
+  } else h+='<div class="none">なし（発注データ全件が報告書に記載されています）</div>';
+  if(A.cancels.length) h+=`<h3 style="margin-top:2mm">【注記】取消データ（区分C）</h3><div>${A.cancels.map(o=>`${esc(o.se)} ${esc(o.pn)} 数量${o.qty.toLocaleString()}（${md(o.date)}）`).join('<br>')}</div>`;
+  if(A.issues.length) h+=`<h3 style="margin-top:2mm">【注記】照合で気づいた点</h3><div>${A.issues.map(esc).join('<br>')}</div>`;
+  return h+'</div>';
+}
+function renderSummary(A){
+  const c=document.getElementById('cards'), s=document.getElementById('src'), w=document.getElementById('warn');
+  if(!A){ c.innerHTML=''; s.innerHTML='発注データを読み込むと、報告書の「発注数」に箱数を反映します。'; w.style.display='none'; return; }
+  const n=A.src.rows.filter(o=>o.kubun==='A').length, hit=n-A.unlisted.length;
+  const totalBoxes=Object.values(A.agg).reduce((x,a)=>x+a.boxes,0);
+  c.innerHTML=`
+   <div class="card"><div class="k">発注明細</div><div class="v">${n} 件</div></div>
+   <div class="card ok"><div class="k">報告書に反映</div><div class="v">${hit} 件</div></div>
+   <div class="card ${A.unlisted.length?'red':''}"><div class="k">報告書に記載なし（注記）</div><div class="v">${A.unlisted.length} 件</div></div>
+   <div class="card"><div class="k">発注数 合計</div><div class="v">${round1(totalBoxes).toLocaleString()} 箱</div></div>
+   ${A.cross?`<div class="card ${A.cross.ok?'ok':'red'}"><div class="k">CSV ⇔ PDF 照合</div><div class="v">${A.cross.ok?'一致':'不一致'}</div></div>`:''}`;
+  const i=A.src.info, p=DATA.pdf?DATA.pdf.info:{};
+  s.innerHTML=`読込：${DATA.csv?`<b>CSV</b> ${esc(DATA.csv.info.file)}`:''}${DATA.csv&&DATA.pdf?'　＋　':''}${DATA.pdf?`<b>PDF</b> ${esc(DATA.pdf.info.file)}`:''}`+
+    `<br>作成日時 <b>${esc(i.created||p.created||'')}</b>　納入日 <b>${[...new Set(A.src.rows.map(o=>md(o.date)))].join('・')}</b>`+
+    (p.shiire?`　仕入先 <b>${esc(p.shiire)}</b>`:'')+(p.hasshin?`　発信元 <b>${esc(p.hasshin)}</b>`:'')+
+    (p.count!==undefined?`　PDF明細件数 <b>${p.count}</b>`:'');
+  const warns=[];
+  if(A.cross&&!A.cross.ok) warns.push(`CSV（${A.cross.csv}件）とPDF（${A.cross.pdf}件）の内容が一致しません。CSVのみ：${A.cross.onlyA.length}件／PDFのみ：${A.cross.onlyB.length}件。報告書はCSVの内容で作成しています。`);
+  if(DATA.pdf&&p.count!==undefined&&p.count!==DATA.pdf.rows.length) warns.push(`PDFの明細件数（${p.count}）と読み取れた行数（${DATA.pdf.rows.length}）が違います。`);
+  if(A.issues.length) warns.push(`照合で気づいた点が ${A.issues.length} 件あります（報告書の注記欄を確認してください）。`);
+  w.innerHTML=warns.join('<br>'); w.style.display=warns.length?'block':'none';
+}
+
+/* ===== ファイル読込 ===== */
+async function handleFiles(files){
+  for(const f of files){
+    try{
+      const buf=await f.arrayBuffer(); const head=new Uint8Array(buf.slice(0,5));
+      if(String.fromCharCode(...head)==='%PDF-'){ DATA.pdf=await parsePdf(buf,f.name); toast(`PDFを読み込みました（${DATA.pdf.rows.length}件）`); }
+      else if(/\.xlsx$/i.test(f.name)){ await loadMaster(buf,f.name); }
+      else { DATA.csv=parseCsv(buf,f.name); toast(`CSVを読み込みました（${DATA.csv.rows.length}件）`); }
+    }catch(e){ console.error(e); toast(`${f.name}：${e.message}`); }
+  }
+  render();
+}
+const fi=document.getElementById('file');
+document.getElementById('btnLoad').onclick=()=>fi.click();
+document.getElementById('drop').onclick=()=>fi.click();
+fi.onchange=()=>{ const fs=[...fi.files]; fi.value=''; handleFiles(fs); };
+const drop=document.getElementById('drop');
+['dragenter','dragover'].forEach(ev=>document.addEventListener(ev,e=>{e.preventDefault();drop.classList.add('over');}));
+['dragleave','drop'].forEach(ev=>document.addEventListener(ev,e=>{e.preventDefault();if(ev==='drop'||e.target===drop)drop.classList.remove('over');}));
+document.addEventListener('drop',e=>{ const fs=[...e.dataTransfer.files]; if(fs.length) handleFiles(fs); });
+document.getElementById('btnPrint').onclick=()=>window.print();
+document.getElementById('btnClear').onclick=()=>{ DATA.csv=null; DATA.pdf=null; render(); };
+
+/* ===== 報告書の品目更新（出荷数報告書.xlsx を読み込み） ===== */
+/* ====== xlsx読込（外部ライブラリ不要の簡易リーダー） ====== */
+async function unzip(buf){
+  const dv=new DataView(buf), u8=new Uint8Array(buf), files={};
+  let eocd=-1;
+  for(let i=buf.byteLength-22;i>=Math.max(0,buf.byteLength-70000);i--){ if(dv.getUint32(i,true)===0x06054b50){eocd=i;break;} }
+  if(eocd<0) throw new Error('Excelファイル(.xlsx)として読めません');
+  const n=dv.getUint16(eocd+10,true); let p=dv.getUint32(eocd+16,true);
+  const td=new TextDecoder();
+  for(let k=0;k<n;k++){
+    if(dv.getUint32(p,true)!==0x02014b50) break;
+    const method=dv.getUint16(p+10,true), csize=dv.getUint32(p+20,true);
+    const nl=dv.getUint16(p+28,true), el=dv.getUint16(p+30,true), cl=dv.getUint16(p+32,true), lo=dv.getUint32(p+42,true);
+    const name=td.decode(u8.subarray(p+46,p+46+nl));
+    files[name]={method,csize,lo};
+    p+=46+nl+el+cl;
+  }
+  return {
+    has:name=>!!files[name],
+    async text(name){
+      const f=files[name]; if(!f) return null;
+      const start=f.lo+30+dv.getUint16(f.lo+26,true)+dv.getUint16(f.lo+28,true);
+      const data=u8.slice(start,start+f.csize);
+      if(f.method===0) return td.decode(data);
+      const ds=new DecompressionStream('deflate-raw');
+      const out=await new Response(new Blob([data]).stream().pipeThrough(ds)).arrayBuffer();
+      return td.decode(out);
+    }
+  };
+}
+function xmlDoc(s){ return new DOMParser().parseFromString(s,'application/xml'); }
+function byTag(node,tag){ return Array.from(node.getElementsByTagNameNS('*',tag)); }
+function colNum(ref){ let n=0; for(const ch of ref){ const c=ch.charCodeAt(0); if(c>=65&&c<=90) n=n*26+c-64; else break; } return n; }
+async function readXlsx(buf){
+  const z=await unzip(buf);
+  const wbx=xmlDoc(await z.text('xl/workbook.xml'));
+  const rels=xmlDoc(await z.text('xl/_rels/workbook.xml.rels'));
+  const relMap={}; byTag(rels,'Relationship').forEach(r=>relMap[r.getAttribute('Id')]=r.getAttribute('Target'));
+  let ss=[]; const sst=await z.text('xl/sharedStrings.xml');
+  if(sst) ss=byTag(xmlDoc(sst),'si').map(si=>byTag(si,'t').filter(t=>!t.parentNode||t.parentNode.localName!=='rPh').map(t=>t.textContent).join(''));
+  const sheets=[];
+  for(const s of byTag(wbx,'sheet')){
+    const rid=s.getAttributeNS('http://schemas.openxmlformats.org/officeDocument/2006/relationships','id')||s.getAttribute('r:id');
+    let tgt=relMap[rid]||''; tgt=tgt.startsWith('/')?tgt.slice(1):('xl/'+tgt.replace(/^\.\//,''));
+    sheets.push({name:s.getAttribute('name'),path:tgt});
+  }
+  return {
+    names:sheets.map(s=>s.name),
+    async sheet(name){
+      const sh=sheets.find(s=>s.name===name); const x=await z.text(sh.path);
+      const doc=xmlDoc(x); const aoa=[];
+      for(const c of byTag(doc,'c')){
+        const ref=c.getAttribute('r'); const col=colNum(ref)-1; const row=parseInt(ref.replace(/^[A-Z]+/,''),10)-1;
+        const t=c.getAttribute('t'); const v=byTag(c,'v')[0]; let val=null;
+        if(t==='s') val=v?ss[+v.textContent]:null;
+        else if(t==='inlineStr') val=byTag(c,'t').map(e=>e.textContent).join('');
+        else if(t==='str'||t==='e') val=v?v.textContent:null;
+        else if(t==='b') val=v?v.textContent==='1':null;
+        else if(v&&v.textContent!=='') val=Number(v.textContent);
+        if(val===null||val==='') continue;
+        (aoa[row]=aoa[row]||[])[col]=val;
+      }
+      for(let i=0;i<aoa.length;i++) if(!aoa[i]) aoa[i]=[];
+      return aoa;
+    }
+  };
+}
+function serialToYMD(n){ const d=new Date(Date.UTC(1899,11,30)+Math.round(n)*86400000); return {y:d.getUTCFullYear(),m:d.getUTCMonth()+1,d:d.getUTCDate()}; }
+
+async function loadMaster(buf,name){
+  const book=await readXlsx(buf); const pages=[];
+  for(const sn of book.names){
+    const aoa=await book.sheet(sn); const rows=[];
+    let hr=aoa.findIndex(r=>(r||[]).some(v=>String(v??'').trim()==='背番'));
+    if(hr<0) continue;
+    const hdr=aoa[hr], cSe=hdr.findIndex(v=>String(v??'').trim()==='背番'), cPn=hdr.findIndex(v=>String(v??'').trim()==='品番'), cCap=hdr.findIndex(v=>String(v??'').trim()==='収容数'), cBt=hdr.findIndex(v=>String(v??'').trim()==='箱種');
+    for(let r=hr+1;r<aoa.length;r++){ const x=aoa[r]||[]; if(!x[cSe]&&!x[cPn]) { if(rows.length&&r>hr+40) break; continue; }
+      rows.push({r:r+1,se:String(x[cSe]??'').trim(),pn:String(x[cPn]??'').trim(),cap:num(x[cCap])||null,bt:x[cBt]??null,fe:null,fg:null,fi:null,fj:x[cBt]?null:'theme0:-0.25'}); }
+    if(rows.length) pages.push({name:sn,koujou:'岡崎工場',merges:[],rows});
+  }
+  if(!pages.length) throw new Error('「背番」の見出しがあるシートが見つかりません');
+  MASTER=pages; saveMaster();
+  toast(`報告書の品目を更新しました（${pages.length}ページ・${pages.reduce((a,p)=>a+p.rows.length,0)}品目）`);
+}
+const fm=document.getElementById('fileMaster');
+fm.onchange=async()=>{ const f=fm.files[0]; fm.value=''; if(!f) return; try{ await loadMaster(await f.arrayBuffer(),f.name); render(); renderItems(); }catch(e){ toast('品目の更新エラー：'+e.message); } };
+
+/* ===== 品目の追加・管理（新品番の立上げ時に使う人が追記） ===== */
+const MAX_ROWS=32; // 1ページの行数（原紙と同じ）
+function saveMaster(){ try{ localStorage.setItem(STORE_KEY,JSON.stringify(MASTER)); }catch(e){ toast('このPCに保存できませんでした（品目を書き出して保管してください）'); } }
+function editable(){ if(MASTER===DEFAULT_MASTER) MASTER=JSON.parse(JSON.stringify(DEFAULT_MASTER)); }
+const isEmpty=r=>!r.se&&!r.pn;
+const normSe=v=>String(v??'').replace(/[０-９]/g,c=>String.fromCharCode(c.charCodeAt(0)-0xFEE0)).trim();
+const normPn=v=>String(v??'').replace(/[０-９Ａ-Ｚａ-ｚ－]/g,c=>c==='－'?'-':String.fromCharCode(c.charCodeAt(0)-0xFEE0)).toUpperCase().replace(/\s/g,'').replace(/-00$/,'');
+function findSe(se,except){ for(const pg of MASTER) for(const r of pg.rows) if(r!==except&&r.se===se) return r; return null; }
+function addItem({se,pn,cap,bt,page}){
+  editable();
+  let pi=page==='new'?MASTER.length:+page;
+  if(pi>=MASTER.length) MASTER.push({name:`現場出荷表〈岡崎〉 (${MASTER.length+1})`,koujou:'岡崎工場',merges:[],rows:[]});
+  const pg=MASTER[pi];
+  const row={r:0,se,pn,cap,bt:bt||null,fe:null,fg:null,fi:null,fj:bt?null:'theme0:-0.25',added:new Date().toISOString().slice(0,10)};
+  // 最後の記入行より後ろの空き行を使う（並びを崩さない）
+  let last=-1; pg.rows.forEach((r,i)=>{ if(!isEmpty(r)) last=i; });
+  const slot=pg.rows.findIndex((r,i)=>i>last&&isEmpty(r));
+  if(slot>=0){ row.r=pg.rows[slot].r; pg.rows[slot]=row; }
+  else if(pg.rows.length<MAX_ROWS){ row.r=Math.max(2,...pg.rows.map(r=>r.r||0))+1; pg.rows.push(row); }
+  else { MASTER.push({name:`現場出荷表〈岡崎〉 (${MASTER.length+1})`,koujou:'岡崎工場',merges:[],rows:[{...row,r:3}]}); pi=MASTER.length-1; }
+  saveMaster(); return pi;
+}
+function pageOptions(){
+  const sel=document.querySelector('#addForm select[name=page]');
+  sel.innerHTML=MASTER.map((pg,i)=>{ const used=pg.rows.filter(r=>!isEmpty(r)).length, free=MAX_ROWS-used; return `<option value="${i}">${i+1}ページ目（空き ${free} 行）</option>`; }).join('')+'<option value="new">新しいページ</option>';
+  sel.value=String(MASTER.length-1);
+}
+function renderItems(){
+  pageOptions();
+  let h='<thead><tr><th>ページ</th><th>背番</th><th>品番</th><th>収容数</th><th>箱種</th><th></th></tr></thead><tbody>';
+  MASTER.forEach((pg,pi)=>pg.rows.forEach((r,ri)=>{
+    if(isEmpty(r)) return;
+    h+=`<tr class="${r.added?'new':''}" data-p="${pi}" data-i="${ri}"><td>${pi+1}</td><td><b>${esc(r.se)}</b>${r.added?`<span class="tag">追加 ${esc(r.added)}</span>`:''}</td><td>${esc(r.pn)}</td><td class="n">${r.cap??''}</td><td>${esc(r.bt??'')}</td>
+      <td style="white-space:nowrap"><button type="button" class="mini" data-act="edit">変更</button> <button type="button" class="mini" data-act="del">削除</button></td></tr>`;
+  }));
+  document.getElementById('itemsTable').innerHTML=h+'</tbody>';
+}
+function openItems(prefill){
+  renderItems();
+  const f=document.getElementById('addForm'); f.reset(); pageOptions(); document.getElementById('addErr').textContent='';
+  if(prefill){ f.se.value=prefill.se||''; f.pn.value=prefill.pn||''; f.cap.value=prefill.cap||''; }
+  const d=document.getElementById('dlgItems'); if(!d.open) d.showModal(); (prefill?f.bt:f.se).focus();
+}
+function validate(v,except){
+  const se=normSe(v.se), pn=normPn(v.pn), cap=Number(normSe(v.cap));
+  if(!se) return {err:'背番を入力してください'};
+  if(!/^[0-9A-Z]{1,8}$/i.test(se)) return {err:'背番は英数字で入力してください'};
+  if(findSe(se,except)) return {err:`背番 ${se} はすでに報告書にあります`};
+  if(!pn) return {err:'品番を入力してください'};
+  if(!Number.isInteger(cap)||cap<=0) return {err:'収容数は1以上の整数で入力してください'};
+  return {se,pn,cap,bt:String(v.bt??'').trim()};
+}
+document.getElementById('btnMaster').onclick=()=>openItems();
+document.getElementById('itemsClose').onclick=()=>document.getElementById('dlgItems').close();
+document.getElementById('addForm').addEventListener('submit',e=>{
+  e.preventDefault(); const f=e.target;
+  const v=validate({se:f.se.value,pn:f.pn.value,cap:f.cap.value,bt:f.bt.value});
+  if(v.err){ document.getElementById('addErr').textContent=v.err; return; }
+  const pi=addItem({...v,page:f.page.value});
+  toast(`背番 ${v.se}（${v.pn}）を ${pi+1}ページ目に追加しました`);
+  f.reset(); document.getElementById('addErr').textContent=''; renderItems(); render(); f.se.focus();
+});
+document.getElementById('itemsTable').addEventListener('click',e=>{
+  const b=e.target.closest('button'); if(!b) return;
+  const tr=b.closest('tr'); const pi=+tr.dataset.p, ri=+tr.dataset.i;
+  editable(); const r=MASTER[pi].rows[ri];
+  if(b.dataset.act==='del'){
+    if(!confirm(`背番 ${r.se}（${r.pn}）を報告書から削除しますか？\n（行は空欄として残り、並びは崩れません）`)) return;
+    Object.assign(r,{se:'',pn:'',cap:null,bt:null,added:undefined,fe:null,fg:null,fi:null}); saveMaster(); renderItems(); render(); toast('削除しました');
+  } else if(b.dataset.act==='edit'){
+    tr.innerHTML=`<td>${pi+1}</td><td><input name="se" value="${esc(r.se)}"></td><td><input name="pn" value="${esc(r.pn)}"></td><td><input name="cap" value="${r.cap??''}" inputmode="numeric"></td><td><input name="bt" value="${esc(r.bt??'')}"></td><td style="white-space:nowrap"><button type="button" class="mini add" data-act="save">保存</button> <button type="button" class="mini" data-act="cancel">戻す</button></td>`;
+  } else if(b.dataset.act==='save'){
+    const g=n=>tr.querySelector(`input[name=${n}]`).value;
+    const v=validate({se:g('se'),pn:g('pn'),cap:g('cap'),bt:g('bt')},r);
+    if(v.err){ toast(v.err); return; }
+    Object.assign(r,{se:v.se,pn:v.pn,cap:v.cap,bt:v.bt||null}); if(r.bt) r.fj=null; else if(!r.fi) r.fj=r.fj||'theme0:-0.25';
+    saveMaster(); renderItems(); render(); toast(`背番 ${v.se} を変更しました`);
+  } else if(b.dataset.act==='cancel') renderItems();
+});
+// 注記の「報告書に追加」から、発注データの内容を入れた状態で開く
+document.getElementById('pages').addEventListener('click',e=>{
+  const b=e.target.closest('button[data-add-se]'); if(!b) return;
+  openItems({se:b.dataset.addSe,pn:b.dataset.addPn,cap:b.dataset.addCap});
+});
+document.getElementById('itemsExport').onclick=()=>{
+  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([JSON.stringify({kind:'shukka-houkoku-items',saved:new Date().toISOString(),pages:MASTER},null,1)],{type:'application/json'}));
+  a.download=`出荷数報告書_品目_${new Date().toISOString().slice(0,10)}.json`; document.body.appendChild(a); a.click(); setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},500);
+};
+const fij=document.getElementById('fileItemsJson');
+document.getElementById('itemsImport').onclick=()=>fij.click();
+fij.onchange=async()=>{ const f=fij.files[0]; fij.value=''; if(!f) return;
+  try{ const j=JSON.parse(await f.text()); const pages=j.pages||j; if(!Array.isArray(pages)||!pages[0]||!pages[0].rows) throw 0;
+    if(!confirm(`「${f.name}」の品目で置き換えますか？`)) return; MASTER=pages; saveMaster(); renderItems(); render(); toast('品目を読み込みました'); }
+  catch(e){ toast('品目ファイルが正しくありません'); } };
+document.getElementById('itemsXlsx').onclick=()=>fm.click();
+document.getElementById('itemsReset').onclick=()=>{
+  if(!confirm('追加・変更した品目をすべて消して、最初の品目に戻しますか？')) return;
+  MASTER=DEFAULT_MASTER; try{ localStorage.removeItem(STORE_KEY); }catch(e){} renderItems(); render(); toast('最初の品目に戻しました');
+};
+
+render();
+</script>
+</body>
+</html>
