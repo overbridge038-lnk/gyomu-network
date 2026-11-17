@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>出荷業務ツール集</title>
+<title>GOWA FLOW｜五和 業務ツール集</title>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#070b14">
 <link rel="icon" href="icon-192.png">
@@ -238,8 +238,8 @@
 
 <header>
   <div class="wrap hd">
-    <div class="logo">出</div>
-    <div class="ttl"><h1 id="title"></h1><div class="en">Shipping Ops Hub</div></div>
+    <div class="logo">五</div>
+    <div class="ttl"><h1 id="title"></h1><div class="en" id="titleSub"></div></div>
     <span class="chip" id="siteVer"></span>
     <span class="chip net"><span class="dot" id="netDot"></span><span id="netTxt"></span></span>
     <span class="sp"></span>
@@ -271,28 +271,28 @@
 <script>
 /* ================= 表示ことば（4言語） ================= */
 var T = {
-  ja:{verChk:'ver確認', lpHint:'ツールを長押しで移動・コピー', move:'移動', copy:'コピー', removeHere:'この工程から外す', placed:'配置済み', cancel:'やめる', here:'今の工程', moveNote:'移す先の工程を選んでください', copyNote:'ツールを置く工程を選んでください（元の工程にも残ります）', addNote:'置く工程を選んでください', movedT:'へ移動しました', copiedT:'にも置きました', removedT:'から外しました', customNote:'この端末だけ並びを変えています。全タブレットに広げるときは書き出して GitHub へ。', exportBtn:'tools.js を書き出す', resetBtn:'標準に戻す', exportedT:'tools.js を書き出しました', resetT:'標準の並びに戻しました', title:'出荷業務ツール集', map:'マップ', list:'一覧', mapTtl:'物と情報の流れ図', mapSub:'エリアを押すとツールが開きます',
+  ja:{verChk:'ver確認', lpHint:'ツールを長押しで移動・コピー', move:'移動', copy:'コピー', removeHere:'この工程から外す', placed:'配置済み', cancel:'やめる', here:'今の工程', moveNote:'移す先の工程を選んでください', copyNote:'ツールを置く工程を選んでください（元の工程にも残ります）', addNote:'置く工程を選んでください', movedT:'へ移動しました', copiedT:'にも置きました', removedT:'から外しました', customNote:'この端末だけ並びを変えています。全タブレットに広げるときは書き出して GitHub へ。', exportBtn:'tools.js を書き出す', resetBtn:'標準に戻す', exportedT:'tools.js を書き出しました', resetT:'標準の並びに戻しました', title:'GOWA FLOW', titleSub:'五和 業務ツール集', map:'マップ', list:'一覧', mapTtl:'物と情報の流れ図', mapSub:'エリアを押すとツールが開きます',
       mono:'物の流れ', info:'情報の流れ', tools:'ツール', none:'準備中',
       emptyArea:'このエリアのツールは準備中です', other:'その他',
       on:'オンライン', off:'オフライン', newVer:'新しい版があります', update:'更新する',
       updBadge:'更新', saved:'保存済み', unsaved:'未保存', ready:'オフライン準備',
       check:'最新か確認', checking:'確認中…', latest:'最新です', needNet:'Wi-Fiにつないでから確認してください',
       from:'← ', to:'→ '},
-  id:{verChk:'Cek versi', lpHint:'Tekan lama alat untuk pindah/salin', move:'Pindah', copy:'Salin', removeHere:'Hapus dari area ini', placed:'Sudah ada', cancel:'Batal', here:'Area ini', moveNote:'Pilih area tujuan', copyNote:'Pilih area tambahan (tetap ada di area asal)', addNote:'Pilih area', movedT:' — dipindah', copiedT:' — disalin', removedT:' — dihapus', customNote:'Susunan hanya diubah di perangkat ini.', exportBtn:'Ekspor tools.js', resetBtn:'Kembali ke standar', exportedT:'tools.js diekspor', resetT:'Kembali ke standar', title:'Kumpulan Alat Pengiriman', map:'Peta', list:'Daftar', mapTtl:'Aliran Barang & Informasi', mapSub:'Tekan area untuk membuka alat',
+  id:{verChk:'Cek versi', lpHint:'Tekan lama alat untuk pindah/salin', move:'Pindah', copy:'Salin', removeHere:'Hapus dari area ini', placed:'Sudah ada', cancel:'Batal', here:'Area ini', moveNote:'Pilih area tujuan', copyNote:'Pilih area tambahan (tetap ada di area asal)', addNote:'Pilih area', movedT:' — dipindah', copiedT:' — disalin', removedT:' — dihapus', customNote:'Susunan hanya diubah di perangkat ini.', exportBtn:'Ekspor tools.js', resetBtn:'Kembali ke standar', exportedT:'tools.js diekspor', resetT:'Kembali ke standar', title:'GOWA FLOW', titleSub:'Gowa Ops Hub', map:'Peta', list:'Daftar', mapTtl:'Aliran Barang & Informasi', mapSub:'Tekan area untuk membuka alat',
       mono:'Aliran barang', info:'Aliran informasi', tools:'alat', none:'Segera',
       emptyArea:'Alat untuk area ini sedang disiapkan', other:'Lainnya',
       on:'Online', off:'Offline', newVer:'Ada versi baru', update:'Perbarui',
       updBadge:'Baru', saved:'Tersimpan', unsaved:'Belum tersimpan', ready:'Siap offline',
       check:'Cek versi terbaru', checking:'Mengecek…', latest:'Sudah terbaru', needNet:'Sambungkan Wi-Fi dulu',
       from:'← ', to:'→ '},
-  tl:{verChk:'Tsek bersyon', lpHint:'Pindutin nang matagal para ilipat/kopyahin', move:'Ilipat', copy:'Kopyahin', removeHere:'Alisin sa area na ito', placed:'Nandito na', cancel:'Kanselahin', here:'Area na ito', moveNote:'Piliin ang lilipatang area', copyNote:'Piliin ang dagdag na area (mananatili sa dati)', addNote:'Piliin ang area', movedT:' — nailipat', copiedT:' — nakopya', removedT:' — naalis', customNote:'Sa device na ito lang binago ang ayos.', exportBtn:'I-export ang tools.js', resetBtn:'Ibalik sa standard', exportedT:'Na-export ang tools.js', resetT:'Naibalik sa standard', title:'Mga Tool sa Pagpapadala', map:'Mapa', list:'Listahan', mapTtl:'Daloy ng Piyesa at Impormasyon', mapSub:'Pindutin ang area para buksan ang tool',
+  tl:{verChk:'Tsek bersyon', lpHint:'Pindutin nang matagal para ilipat/kopyahin', move:'Ilipat', copy:'Kopyahin', removeHere:'Alisin sa area na ito', placed:'Nandito na', cancel:'Kanselahin', here:'Area na ito', moveNote:'Piliin ang lilipatang area', copyNote:'Piliin ang dagdag na area (mananatili sa dati)', addNote:'Piliin ang area', movedT:' — nailipat', copiedT:' — nakopya', removedT:' — naalis', customNote:'Sa device na ito lang binago ang ayos.', exportBtn:'I-export ang tools.js', resetBtn:'Ibalik sa standard', exportedT:'Na-export ang tools.js', resetT:'Naibalik sa standard', title:'GOWA FLOW', titleSub:'Gowa Ops Hub', map:'Mapa', list:'Listahan', mapTtl:'Daloy ng Piyesa at Impormasyon', mapSub:'Pindutin ang area para buksan ang tool',
       mono:'Daloy ng piyesa', info:'Daloy ng impormasyon', tools:'tool', none:'Darating',
       emptyArea:'Inihahanda pa ang tool para sa area na ito', other:'Iba pa',
       on:'Online', off:'Offline', newVer:'May bagong bersyon', update:'I-update',
       updBadge:'Bago', saved:'Naka-save', unsaved:'Hindi naka-save', ready:'Handa offline',
       check:'Tingnan kung bago', checking:'Tinitingnan…', latest:'Pinakabago na', needNet:'Kumonekta muna sa Wi-Fi',
       from:'← ', to:'→ '},
-  en:{verChk:'Version check', lpHint:'Long-press a tool to move or copy', move:'Move', copy:'Copy', removeHere:'Remove from this area', placed:'Already here', cancel:'Cancel', here:'This area', moveNote:'Choose the area to move to', copyNote:'Choose another area (it stays in the original too)', addNote:'Choose an area', movedT:' — moved', copiedT:' — copied', removedT:' — removed', customNote:'Layout changed on this device only.', exportBtn:'Export tools.js', resetBtn:'Reset to standard', exportedT:'tools.js exported', resetT:'Reset to standard', title:'Shipping Tools', map:'Map', list:'List', mapTtl:'Material & Information Flow', mapSub:'Tap an area to open its tools',
+  en:{verChk:'Version check', lpHint:'Long-press a tool to move or copy', move:'Move', copy:'Copy', removeHere:'Remove from this area', placed:'Already here', cancel:'Cancel', here:'This area', moveNote:'Choose the area to move to', copyNote:'Choose another area (it stays in the original too)', addNote:'Choose an area', movedT:' — moved', copiedT:' — copied', removedT:' — removed', customNote:'Layout changed on this device only.', exportBtn:'Export tools.js', resetBtn:'Reset to standard', exportedT:'tools.js exported', resetT:'Reset to standard', title:'GOWA FLOW', titleSub:'Gowa Ops Hub', map:'Map', list:'List', mapTtl:'Material & Information Flow', mapSub:'Tap an area to open its tools',
       mono:'Material flow', info:'Information flow', tools:'tools', none:'Soon',
       emptyArea:'Tools for this area are coming soon', other:'Other',
       on:'Online', off:'Offline', newVer:'A new version is available', update:'Update',
@@ -455,8 +455,9 @@ function setArea(id){
 /* ================= 画面全体 ================= */
 function render(){
   var t=T[lang];
-  document.title=t.title;
+  document.title=t.title+'｜'+T.ja.titleSub;
   document.getElementById('title').textContent=t.title;
+  document.getElementById('titleSub').textContent=t.titleSub;
   document.getElementById('siteVer').textContent='ver '+SITE_VER;
   document.getElementById('checkBtn').textContent=t.check;
   document.getElementById('andonTxt').textContent=t.newVer+(newSiteVer?'（ver '+newSiteVer+'）':'');
