@@ -9,7 +9,7 @@
      「新しい版があります」と表示されます
    ========================================================= */
 
-var SITE_VER = '2026-11-17k';
+var SITE_VER = '2026-11-17l';
 
 /* GitHub Pages の場所（各ツールのリポジトリはここの下にある） */
 var BASE = 'https://overbridge038-lnk.github.io/';
@@ -168,7 +168,7 @@ var TOOLS = [
 
   { id: 'shikyu-naiji', icon: '🚚', name: 'ユニクレア 支給内示 月度表',
     desc: '支給ファイルの支給数を月度表に入れ、変わった日を赤字・台数も照合',
-    file: 'tools/shikyu-naiji.html', ver: '2026-11-17b' },
+    file: 'tools/shikyu-naiji.html', ver: '2026-11-17d' },
 
   { id: 'shukka-houkoku', icon: '📝', name: '高木製作所 出荷数報告書 作成',
     desc: '発注データ（CSV／PDF）から出荷数報告書を作って印刷。両方入れると突き合わせ',

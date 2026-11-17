@@ -103,7 +103,7 @@ dialog select{background:#fff;color:var(--ink);border-color:var(--line);max-widt
 </head>
 <body>
 <header>
-  <h1>ユニクレア 支給内示 月度表<span class="ver">ver 2026-11-17b</span></h1>
+  <h1>ユニクレア 支給内示 月度表<span class="ver">ver 2026-11-17d</span></h1>
   <div class="ctl"><label for="selMonth">月度</label><select id="selMonth"></select></div>
   <div class="ctl"><label for="selVer">版</label><select id="selVer"></select></div>
   <div class="spacer"></div>
@@ -116,7 +116,7 @@ dialog select{background:#fff;color:var(--ink);border-color:var(--line);max-widt
   <input type="file" id="fileJson" accept=".json" hidden>
 </header>
 <main>
-  <div id="drop">支給ファイル（例：<b>支給10-3.xlsx</b>）をここにドラッグ＆ドロップ、またはクリックして選択 ― 「sch」シートの支給数を月度表に反映し、<b>前に読み込んだ版</b>と比べて変わった日を赤字にします（前回あり→今回空欄の日は赤字で <b>0</b> を表示）</div>
+  <div id="drop">支給ファイル（例：<b>支給10-3.xlsx</b>）をここにドラッグ＆ドロップ、またはクリックして選択 ― 「sch」シートの支給数を月度表に反映し、<b>前に読み込んだ版</b>と比べて変わった日を赤字にします（前回あり→今回空欄の日は赤字で <b>0</b> を表示）。版の番号（11-5 など）は、その月に読み込んだ回数です（同じ中身のデータは数えません）</div>
   <div class="notice" id="notice"></div>
   <div class="cards" id="cards"></div>
   <div class="printhead" id="printhead"></div>
@@ -155,7 +155,7 @@ dialog select{background:#fff;color:var(--ink);border-color:var(--line);max-widt
 <div class="toast" id="toast"></div>
 
 <script>
-const TOOL_VER='2026-11-17b';
+const TOOL_VER='2026-11-17d';
 /* ====== 支給内示原紙レイアウト定義（原紙の行番号に対応） ====== */
 const ROWS = [
   {r:6, a:'南', pn:'82126-TTA7-J000-SB-0000', label:'SIDE FRAME COMP INN R,RR BACK', car:'2RG', kind:'in', sec:'nansei'},
@@ -215,6 +215,52 @@ const SEED = {"2026-10":{"versions":[{"label":"10-3","kno":3,"source":"支給10-
 const STORE_KEY = 'shikyu-naiji-geppo-v1';
 const WD = ['日','月','火','水','木','金','土'];
 
+
+/* ====== 版番号＝その月にドラッグ＆ドロップで読み込んだ回数（同じデータは数えない） ====== */
+const SEQ_START={}; // 移行時の開始番号（月ごと）：この月の最新の版をこの番号にそろえる
+function dataSig(parts){ return JSON.stringify(Object.keys(parts||{}).sort().map(pn=>[pn,(parts[pn].qty||[]).join(',')])); }
+function migrateSeq(s){
+  for(const mon in s.months){
+    const rec=s.months[mon]; const vs=rec.versions||[];
+    if(!vs.length||vs.every(v=>v.seq)) continue;
+    vs.sort((a,b)=>String(a.loadedAt||'').localeCompare(String(b.loadedAt||'')));
+    const last=Math.max(vs.length,SEQ_START[mon]||0);
+    const m=+mon.split('-')[1];
+    vs.forEach((v,i)=>{ if(v.kno!==undefined&&v.fileNo===undefined) v.fileNo=v.kno; v.seq=Math.max(1,last-(vs.length-1-i)); v.label=`${m}-${v.seq}`; });
+  }
+  return s;
+}
+function nextSeq(rec){ return (rec.versions||[]).reduce((a,v)=>Math.max(a,v.seq||0),0)+1; }
+
+
+/* ====== 基準データ（どのPCでも、このデータを 11-5 とし、ここから数え直す） ====== */
+const PIN_ID='pin-2026-11-5-v1';
+const PINNED={'2026-11':{"label":"11-5","seq":5,"source":"11月度 支給データ（基準 11-5）","loadedAt":"2026-11-17T15:45:00+09:00","pinned":true,"note":"11-5 を基準データとして登録しています（比較する前の版がないため赤字なし）。","parts":{"82129-TTE8-J000-SA-0001-W":{"name":"PANEL PARTATION BOARD(溶接)","src":"社内","qty":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,360,0,0,0,0,0,0,0,0],"diff":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]},"82136-TTE8-J000-SA-0000-W":{"name":"FOOT PIPE SUB COMP（溶接）","src":"社内","qty":[0,140,0,0,0,140,0,0,0,0,0,0,140,0,0,0,0,0,140,0,0,0,0,0,0,280,0,0,0,0,0],"diff":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]},"82136-TXA9-J000-SA-0000-W":{"name":"FOOT PIPE SUB COMP,RR CUSH","src":"社内","qty":[0,0,0,420,140,0,0,0,140,140,140,280,140,0,0,140,140,280,280,280,0,0,0,0,140,140,140,0,0,140,0],"diff":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]},"82136-TZA0-J000-SA-0000":{"name":"FOOT PIPE SUB COMP R,RR CUSH","src":"社内","qty":[0,280,280,280,280,280,0,0,280,280,280,280,280,0,0,280,280,280,420,280,0,0,420,280,420,280,280,0,0,280,0],"diff":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]},"82536-TZA0-J000-SA-0000":{"name":"FOOT PIPE SUB COMP L,RR CUSH","src":"社内","qty":[0,280,280,280,280,280,0,0,280,280,280,280,280,0,0,280,280,280,420,280,0,0,420,280,420,280,280,0,0,280,0],"diff":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]},"82136-32R4-J000-SB-0000":{"name":"FOOT COMP R,RR CUSH","src":"社内","qty":[0,720,840,720,840,720,0,0,840,840,840,840,720,0,0,840,840,840,840,840,0,0,840,840,840,720,840,0,0,840,0],"diff":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]},"82536-32R4-J000-SB-0000":{"name":"FOOT COMP L,RR CUSH","src":"社内","qty":[0,720,840,720,840,720,0,0,840,840,840,840,720,0,0,840,840,840,840,840,0,0,840,840,840,720,840,0,0,840,0],"diff":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]},"82136-TTA7-J000-SB-0001":{"name":"FOOT COMP R,RR CUSH","src":"社内","qty":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"diff":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]},"82536-TTA7-J000-SB-0001":{"name":"FOOT COMP L,RR CUSH","src":"社内","qty":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"diff":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]},"81136-TF08-J010-35-0003":{"name":"REC LEVER A R F/C","src":"山中工業","qty":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"diff":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]},"81536-TF08-J010-35-0003":{"name":"REC LEVER A L F/C","src":"山中工業","qty":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"diff":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]},"82126-TTA7-J000-SB-0000":{"name":"SIDE FRAME COMP INN R,RR BACK","src":"シンダイ","qty":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"diff":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]},"82526-TTA7-J000-SB-0000":{"name":"SIDE FRAME COMP INN L,RR BACK","src":"シンダイ","qty":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"diff":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]}},"check":{"2FJ":[0,4,4,4,4,4,0,0,4,4,4,4,4,0,0,4,4,4,6,4,0,0,6,4,6,4,4,0,0,4,0],"3RB":[0,12,14,12,14,12,0,0,14,14,14,14,12,0,0,14,14,14,14,14,0,0,14,14,14,12,14,0,0,14,0],"2RG":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"合計":[0,16,18,16,18,16,0,0,18,18,18,18,16,0,0,18,18,18,20,18,0,0,20,18,20,16,18,0,0,18,0]},"prevLabel":null,"firstOfMonth":false}};
+function stripRemoved(parts){ const o={}; for(const pn in (parts||{})) if(!parts[pn].removed) o[pn]=parts[pn]; return o; }
+function applyPinned(s){
+  s.pinApplied=s.pinApplied||{};
+  for(const mon in PINNED){
+    if(s.pinApplied[mon]===PIN_ID) continue;
+    const pv=JSON.parse(JSON.stringify(PINNED[mon])); const m=+mon.split('-')[1];
+    const rec=s.months[mon]||(s.months[mon]={versions:[],manual:{}});
+    const sig=dataSig(pv.parts);
+    const dup=rec.versions.find(v=>dataSig(stripRemoved(v.parts))===sig);
+    const pivot=String(dup?dup.loadedAt:pv.loadedAt);
+    const others=rec.versions.filter(v=>v!==dup&&dataSig(stripRemoved(v.parts))!==sig);
+    const byTime=(a,b)=>String(a.loadedAt||'').localeCompare(String(b.loadedAt||''));
+    const before=others.filter(v=>String(v.loadedAt||'')<pivot).sort(byTime);
+    const after=others.filter(v=>String(v.loadedAt||'')>=pivot).sort(byTime);
+    const base=dup?Object.assign(dup,{pinned:true}):pv;
+    base.seq=pv.seq;
+    before.forEach((v,i)=>v.seq=Math.max(1,pv.seq-(before.length-i)));
+    after.forEach((v,i)=>v.seq=pv.seq+1+i);
+    rec.versions=[...before,base,...after];
+    rec.versions.forEach(v=>v.label=`${m}-${v.seq}`);
+    s.pinApplied[mon]=PIN_ID;
+  }
+  return s;
+}
+
 let state = load();
 let cur = {month:null, ver:null};
 function load(){
@@ -223,7 +269,7 @@ function load(){
   if(!s||!s.months) s={months:{},map:{}};
   for(const m in SEED){ if(!s.months[m]) s.months[m]=JSON.parse(JSON.stringify(SEED[m])); }
   if(!s.map) s.map={};
-  return s;
+  return applyPinned(migrateSeq(s));
 }
 function save(){ try{ localStorage.setItem(STORE_KEY,JSON.stringify(state)); }catch(e){ toast('ブラウザへの保存に失敗しました（バックアップを書き出してください）'); } }
 function mapOf(){ return Object.assign({},DEFAULT_MAP,state.map); }
@@ -457,22 +503,24 @@ async function handleFile(f){
     const sn=book.names.find(n=>n.trim().toLowerCase()==='sch')||book.names[0];
     const p=parseSch(await book.sheet(sn),f.name);
     const rec=state.months[p.month]||(state.months[p.month]={versions:[],manual:{}});
-    const {m}=ym(p.month);
-    if(p.kno===null){ const mx=rec.versions.reduce((a,v)=>Math.max(a,v.kno||0),0); p.kno=mx+1; p.label=`${m}-${p.kno}`; }
-    // 前回の版（この版より前で一番新しい版）と比較して差を計算
-    const prev=rec.versions.filter(v=>(v.kno||0)<p.kno).sort((a,b)=>(b.kno||0)-(a.kno||0))[0];
+    const {y,m}=ym(p.month);
+    // ポカヨケ：中身が同じデータは数えない
+    const sig=dataSig(p.parts);
+    const same=rec.versions.find(v=>dataSig(stripRemoved(v.parts))===sig);
+    if(same){ cur.month=p.month; cur.ver=rec.versions.indexOf(same); render(); toast(`同じデータです（${same.label} と同じ中身のため、カウントしません）`); return; }
+    const seq=nextSeq(rec);
+    // 前回の版（その月で最後に読み込んだ版）と比較して差を計算
+    const prev=rec.versions.slice().sort((a,b)=>(b.seq||0)-(a.seq||0))[0];
     for(const pn in p.parts){
       const q=p.parts[pn].qty, pq=prev&&prev.parts[pn]?prev.parts[pn].qty:blank();
       p.parts[pn].diff=prev?q.map((v,i)=>v-(pq[i]||0)):blank();
     }
-    if(prev){ for(const pn in prev.parts){ if(!p.parts[pn]&&prev.parts[pn].qty.some(x=>x)){ const pq=prev.parts[pn]; p.parts[pn]={name:pq.name,src:pq.src,qty:blank(),diff:pq.qty.map(x=>-x)}; } } }
-    const v={label:p.label,kno:p.kno,source:f.name,loadedAt:new Date().toISOString(),parts:p.parts,check:p.check,prevLabel:prev?prev.label:null,firstOfMonth:!prev};
-    const i=rec.versions.findIndex(x=>x.label===p.label);
-    if(i>=0) rec.versions[i]=v; else rec.versions.push(v);
-    rec.versions.sort((a,b)=>(a.kno||0)-(b.kno||0));
-    save(); cur.month=p.month; cur.ver=rec.versions.findIndex(x=>x.label===p.label); render();
-    const {y}=ym(p.month);
-    toast(`${String(y).slice(2)}年${m}月度 ${p.label} を反映しました（${Object.keys(p.parts).length}品番${prev?'／'+prev.label+'と比較':''}）`);
+    if(prev){ for(const pn in prev.parts){ if(!p.parts[pn]&&prev.parts[pn].qty.some(x=>x)){ const pq=prev.parts[pn]; p.parts[pn]={name:pq.name,src:pq.src,qty:blank(),diff:pq.qty.map(x=>-x),removed:true}; } } }
+    const v={label:`${m}-${seq}`,seq,fileNo:p.kno,source:f.name,loadedAt:new Date().toISOString(),parts:p.parts,check:p.check,prevLabel:prev?prev.label:null,firstOfMonth:!prev};
+    rec.versions.push(v);
+    rec.versions.sort((a,b)=>(a.seq||0)-(b.seq||0));
+    save(); cur.month=p.month; cur.ver=rec.versions.indexOf(v); render();
+    toast(`${String(y).slice(2)}年${m}月度 ${v.label}（${seq}回目の読込）を反映しました（${Object.keys(p.parts).length}品番${prev?'／'+prev.label+'と比較':''}）`);
   }catch(e){ console.error(e); toast('読込エラー：'+e.message); }
 }
 const fi=document.getElementById('file');
@@ -508,7 +556,7 @@ document.getElementById('moreClose').onclick=()=>document.getElementById('dlgMor
 document.getElementById('bkSave').onclick=()=>dl(new Blob([JSON.stringify(state)],{type:'application/json'}),`支給内示_バックアップ_${new Date().toISOString().slice(0,10)}.json`);
 const fj=document.getElementById('fileJson');
 document.getElementById('bkLoad').onclick=()=>fj.click();
-fj.onchange=async()=>{ try{ const s=JSON.parse(await fj.files[0].text()); if(!s.months) throw 0; state=s; if(!state.map) state.map={}; save(); cur={month:null,ver:null}; render(); toast('バックアップを読み込みました'); }catch(e){ toast('バックアップファイルが正しくありません'); } fj.value=''; };
+fj.onchange=async()=>{ try{ const s=JSON.parse(await fj.files[0].text()); if(!s.months) throw 0; state=applyPinned(migrateSeq(s)); if(!state.map) state.map={}; save(); cur={month:null,ver:null}; render(); toast('バックアップを読み込みました'); }catch(e){ toast('バックアップファイルが正しくありません'); } fj.value=''; };
 document.getElementById('verDel').onclick=()=>{
   const rec=state.months[cur.month]; if(!rec.versions.length) return;
   const lab=rec.versions[cur.ver].label;
