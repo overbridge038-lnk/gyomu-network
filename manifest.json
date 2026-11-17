@@ -1,6 +1,6 @@
 {
-  "name": "ITSUWA FLOW｜五和 業務ツール集",
-  "short_name": "ITSUWA FLOW",
+  "name": "五和業務ツール｜ITSUWA OPS HUB",
+  "short_name": "五和業務ツール",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
