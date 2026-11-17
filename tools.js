@@ -9,7 +9,7 @@
      「新しい版があります」と表示されます
    ========================================================= */
 
-var SITE_VER = '2026-11-17c';
+var SITE_VER = '2026-11-17d';
 
 /* GitHub Pages の場所（各ツールのリポジトリはここの下にある） */
 var BASE = 'https://overbridge038-lnk.github.io/';
@@ -33,15 +33,15 @@ var MAP_WALLS = [];
 var AREAS = [
   { id: 'office', icon: '🏢', name: '事務所',
     names: { id: 'Kantor', tl: 'Opisina', en: 'Office' },
-    x: 40, y: 50, w: 280, h: 130, tools: ['uriage', 'kanri-sheet', 'shukka-more-auto', 'naiji', 'shukka-houkoku'] },
+    x: 40, y: 50, w: 280, h: 130, tools: ['uriage', 'kanri-sheet', 'naiji', 'shukka-houkoku'] },
 
   { id: 'ukeire', icon: '📥', name: '受入・素材',
     names: { id: 'Penerimaan', tl: 'Receiving', en: 'Receiving' },
-    x: 40, y: 400, w: 170, h: 130, tools: ['shikyu-naiji'] },
+    x: 40, y: 400, w: 170, h: 130, tools: ['shikyu-naiji', 'kakeoki'] },
 
   { id: 'kake', icon: '🪝', name: '掛け',
     names: { id: 'Gantung', tl: 'Hanging', en: 'Hanging' },
-    x: 250, y: 400, w: 170, h: 130, tools: ['kakeoki', 'seisan'] },
+    x: 250, y: 400, w: 170, h: 130, tools: ['kakeoki', 'seisan', 'point'] },
 
   { id: 'dasshi', icon: '🧼', name: '脱脂工程',
     names: { id: 'Degreasing', tl: 'Degreasing', en: 'Degreasing' },
@@ -49,20 +49,20 @@ var AREAS = [
 
   { id: 'tosou', icon: '🎨', name: '塗装',
     names: { id: 'Pengecatan', tl: 'Painting', en: 'Painting' },
-    x: 460, y: 400, w: 170, h: 130, tools: ['zaiko-count'] },
+    x: 460, y: 400, w: 170, h: 130, tools: [] },
 
   { id: 'kensa', icon: '🔬', name: '検査',
     names: { id: 'Inspeksi', tl: 'Inspection', en: 'Inspection' },
-    x: 670, y: 400, w: 150, h: 130, tools: ['point', 'seisan'] },
+    x: 670, y: 400, w: 150, h: 130, tools: ['point', 'seisan', 'kakeoki'] },
 
   { id: 'store', icon: '🗄️', name: 'ストア',
     names: { id: 'Gudang', tl: 'Store', en: 'Store' },
-    x: 670, y: 210, w: 150, h: 130, tools: [] },
+    x: 670, y: 210, w: 150, h: 130, tools: ['zaiko-count'] },
 
   { id: 'shukka', icon: '🚚', name: '出荷場',
     names: { id: 'Pengiriman', tl: 'Shipping', en: 'Shipping' },
     x: 850, y: 210, w: 120, h: 320,
-    tools: ['point', 'gohin', 'gohin-fts', 'sekisai', 'zaiko-count', 'shukka-more', 'hayami', 'sango', 'furidashi', 'tsumitsuke', 'shogo-matome', 'rinkan-yama'] }
+    tools: ['gohin', 'gohin-fts', 'sekisai', 'zaiko-count', 'shukka-more-auto', 'hayami', 'sango', 'furidashi', 'tsumitsuke', 'shogo-matome', 'rinkan-yama'] }
 ];
 
 /* ---------------------------------------------------------
@@ -123,9 +123,6 @@ var TOOLS = [
     names: { id: 'Cek Salah Barang (FTS)', tl: 'Wrong Part Check (FTS)', en: 'Wrong Part Check (FTS)' },
     file: BASE + 'gihin2-FTS/', ver: '2026-11-12' },
 
-  { id: 'shukka-more', icon: '🚚', name: '出荷漏れチェック',
-    desc: '受注と出荷実績を照合して漏れを見つける',
-    file: 'tools/shukka-more-check.html', ver: '2026-11-17' },
 
   { id: 'hayami', icon: '📊', name: '早見表（eかんばん・EDI受注数の統合）',
     desc: 'eかんばん・EDIの受注数をひとつに',
@@ -161,17 +158,17 @@ var TOOLS = [
     desc: '売上伝票と仕入明細を照合してOK/NG判定',
     file: 'tools/uriage-shiire.html', ver: '2026-11-11' },
 
-  { id: 'naiji', icon: '📅', name: '出荷内示 月度表',
+  { id: 'naiji', icon: '📅', name: 'ユニクレア 出荷内示 月度表',
     desc: '出荷ファイルの注文数を月度表に入れ、前回から変わった日を赤字で知らせる',
-    file: 'tools/shukka-naiji.html', ver: '2026-11-17' },
+    file: 'tools/shukka-naiji.html', ver: '2026-11-17b' },
 
-  { id: 'shikyu-naiji', icon: '🚚', name: '支給内示 月度表',
+  { id: 'shikyu-naiji', icon: '🚚', name: 'ユニクレア 支給内示 月度表',
     desc: '支給ファイルの支給数を月度表に入れ、変わった日を赤字・台数も照合',
-    file: 'tools/shikyu-naiji.html', ver: '2026-11-17' },
+    file: 'tools/shikyu-naiji.html', ver: '2026-11-17b' },
 
-  { id: 'shukka-houkoku', icon: '📝', name: '出荷数報告書 作成',
+  { id: 'shukka-houkoku', icon: '📝', name: '高木製作所 出荷数報告書 作成',
     desc: '発注データ（CSV／PDF）から出荷数報告書を作って印刷。両方入れると突き合わせ',
-    file: 'tools/shukka-houkoku.html', ver: '2026-11-17' },
+    file: 'tools/shukka-houkoku.html', ver: '2026-11-17b' },
 
   { id: 'tsumitsuke', icon: '🧱', name: '積み付け表 作成ツール',
     desc: 'タイムライン早見表から便ごとの積み付け表を作って印刷',
