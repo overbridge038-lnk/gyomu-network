@@ -39,6 +39,14 @@ GitHub Pages（main / root）で公開：https://overbridge038-lnk.github.io/gyo
 
 - 出荷漏れチェック（手動・shukka-more-check.html）は 2026-11-17 に外した。出荷漏れは自動照合のほうを出荷場に置く（ユーザー決定）
 
+## 接続の設定（2026-11-17 追加・表紙の右上 ⚙）
+- Apps Script のURL・合言葉は、表紙の ⚙ から**その端末のブラウザの中だけ**に保存する（公開ページ・リポジトリには入れない）
+- 同じ github.io の中は保存場所が同じなので、各ツールがそのまま読む
+  - 在庫カウント：localStorage `zaikoCountCfg` の `gas`（ツールの ⚙ と同じ場所）
+  - 生産管理しくみ：localStorage `sk_settings` の `gasUrl`・`key`（URLを初めて入れたときは `mode` を `live`＝本番にする）
+- URLの形（https://script.google.com/macros/s/…/exec）がちがう・生産管理しくみのURLと合言葉の片方だけ、は保存しない（ポカヨケ）
+- タブレットごとに1回入れる
+
 ## 決まりごと
 - ver（日付）を表紙・各ツールに表示する。表紙を直したら `tools.js` の `SITE_VER` を今日の日付にする
 - 「仕組み」ではなく、ひらがなの「しくみ」と書く

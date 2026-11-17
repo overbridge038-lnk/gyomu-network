@@ -182,6 +182,23 @@
   a.card{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
   a.card.press{animation:press .5s linear forwards}
   @keyframes press{to{transform:scale(.96);box-shadow:0 0 0 2px rgba(34,211,238,.7),0 0 26px rgba(34,211,238,.45)}}
+  #cfgBg{position:fixed;inset:0;z-index:45;background:rgba(0,0,0,.55);display:none;align-items:center;justify-content:center;padding:16px}
+  #cfgBg.show{display:flex}
+  #cfgBox{width:min(620px,100%);max-height:90vh;overflow:auto;border-radius:22px;border:1px solid var(--edge);background:rgba(12,19,36,.97);box-shadow:0 30px 80px rgba(0,0,0,.6);padding:18px}
+  #cfgBox h2{margin:0 0 6px;font-size:18px}
+  #cfgBox .note{font-size:12.5px;color:var(--sub);margin:0 0 12px;word-break:auto-phrase}
+  #cfgBox fieldset{border:1px solid var(--edge);border-radius:14px;padding:10px 12px 12px;margin:0 0 12px}
+  #cfgBox legend{font-weight:700;padding:0 6px}
+  #cfgBox label{display:block;font-size:13px;color:var(--sub);margin:8px 0 4px}
+  #cfgBox input{width:100%;box-sizing:border-box;padding:10px 12px;border-radius:10px;border:1px solid var(--edge);background:rgba(255,255,255,.06);color:var(--ink);font:inherit;font-size:14px}
+  #cfgBox input.ng{border-color:#ff6b6b;background:rgba(255,107,107,.12)}
+  #cfgBox .st{font-size:12px;margin-left:8px;padding:2px 8px;border-radius:999px;font-weight:700}
+  #cfgBox .st.ok{background:rgba(52,211,153,.18);color:#34d399}
+  #cfgBox .st.no{background:rgba(251,191,36,.16);color:#fbbf24}
+  #cfgBox .row{display:flex;gap:8px;align-items:center}
+  #cfgBox .row .btn{flex:none;white-space:nowrap}
+  #cfgBox .err{color:#ff8080;font-size:13px;font-weight:700;min-height:1em;margin:4px 0 0}
+  #cfgBox .ft{display:flex;gap:8px;justify-content:flex-end;margin-top:6px}
   #sheetBg{position:fixed;inset:0;z-index:40;background:rgba(0,0,0,.55);display:none;align-items:center;justify-content:center;padding:16px}
   #sheetBg.show{display:flex}
   #sheet{width:min(560px,100%);max-height:88vh;overflow:auto;border-radius:22px;border:1px solid var(--edge);
@@ -228,6 +245,7 @@
     <span class="sp"></span>
     <div class="seg view" id="views"></div>
     <div class="seg" id="langs"></div>
+    <button class="btn" id="cfgBtn" title="接続の設定（Apps Script のURL・合言葉）" aria-label="接続の設定">⚙</button>
   </div>
 </header>
 
@@ -247,6 +265,7 @@
 <div id="scrim"></div>
 <aside id="panel" aria-hidden="true"></aside>
 <div id="sheetBg"><div id="sheet" role="dialog"></div></div>
+<div id="cfgBg"><div id="cfgBox" role="dialog" aria-label="接続の設定"></div></div>
 <div id="toast"></div>
 
 <script>
@@ -662,6 +681,51 @@ if('serviceWorker' in navigator){
 var h=location.hash.match(/area=([\w-]+)/); if(h && AREA[h[1]]) openArea=h[1];
 render();
 refreshVers();
+
+/* ================= 接続の設定（Apps Script のURL・合言葉） =================
+   この端末のブラウザの中だけに保存する（公開ページ＝GitHub には入らない）。
+   同じ github.io の中のツールは保存場所が同じなので、ここで入れた値を各ツールがそのまま読む。
+   ・在庫カウント      … localStorage 'zaikoCountCfg' の gas
+   ・生産管理しくみ    … localStorage 'sk_settings' の gasUrl・key（URLを入れたら本番につなぐ） */
+var CFG_RE=/^https:\/\/script\.google\.com\/macros\/s\/[A-Za-z0-9_-]{20,}\/exec$/;
+function lsGet(k){ try{ return JSON.parse(localStorage.getItem(k)||'null')||{}; }catch(e){ return {}; } }
+function lsSet(k,o){ try{ localStorage.setItem(k,JSON.stringify(o)); return true; }catch(e){ return false; } }
+function cfgSt(v){ return v?'<span class="st ok">設定済み</span>':'<span class="st no">未設定</span>'; }
+function openCfg(){
+  var z=lsGet('zaikoCountCfg'), sk=lsGet('sk_settings');
+  document.getElementById('cfgBox').innerHTML=
+    '<h2>⚙ 接続の設定</h2>'+
+    '<p class="note">Googleドライブ・スプレッドシートにつなぐための送り先と合言葉です。<b>この端末の中だけ</b>に保存し、公開ページ（GitHub）には入りません。タブレットごとに1回入れてください。</p>'+
+    '<fieldset><legend>📦 在庫カウント'+cfgSt(z.gas)+'</legend>'+
+      '<label for="cfZ">送信先（Apps Script のURL）</label><input id="cfZ" type="url" autocomplete="off" spellcheck="false" placeholder="https://script.google.com/macros/s/…/exec" value="'+esc(z.gas||'')+'"></fieldset>'+
+    '<fieldset><legend>🏭 生産管理しくみ'+cfgSt(sk.gasUrl&&sk.key)+'</legend>'+
+      '<label for="cfS">Apps Script のURL</label><input id="cfS" type="url" autocomplete="off" spellcheck="false" placeholder="https://script.google.com/macros/s/…/exec" value="'+esc(sk.gasUrl||'')+'">'+
+      '<label for="cfK">合言葉</label><div class="row"><input id="cfK" type="password" autocomplete="off" value="'+esc(sk.key||'')+'"><button class="btn" id="cfEye" type="button">表示</button></div></fieldset>'+
+    '<div class="err" id="cfErr"></div>'+
+    '<div class="ft"><button class="btn" id="cfNo" type="button">やめる</button><button class="btn" id="cfOk" type="button" style="background:var(--grad);color:#0b1020;font-weight:700">保存</button></div>';
+  document.getElementById('cfgBg').classList.add('show');
+}
+function closeCfg(){ document.getElementById('cfgBg').classList.remove('show'); document.getElementById('cfgBox').innerHTML=''; }
+function saveCfg(){
+  var zi=document.getElementById('cfZ'), si=document.getElementById('cfS'), ki=document.getElementById('cfK'), er=document.getElementById('cfErr');
+  var zu=zi.value.trim(), su=si.value.trim(), k=ki.value.trim(), bad=[];
+  [zi,si,ki].forEach(function(x){ x.classList.remove('ng'); });
+  /* ポカヨケ：URLの形がちがう・URLと合言葉の片方だけ、は保存しない */
+  if(zu&&!CFG_RE.test(zu)){ zi.classList.add('ng'); bad.push('在庫カウントのURLの形がちがいます（https://script.google.com/macros/s/…/exec）'); }
+  if(su&&!CFG_RE.test(su)){ si.classList.add('ng'); bad.push('生産管理しくみのURLの形がちがいます（https://script.google.com/macros/s/…/exec）'); }
+  if(!!su!==!!k){ (su?ki:si).classList.add('ng'); bad.push('生産管理しくみは、URLと合言葉を両方入れてください'); }
+  if(bad.length){ er.innerHTML=bad.map(esc).join('<br>'); return; }
+  var z=lsGet('zaikoCountCfg'); z.gas=zu;
+  var sk=lsGet('sk_settings'), was=sk.gasUrl||''; sk.gasUrl=su; sk.key=k; if(su&&!was) sk.mode='live';
+  if(!(lsSet('zaikoCountCfg',z)&&lsSet('sk_settings',sk))){ er.textContent='この端末に保存できませんでした（Chromeで開いてください）'; return; }
+  closeCfg(); toast('接続の設定を保存しました（この端末）');
+}
+document.getElementById('cfgBtn').addEventListener('click',openCfg);
+document.getElementById('cfgBg').addEventListener('click',function(e){
+  if(e.target.id==='cfgBg'||e.target.closest('#cfNo')){ closeCfg(); return; }
+  if(e.target.closest('#cfOk')){ saveCfg(); return; }
+  if(e.target.closest('#cfEye')){ var k=document.getElementById('cfK'); k.type=k.type==='password'?'text':'password'; e.target.textContent=k.type==='password'?'表示':'かくす'; }
+});
 </script>
 </body>
 </html>
