@@ -101,6 +101,11 @@ table.adj th{background:#F0F2F5;font-weight:normal}
 .sb-sub{font-size:13px;padding:6px 12px;border:1px solid var(--line);border-radius:8px;background:#fff;cursor:pointer}
 #snaps{font-size:13px}
 .okt{color:var(--ok);font-weight:bold} .ngt{color:var(--ng)}
+.cloudbar{margin-top:8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.cloudcfg{margin-top:8px;padding:10px 12px;border:1px solid #D5DAE1;border-radius:10px;background:#F7F9FB;display:grid;gap:6px;max-width:640px}
+.cloudcfg input{width:100%;box-sizing:border-box;padding:6px 8px}
+#cloud-andon .andon button{margin-left:6px}
+.cloudcfg[hidden]{display:none}
 .gmsg{min-height:22px;font-size:13px;margin-bottom:4px}
 #grid{position:relative}
 #gedit{position:absolute;z-index:20;box-sizing:border-box;border:2px solid #1F5FBF;font:bold 14px "Meiryo UI",sans-serif;text-align:center;padding:0;background:#fff;outline:none}
@@ -167,8 +172,8 @@ table.gd{border-collapse:separate;border-spacing:0;table-layout:fixed;font-size:
 <body>
 <header>
   <h1>三五 在庫管理ツール</h1>
-  <span class="ver" title="最新版の確認用">ver.2026.11.03.2</span>
-  <span class="tps">入力は一度だけ（転記ゼロ）／異常は赤で止めて知らせる／ネット不要</span>
+  <span class="ver" title="最新版の確認用">ver.2026.11.17</span>
+  <span class="tps">入力は一度だけ（転記ゼロ）／異常は赤で止めて知らせる／ドライブで2台のPCが同じデータ</span>
 </header>
 <main>
   <ol class="steps">
@@ -210,6 +215,14 @@ table.gd{border-collapse:separate;border-spacing:0;table-layout:fixed;font-size:
       <select id="snaps"><option value="">保存はまだありません</option></select>
       <button id="btn-new" class="sb-sub">最初から（ファイルを入れ直す）</button>
     </div>
+    <div class="cloudbar"><span id="cloud" class="muted">☁ ドライブ共有：確認中…</span> <button id="btn-cloud-cfg" class="sb-sub">☁ 共有の設定</button></div>
+    <div id="cloud-cfg" class="cloudcfg" hidden>
+      <div class="muted">Apps Script のURLと合言葉を入れます。<b>この端末の中だけ</b>に保存します（表紙の ⚙ で入れたものと同じ場所）。</div>
+      <label>Apps Script のURL <input id="cc-gas" type="url" autocomplete="off" spellcheck="false" placeholder="https://script.google.com/macros/s/…/exec"></label>
+      <label>合言葉 <input id="cc-key" type="password" autocomplete="off"></label>
+      <button id="btn-cc-save" class="sb-sub">保存</button> <span id="cc-err" class="ngt"></span>
+    </div>
+    <div id="cloud-andon"></div>
     <div id="furi-box" class="furibox" hidden>
       <div class="fb-head"><b>素材発注指示</b>　<span id="furi-dates"></span>
         <button id="btn-furi" class="sb-furi">素材発注指示をExcelで出す</button></div>
@@ -1266,7 +1279,7 @@ function buildXlsx(model, st) {
 /* =====================================================================
    7. 画面
    ===================================================================== */
-const APP_VER = '2026.11.03.2';   // 直したら日付を変える（ver.年.月.日）
+const APP_VER = '2026.11.17';   // 直したら日付を変える（ver.年.月.日）
 const urlToday = new URLSearchParams(location.search).get('today');   // テスト用 ?today=2026-11-04
 const state = { base: null, baseName: '', naiji: null, naijiName: '', csvs: [], adjusts: [], shikyu: new Set(CFG.defaultShikyu), nRound: 1, leadWorkDays: CFG.leadWorkDays, workdays: null, err: {}, edits: new Map(), editAt: new Map(), editBefore: new Map(), today: urlToday ? parseKey(urlToday) : null };
 let model = null;
@@ -1603,25 +1616,128 @@ async function doSave() {
     for (const x of all.slice(KEEP)) await idbDo('readwrite', s => s.delete(x.id));
     $('#autosave').innerHTML = `<span class="okt">自動保存しました ${at}</span>`;
     renderSnaps(all.slice(0, KEEP));
+    cloudPush(data);
   } catch (e) { console.error(e); $('#autosave').innerHTML = `<b class="ngt">自動保存できません（${esc(e.message)}）。Excelに保存してください</b>`; }
 }
 async function renderSnaps(list) {
   list = list || await snapList().catch(() => []);
   $('#snaps').innerHTML = list.length ? `<option value="">戻す時点を選ぶ（${list.length}件）</option>` + list.map(x => `<option value="${x.id}">${x.at}　${x.month}</option>`).join('') : '<option value="">保存はまだありません</option>';
 }
-async function restoreSnap(id) {
-  const x = (await snapList()).find(s => s.id === +id);
-  if (!x) return;
-  state.base = parseBase(await readXlsx(x.data));
+async function applySnap(data, label) {
+  state.base = parseBase(await readXlsx(data));
   const kp = keepGet();
-  state.baseName = `${kp.baseName ? kp.baseName + '　→ ' : ''}自動保存 ${x.at} の続き`;
+  state.baseName = `${kp.baseName ? kp.baseName + '　→ ' : ''}${label}`;
   undoStack.length = 0; redoStack.length = 0;
   state.csvs = []; state.adjusts = []; state.edits = new Map(); state.editAt = new Map(); state.editBefore = new Map();
   state.shikyu = new Set(state.base.meta?.shikyu || CFG.defaultShikyu); state.nRound = state.base.meta?.nRound ?? 1; state.workdays = null; state.err = {};
   state.skipSave = true;
   render();
+}
+async function restoreSnap(id) {
+  const x = (await snapList()).find(s => s.id === +id);
+  if (!x) return;
+  await applySnap(x.data, `自動保存 ${x.at} の続き`);
   $('#autosave').innerHTML = `<span class="okt">${x.at} の状態を開きました</span>`;
 }
+/* ---- ドライブ共有（ver.2026.11.17）----
+   自動保存のたびに、同じ Excel を Apps Script（出荷用アカウント）経由で Googleドライブにも送る。
+   開いたとき・2分ごとにドライブを確かめ、ほかのPCの新しい版があれば開く（1台が直し、もう1台は見る使いかた）。
+   ポカヨケ：ドライブがこの端末の知らない版になっていたら上書きしない（あんどんで選んでもらう）。
+   URL・合言葉は localStorage 'sangoZaikoCfg'（表紙の ⚙ と同じ）。GitHub には入れない。 */
+const CLOUD_CFG = 'sangoZaikoCfg', CLOUD_ST = 'sango-zaiko-cloud';
+const GAS_RE = /^https:\/\/script\.google\.com\/macros\/s\/[A-Za-z0-9_-]{20,}\/exec$/;
+const cloudCfg = () => { try { return JSON.parse(localStorage.getItem(CLOUD_CFG) || 'null') || {}; } catch { return {}; } };
+const cloudSt = () => { try { return JSON.parse(localStorage.getItem(CLOUD_ST) || 'null') || {}; } catch { return {}; } };
+const cloudSet = o => { try { localStorage.setItem(CLOUD_ST, JSON.stringify({ ...cloudSt(), ...o })); } catch { } };
+const cloudOn = () => { const c = cloudCfg(); return GAS_RE.test(c.gas || '') && !!c.key; };
+const chm = t => { const d = new Date(t); return `${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; };
+function cloudMsg(h, cls) { const el = $('#cloud'); if (el) el.innerHTML = `<span class="${cls || 'muted'}">☁ ${h}</span>`; }
+let cloudConflict = null, cloudBusy = false;
+function renderCloudAndon() {
+  const el = $('#cloud-andon'); if (!el) return;
+  el.innerHTML = cloudConflict ? `<div class="andon warn"><b>ほかのPCが ${cloudConflict.at ? chm(cloudConflict.at) : ''} にドライブへ保存しています。</b>この端末の変更は、まだドライブに送っていません。<br><button id="btn-cloud-open" class="sb-sub">ドライブの版を開く</button><button id="btn-cloud-force" class="sb-sub">この端末の版で上書きする</button></div>` : '';
+}
+async function sigOf(data) {
+  const z = await JSZip.loadAsync(data);
+  let t = '';
+  for (const n of Object.keys(z.files).filter(n => /^xl\//.test(n) && !z.files[n].dir).sort()) t += n + (await z.file(n).async('string'));
+  t = t.replace(/作成 \d+\/\d+ \d\d:\d\d/g, '');   // 作成時刻は比べない
+  let h = 0; for (let i = 0; i < t.length; i++) h = (h * 31 + t.charCodeAt(i)) | 0;
+  return t.length + ':' + h;
+}
+const b64 = buf => { const u = new Uint8Array(buf); let x = ''; for (let i = 0; i < u.length; i += 0x8000) x += String.fromCharCode.apply(null, u.subarray(i, i + 0x8000)); return btoa(x); };
+const unb64 = t => { const x = atob(t), u = new Uint8Array(x.length); for (let i = 0; i < x.length; i++) u[i] = x.charCodeAt(i); return u.buffer; };
+async function cloudCall(q, body) {
+  const c = cloudCfg();
+  const r = body
+    ? await fetch(c.gas, { method: 'POST', body: JSON.stringify({ ...body, app: 'sango', key: c.key }) })
+    : await fetch(`${c.gas}?app=sango&key=${encodeURIComponent(c.key)}${q ? '&' + q : ''}&t=${Date.now()}`, { cache: 'no-store' });
+  const j = await r.json();
+  if (j.err === 'key') throw new Error('合言葉がちがいます');
+  return j;
+}
+const latestData = async () => (await snapList().catch(() => []))[0]?.data || null;
+async function cloudPush(data, force) {
+  if (!cloudOn() || !model || !data) return;
+  try {
+    const sig = await sigOf(data), st = cloudSt();
+    if (!force && sig === st.sig) { cloudSet({ dirty: false }); cloudMsg(`ドライブと同じです（${st.at ? chm(st.at) : '－'}）`, 'okt'); return; }
+    cloudSet({ dirty: true });
+    if (cloudConflict && !force) { cloudMsg('ドライブに送れていません（ほかのPCが先に保存）', 'ngt'); return; }
+    cloudMsg('ドライブへ送信中…');
+    const at = Date.now(), kp = keepGet();
+    const j = await cloudCall('', { prev: st.at || 0, force: !!force, at, atLabel: chm(at), month: model.monthKey, items: model.rows.length, sig, xlsx: b64(data), naiji: kp.naiji || null, naijiName: kp.naijiName || '' });
+    if (j.ok) { cloudSet({ at, sig, dirty: false }); cloudConflict = null; renderCloudAndon(); cloudMsg(`ドライブに保存しました ${chm(at)}`, 'okt'); }
+    else if (j.err === 'conflict') { cloudConflict = j; renderCloudAndon(); cloudMsg('ドライブに送れていません（ほかのPCが先に保存）', 'ngt'); }
+    else throw new Error(j.err || '送れません');
+  } catch (e) { cloudMsg(`未送信（${esc(e.message || 'Wi-Fiなし')}）。つながったら送ります`, 'ngt'); }
+}
+async function cloudOpen() {
+  const j = await cloudCall('');
+  if (!j.ok || !j.xlsx) throw new Error('ドライブにまだ保存がありません');
+  const data = unb64(j.xlsx);
+  await idbDo('readwrite', st => st.put({ id: Date.now(), at: `☁${j.atLabel}`, month: j.month, items: j.items, data }));
+  if (j.naiji) { state.naiji = j.naiji; state.naijiName = j.naijiName || '内示'; keepSet({ naiji: j.naiji, naijiName: state.naijiName }); }
+  cloudConflict = null; renderCloudAndon();
+  await applySnap(data, `ドライブ ${j.atLabel} の版`);
+  // この端末で作り直した Excel を「ドライブと同じ」の目印にする（見るだけでは送らない）
+  let sig = j.sig; try { sig = await sigOf(await (await buildXlsx(model, state)).arrayBuffer()); } catch { }
+  cloudSet({ at: j.at, sig, dirty: false });
+  cloudMsg(`ドライブの版（${j.atLabel}）を開きました`, 'okt');
+  renderSnaps();
+}
+async function cloudCheck() {
+  if (!cloudOn()) { cloudMsg('ドライブ共有：未設定（右の「☁ 共有の設定」から入れてください）'); return; }
+  if (cloudBusy || editing) return;
+  cloudBusy = true;
+  try {
+    const m = await cloudCall('meta=1'), st = cloudSt();
+    if (!m.ok) throw new Error(m.err || '確認できません');
+    if (!m.at) { cloudMsg('ドライブにはまだ保存がありません'); await cloudPush(await latestData()); }
+    else if (m.at === st.at) { cloudConflict = null; renderCloudAndon(); if (st.dirty) await cloudPush(await latestData()); else cloudMsg(`ドライブと同じです（${chm(m.at)}）`, 'okt'); }
+    else if (st.dirty) { cloudConflict = m; renderCloudAndon(); cloudMsg('ドライブに、ほかのPCの新しい版があります', 'ngt'); }
+    else await cloudOpen();
+  } catch (e) { cloudMsg(`ドライブを確認できません（${esc(e.message || 'Wi-Fiなし')}）`, 'ngt'); }
+  cloudBusy = false;
+}
+function cloudInit() {
+  $('#btn-cloud-cfg').addEventListener('click', () => { const b = $('#cloud-cfg'); b.hidden = !b.hidden; const c = cloudCfg(); $('#cc-gas').value = c.gas || ''; $('#cc-key').value = c.key || ''; $('#cc-err').textContent = ''; });
+  $('#btn-cc-save').addEventListener('click', () => {
+    const g = $('#cc-gas').value.trim(), k = $('#cc-key').value.trim();
+    if (g && !GAS_RE.test(g)) { $('#cc-err').textContent = 'URLの形がちがいます（https://script.google.com/macros/s/…/exec）'; return; }
+    if (!!g !== !!k) { $('#cc-err').textContent = 'URLと合言葉を両方入れてください'; return; }
+    try { localStorage.setItem(CLOUD_CFG, JSON.stringify({ gas: g, key: k })); } catch { $('#cc-err').textContent = 'この端末に保存できませんでした'; return; }
+    $('#cloud-cfg').hidden = true; cloudCheck();
+  });
+  document.addEventListener('click', async e => {
+    if (e.target.closest('#btn-cloud-open')) { if (confirm('ドライブの版を開きますか？（この端末の今の状態も、自動保存の履歴に残っています）')) { try { await cloudOpen(); } catch (x) { cloudMsg(esc(x.message), 'ngt'); } } }
+    if (e.target.closest('#btn-cloud-force')) { if (confirm('ほかのPCの保存を、この端末の版で上書きします。よろしいですか？')) await cloudPush(await latestData(), true); }
+  });
+  window.addEventListener('online', cloudCheck);
+  setTimeout(cloudCheck, 1500);
+  setInterval(cloudCheck, 120000);
+}
+
 /* ---- 在庫管理表・内示は「外す」を押すまで残す ---- */
 const KEEP_KEY = 'sango-zaiko-keep';
 const keepGet = () => { try { return JSON.parse(localStorage.getItem(KEEP_KEY) || '{}'); } catch { return {}; } };
@@ -1629,7 +1745,7 @@ const keepSet = o => { try { localStorage.setItem(KEEP_KEY, JSON.stringify({ ...
 function excelReminder() {
   const last = (() => { try { return localStorage.getItem('sango-zaiko-lastExcel'); } catch { return null; } })();
   const td = ymd(localToday());
-  return model && last !== td ? `<div class="andon warn"><b>今日はまだExcelに保存していません</b>　ブラウザの自動保存は、このパソコン・このブラウザの中だけです。1日1回は「Excelに保存」でファイルにも残してください。</div>` : '';
+  return model && last !== td ? `<div class="andon warn"><b>今日はまだExcelに保存していません</b>　ブラウザの自動保存とドライブ共有のほかに、1日1回は「Excelに保存」でファイルにも残してください。</div>` : '';
 }
 
 /* =====================================================================
@@ -1863,6 +1979,7 @@ function init() {
   snapList().then(list => { renderSnaps(list); if (list.length && !state.base && keepGet().base !== false) restoreSnap(list[0].id); else render(); }).catch(() => { $('#autosave').innerHTML = '<b class="ngt">このブラウザでは自動保存が使えません。Excelに保存してください</b>'; });
   window.addEventListener('beforeunload', e => { if (state.adjusts.length && !state.saved) { e.preventDefault(); e.returnValue = ''; } });
   render();
+  cloudInit();
 }
 init();
 </script>

@@ -26,7 +26,7 @@ GitHub Pages（main / root）で公開：https://overbridge038-lnk.github.io/gyo
 | furidashi-check.html | 購入かんばん振出しチェック表 | PC |
 | shogo-matome.html | 照合結果まとめ | PC。見本データ（作業者名入りの照合記録）は Public のため外した（SAMPLE=null）。charset の宣言を足した |
 | kanri-sheet.html | 管理シート作成ツール（協豊・FTS広田・三五） | PC。単体の協豊・FTS広田版より新しい（PDF対応）ので、まとめ版だけを入れた |
-| sango-zaiko.html | 三五 在庫管理ツール | PC |
+| sango-zaiko.html | 三五 在庫管理ツール | PC。ver.2026.11.17 でドライブ共有を追加：自動保存のたびに Excel を Apps Script（出荷用アカウント・Code.gs の app=sango）経由で「三五在庫管理_共有.json」に送り、開いたとき・2分ごとに新しい版を開く。直すのは1台（ユーザー決定）。ドライブがこの端末の知らない版なら上書きしない（あんどん→「ドライブの版を開く」／「上書き」）。作成時刻を除いた中身が同じなら送らない（見るだけのPCは送らない）。設定は localStorage `sangoZaikoCfg`（ツールの「☁ 共有の設定」と表紙 ⚙） |
 | shukka-naiji.html | ユニクレア 出荷内示 月度表（事務所） | PC（2026-11-17 追加。前の「出荷内示原紙」の置き場所） |
 | shikyu-naiji.html | ユニクレア 支給内示 月度表（受入・素材） | PC（2026-11-17 追加） |
 | shukka-houkoku.html | 高木製作所 出荷数報告書 作成（事務所） | PC（2026-11-17 追加） |
@@ -48,6 +48,7 @@ GitHub Pages（main / root）で公開：https://overbridge038-lnk.github.io/gyo
   - 在庫カウント：localStorage `zaikoCountCfg` の `gas`（ツールの ⚙ と同じ場所）
   - 生産管理しくみ：localStorage `sk_settings` の `gasUrl`・`key`（URLを初めて入れたときは `mode` を `live`＝本番にする）
   - 出荷漏れ照合（閲覧用）：localStorage `shukkaMoreViewCfg` の `gas`・`key`（Apps Script のURL・合言葉。片方だけは保存しない）
+  - 三五在庫管理：localStorage `sangoZaikoCfg` の `gas`・`key`（同じ Apps Script を使う。⚙ の「上と同じ」でコピーできる）
 - URLの形（https://script.google.com/macros/s/…/exec）がちがう・生産管理しくみのURLと合言葉の片方だけ、は保存しない（ポカヨケ）
 - タブレットごとに1回入れる
 

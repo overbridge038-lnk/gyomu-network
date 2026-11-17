@@ -9,7 +9,7 @@
      「新しい版があります」と表示されます
    ========================================================= */
 
-var SITE_VER = '2026-11-17n';
+var SITE_VER = '2026-11-17o';
 
 /* GitHub Pages の場所（各ツールのリポジトリはここの下にある） */
 var BASE = 'https://overbridge038-lnk.github.io/';
@@ -133,8 +133,8 @@ var TOOLS = [
     file: 'tools/sekisai-planner.html', ver: '2026-11-06' },
 
   { id: 'sango', icon: '🏭', name: '三五在庫管理',
-    desc: '在庫管理表・内示PDF・受注CSVから在庫と素材発注を算出',
-    file: 'tools/sango-zaiko.html', ver: '2026-11-03.2' },
+    desc: '在庫管理表・内示PDF・受注CSVから在庫と素材発注を算出（ドライブで2台のPCが同じデータ）',
+    file: 'tools/sango-zaiko.html', ver: '2026-11-17' },
 
   { id: 'furidashi', icon: '🧾', name: '購入かんばん振出しチェック',
     desc: '振出し表と読取データを照合',
