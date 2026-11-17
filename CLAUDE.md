@@ -33,6 +33,7 @@ GitHub Pages（main / root）で公開：https://overbridge038-lnk.github.io/gyo
 | sekisai-planner.html | 積載効率プランナー（出荷場） | PC（2026-11-17 追加。Googleフォントを使う） |
 | uriage-shiire.html | 売上・仕入照合（事務所） | PC（2026-11-17 追加。見出しに ver を足した。金額のデータは中に持たない） |
 | zaiko-count.html | 在庫カウント（協豊・ストア／出荷場） | PC（2026-11-17 追加。Googleへの送信先URL（DATA.gas）は Public のため空にした。各タブレットで ⚙ から一度入れる。ver 2026-11-17） |
+| shukka-more-view.html | 出荷漏れ照合（閲覧用）の入口（出荷場） | 2026-11-17 追加。データは持たない。⚙ で入れた Googleドライブのリンク（localStorage `shukkaMoreViewCfg.url`）を開くだけ。本体は照合PCが Drive に上書き保存する閲覧用ページ（作業者名・最新データ入りのため Public に置かない） |
 | mitsumori-tanka.html | 見積単価 反映ツール（事務所） | PC（2026-11-17 追加。見出しに ver を足した。単価のデータは中に持たない） |
 - ver（日付）がなかったツールには、見出しに「ver 2026-11-17」を足した（中身は変えていない）
 - まだ届いていない：出荷指示書QR照合・かんばんカウンター
@@ -46,6 +47,7 @@ GitHub Pages（main / root）で公開：https://overbridge038-lnk.github.io/gyo
 - 同じ github.io の中は保存場所が同じなので、各ツールがそのまま読む
   - 在庫カウント：localStorage `zaikoCountCfg` の `gas`（ツールの ⚙ と同じ場所）
   - 生産管理しくみ：localStorage `sk_settings` の `gasUrl`・`key`（URLを初めて入れたときは `mode` を `live`＝本番にする）
+  - 出荷漏れ照合（閲覧用）：localStorage `shukkaMoreViewCfg` の `url`（Googleドライブのリンク。https:// 以外は保存しない）
 - URLの形（https://script.google.com/macros/s/…/exec）がちがう・生産管理しくみのURLと合言葉の片方だけ、は保存しない（ポカヨケ）
 - タブレットごとに1回入れる
 

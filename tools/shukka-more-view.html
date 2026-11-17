@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>出荷漏れ照合（閲覧用）</title>
+<style>
+  body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:16px;box-sizing:border-box;
+    background:#0b1020;color:#e8eefc;font-family:"BIZ UDPGothic","Yu Gothic UI","Meiryo",sans-serif}
+  .box{width:min(560px,100%);border:1px solid rgba(255,255,255,.14);border-radius:20px;background:rgba(255,255,255,.05);padding:20px}
+  h1{font-size:20px;margin:0 0 4px}
+  h1 small{font-size:12px;color:#9fb0d0;font-weight:400;margin-left:6px}
+  p{margin:10px 0;line-height:1.6;word-break:auto-phrase}
+  .ng{background:rgba(251,191,36,.14);border:1px solid rgba(251,191,36,.5);border-radius:12px;padding:10px 12px;font-weight:700;color:#fbbf24}
+  .ln{font-size:13px;color:#9fb0d0}
+  a.btn{display:inline-block;margin-top:8px;padding:10px 16px;border-radius:12px;background:linear-gradient(90deg,#60a5fa,#a78bfa);color:#0b1020;font-weight:700;text-decoration:none}
+</style>
+</head>
+<body>
+<div class="box">
+  <h1>👀 出荷漏れ照合（閲覧用）<small>ver 2026-11-17</small></h1>
+  <div id="msg"><p>開いています…</p></div>
+</div>
+<script>
+/* 照合しているPCが Googleドライブに上書き保存する「閲覧用ページ」を開く入口。
+   リンクは表紙の ⚙「接続の設定」で、その端末の中だけに保存する（Public の GitHub には入れない）。 */
+var url='';
+try{ url=(JSON.parse(localStorage.getItem('shukkaMoreViewCfg')||'null')||{}).url||''; }catch(e){}
+if(/^https:\/\//.test(url)){
+  location.replace(url);
+}else{
+  document.getElementById('msg').innerHTML=
+    '<p class="ng">⚙ リンクがまだ入っていません</p>'+
+    '<p>表紙の右上 ⚙「接続の設定」で、Googleドライブの閲覧用ページのリンクを入れてください（この端末で1回だけ）。</p>'+
+    '<p class="ln">ID：Tautan belum diatur. Masukkan di ⚙ pada halaman depan.<br>'+
+    'TL：Wala pang link. Ilagay ito sa ⚙ sa front page.<br>'+
+    'EN：No link set yet. Enter it in ⚙ on the front page.</p>'+
+    '<a class="btn" href="../">表紙へもどる</a>';
+}
+</script>
+</body>
+</html>

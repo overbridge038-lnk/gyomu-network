@@ -9,7 +9,7 @@
      「新しい版があります」と表示されます
    ========================================================= */
 
-var SITE_VER = '2026-11-17l';
+var SITE_VER = '2026-11-17m';
 
 /* GitHub Pages の場所（各ツールのリポジトリはここの下にある） */
 var BASE = 'https://overbridge038-lnk.github.io/';
@@ -62,7 +62,7 @@ var AREAS = [
   { id: 'shukka', icon: '🚚', name: '出荷場',
     names: { id: 'Pengiriman', tl: 'Shipping', en: 'Shipping' },
     x: 850, y: 210, w: 120, h: 320,
-    tools: ['gohin', 'gohin-fts', 'sekisai', 'zaiko-count', 'shukka-more-auto', 'hayami', 'sango', 'furidashi', 'tsumitsuke', 'shogo-matome', 'rinkan-yama'] }
+    tools: ['gohin', 'gohin-fts', 'sekisai', 'zaiko-count', 'shukka-more-auto', 'shukka-more-view', 'hayami', 'sango', 'furidashi', 'tsumitsuke', 'shogo-matome', 'rinkan-yama'] }
 ];
 
 /* ---------------------------------------------------------
@@ -185,6 +185,11 @@ var TOOLS = [
   { id: 'shukka-more-auto', icon: '⏰', name: '出荷漏れ自動照合',
     desc: '受注データと照合記録を決めた時刻に自動で照合して残す',
     file: 'tools/shukka-more-auto.html', ver: '2026-11-06' },
+
+  { id: 'shukka-more-view', icon: '👀', name: '出荷漏れ照合（閲覧用）',
+    desc: '照合しているPCの最新の照合結果を見る（Googleドライブ。リンクは ⚙ で設定）',
+    names: { id: 'Cek Kebocoran (Lihat)', tl: 'Shipping Miss Check (View)', en: 'Shipping Miss Check (View)' },
+    file: 'tools/shukka-more-view.html', ver: '2026-11-17' },
 
   { id: 'rinkan-yama', icon: '📚', name: '臨かん かんばん山積み',
     desc: '臨かんだけを品番・日付ごとにかんばん枚数で山積みしてExcel出力',
