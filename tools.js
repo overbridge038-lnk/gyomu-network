@@ -9,7 +9,7 @@
      「新しい版があります」と表示されます
    ========================================================= */
 
-var SITE_VER = '2026-11-17j';
+var SITE_VER = '2026-11-17k';
 
 /* GitHub Pages の場所（各ツールのリポジトリはここの下にある） */
 var BASE = 'https://overbridge038-lnk.github.io/';
@@ -164,7 +164,7 @@ var TOOLS = [
 
   { id: 'naiji', icon: '📅', name: 'ユニクレア 出荷内示 月度表',
     desc: '出荷ファイルの注文数を月度表に入れ、前回から変わった日を赤字で知らせる',
-    file: 'tools/shukka-naiji.html', ver: '2026-11-17b' },
+    file: 'tools/shukka-naiji.html', ver: '2026-11-17d' },
 
   { id: 'shikyu-naiji', icon: '🚚', name: 'ユニクレア 支給内示 月度表',
     desc: '支給ファイルの支給数を月度表に入れ、変わった日を赤字・台数も照合',
