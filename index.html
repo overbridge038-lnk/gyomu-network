@@ -245,7 +245,7 @@
     <span class="sp"></span>
     <div class="seg view" id="views"></div>
     <div class="seg" id="langs"></div>
-    <button class="btn" id="cfgBtn" title="接続の設定（Apps Script のURL・合言葉・Driveのリンク）" aria-label="接続の設定">⚙</button>
+    <button class="btn" id="cfgBtn" title="接続の設定（Apps Script のURL・合言葉・出荷漏れ照合）" aria-label="接続の設定">⚙</button>
   </div>
 </header>
 
@@ -688,7 +688,7 @@ refreshVers();
    同じ github.io の中のツールは保存場所が同じなので、ここで入れた値を各ツールがそのまま読む。
    ・在庫カウント      … localStorage 'zaikoCountCfg' の gas
    ・生産管理しくみ    … localStorage 'sk_settings' の gasUrl・key（URLを入れたら本番につなぐ）
-   ・出荷漏れ照合（閲覧用）… localStorage 'shukkaMoreViewCfg' の url（Googleドライブのリンク） */
+   ・出荷漏れ照合（閲覧用）… localStorage 'shukkaMoreViewCfg' の gas・key（Apps Script のURL・合言葉） */
 var CFG_RE=/^https:\/\/script\.google\.com\/macros\/s\/[A-Za-z0-9_-]{20,}\/exec$/;
 function lsGet(k){ try{ return JSON.parse(localStorage.getItem(k)||'null')||{}; }catch(e){ return {}; } }
 function lsSet(k,o){ try{ localStorage.setItem(k,JSON.stringify(o)); return true; }catch(e){ return false; } }
@@ -703,27 +703,29 @@ function openCfg(){
     '<fieldset><legend>🏭 生産管理しくみ'+cfgSt(sk.gasUrl&&sk.key)+'</legend>'+
       '<label for="cfS">Apps Script のURL</label><input id="cfS" type="url" autocomplete="off" spellcheck="false" placeholder="https://script.google.com/macros/s/…/exec" value="'+esc(sk.gasUrl||'')+'">'+
       '<label for="cfK">合言葉</label><div class="row"><input id="cfK" type="password" autocomplete="off" value="'+esc(sk.key||'')+'"><button class="btn" id="cfEye" type="button">表示</button></div></fieldset>'+
-    '<fieldset><legend>👀 出荷漏れ照合（閲覧用）'+cfgSt(mv.url)+'</legend>'+
-      '<label for="cfV">Googleドライブの閲覧用ページのリンク</label><input id="cfV" type="url" autocomplete="off" spellcheck="false" placeholder="https://drive.google.com/…" value="'+esc(mv.url||'')+'"></fieldset>'+
+    '<fieldset><legend>👀 出荷漏れ照合（閲覧用）'+cfgSt(mv.gas&&mv.key)+'</legend>'+
+      '<label for="cfV">Apps Script のURL</label><input id="cfV" type="url" autocomplete="off" spellcheck="false" placeholder="https://script.google.com/macros/s/…/exec" value="'+esc(mv.gas||'')+'">'+
+      '<label for="cfVK">合言葉</label><input id="cfVK" type="password" autocomplete="off" value="'+esc(mv.key||'')+'"></fieldset>'+
     '<div class="err" id="cfErr"></div>'+
     '<div class="ft"><button class="btn" id="cfNo" type="button">やめる</button><button class="btn" id="cfOk" type="button" style="background:var(--grad);color:#0b1020;font-weight:700">保存</button></div>';
   document.getElementById('cfgBg').classList.add('show');
 }
 function closeCfg(){ document.getElementById('cfgBg').classList.remove('show'); document.getElementById('cfgBox').innerHTML=''; }
 function saveCfg(){
-  var vi=document.getElementById('cfV'), vu=vi.value.trim();
+  var vi=document.getElementById('cfV'), vu=vi.value.trim(), vki=document.getElementById('cfVK'), vk=vki.value.trim();
   var zi=document.getElementById('cfZ'), si=document.getElementById('cfS'), ki=document.getElementById('cfK'), er=document.getElementById('cfErr');
   var zu=zi.value.trim(), su=si.value.trim(), k=ki.value.trim(), bad=[];
-  [zi,si,ki,vi].forEach(function(x){ x.classList.remove('ng'); });
+  [zi,si,ki,vi,vki].forEach(function(x){ x.classList.remove('ng'); });
   /* ポカヨケ：URLの形がちがう・URLと合言葉の片方だけ、は保存しない */
   if(zu&&!CFG_RE.test(zu)){ zi.classList.add('ng'); bad.push('在庫カウントのURLの形がちがいます（https://script.google.com/macros/s/…/exec）'); }
   if(su&&!CFG_RE.test(su)){ si.classList.add('ng'); bad.push('生産管理しくみのURLの形がちがいます（https://script.google.com/macros/s/…/exec）'); }
   if(!!su!==!!k){ (su?ki:si).classList.add('ng'); bad.push('生産管理しくみは、URLと合言葉を両方入れてください'); }
-  if(vu&&!/^https:\/\/[^\s]+$/.test(vu)){ vi.classList.add('ng'); bad.push('出荷漏れ照合（閲覧用）のリンクは https:// で始まるリンクを入れてください'); }
+  if(vu&&!CFG_RE.test(vu)){ vi.classList.add('ng'); bad.push('出荷漏れ照合（閲覧用）のURLの形がちがいます（https://script.google.com/macros/s/…/exec）'); }
+  if(!!vu!==!!vk){ (vu?vki:vi).classList.add('ng'); bad.push('出荷漏れ照合（閲覧用）は、URLと合言葉を両方入れてください'); }
   if(bad.length){ er.innerHTML=bad.map(esc).join('<br>'); return; }
   var z=lsGet('zaikoCountCfg'); z.gas=zu;
   var sk=lsGet('sk_settings'), was=sk.gasUrl||''; sk.gasUrl=su; sk.key=k; if(su&&!was) sk.mode='live';
-  var mv=lsGet('shukkaMoreViewCfg'); mv.url=vu;
+  var mv=lsGet('shukkaMoreViewCfg'); delete mv.url; mv.gas=vu; mv.key=vk;
   if(!(lsSet('zaikoCountCfg',z)&&lsSet('sk_settings',sk)&&lsSet('shukkaMoreViewCfg',mv))){ er.textContent='この端末に保存できませんでした（Chromeで開いてください）'; return; }
   closeCfg(); toast('接続の設定を保存しました（この端末）');
 }
