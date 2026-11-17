@@ -30,9 +30,11 @@ GitHub Pages（main / root）で公開：https://overbridge038-lnk.github.io/gyo
 | shukka-houkoku.html | 高木製作所 出荷数報告書 作成（事務所） | PC（2026-11-17 追加） |
 | sekisai-planner.html | 積載効率プランナー（出荷場） | PC（2026-11-17 追加。Googleフォントを使う） |
 | uriage-shiire.html | 売上・仕入照合（事務所） | PC（2026-11-17 追加。見出しに ver を足した。金額のデータは中に持たない） |
+| zaiko-count.html | 在庫カウント（協豊・ストア／出荷場） | PC（2026-11-17 追加。Googleへの送信先URL（DATA.gas）は Public のため空にした。各タブレットで ⚙ から一度入れる。ver 2026-11-17） |
 | mitsumori-tanka.html | 見積単価 反映ツール（事務所） | PC（2026-11-17 追加。見出しに ver を足した。単価のデータは中に持たない） |
 - ver（日付）がなかったツールには、見出しに「ver 2026-11-17」を足した（中身は変えていない）
-- まだ届いていない：在庫カウント・出荷指示書QR照合・かんばんカウンター
+- まだ届いていない：出荷指示書QR照合・かんばんカウンター
+- 表紙の sw.js は Google（script.google.com）への通信を保存しない。別サイトの通信は ? 以降も区別して保存する（共有データが古いまま出ないように）
 - tools/ のツールは表紙の sw.js が保存する（保存した版を先に使う）。ツールを直したら tools.js の ver と SITE_VER を上げること。CDN（Excelライブラリ・フォント）を使うツールは、一度Wi-Fiで開くと保存されてオフラインでも動く
 
 - 出荷漏れチェック（手動・shukka-more-check.html）は 2026-11-17 に外した。出荷漏れは自動照合のほうを出荷場に置く（ユーザー決定）

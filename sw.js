@@ -42,9 +42,11 @@ self.addEventListener('message', function (e) {
 self.addEventListener('fetch', function (e) {
   if (e.request.method !== 'GET') return;
   if (e.request.cache === 'no-store') return; // 最新版の確認はネットへ直接
+  if (/script\.google(usercontent)?\.com/.test(e.request.url)) return; // Googleへの送信・共有データはいつもネットへ（保存しない）
   e.respondWith(
     caches.open(CACHE).then(function (c) {
-      return c.match(e.request, { ignoreSearch: true }).then(function (hit) {
+      var same = new URL(e.request.url).origin === self.location.origin;
+      return c.match(e.request, { ignoreSearch: same }).then(function (hit) {
         if (hit) return hit;
         return fetch(e.request).then(function (r) {
           if (r && (r.ok || r.type === 'opaque')) c.put(e.request, r.clone());

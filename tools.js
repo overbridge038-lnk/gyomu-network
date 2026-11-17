@@ -9,7 +9,7 @@
      「新しい版があります」と表示されます
    ========================================================= */
 
-var SITE_VER = '2026-11-17e';
+var SITE_VER = '2026-11-17f';
 
 /* GitHub Pages の場所（各ツールのリポジトリはここの下にある） */
 var BASE = 'https://overbridge038-lnk.github.io/';
@@ -116,7 +116,7 @@ var TOOLS = [
   { id: 'zaiko-count', icon: '📦', name: '在庫カウント',
     desc: 'パレット・ストアの在庫数を入力',
     names: { id: 'Hitung Stok', tl: 'Bilang ng Stock', en: 'Stock Count' },
-    file: 'tools/zaiko-count.html', ver: '2026-11-05' },
+    file: 'tools/zaiko-count.html', ver: '2026-11-17' },
 
   { id: 'gohin-fts', icon: '🛡️', name: '誤品照合システム（FTS）',
     desc: 'FTS向けの誤品照合',
