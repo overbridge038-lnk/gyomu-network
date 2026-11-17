@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>臨かん かんばん山積み</title>
+<style>
+  :root{
+    --navy:#1F4E78; --navy2:#2E6DA4; --bg:#F4F6F9; --line:#D5DBE3;
+    --ok:#1E8E3E; --ng:#C62828; --warn:#F2A900; --warnbg:#FFF4D6; --ngbg:#FDE7E7; --rin:#7a4fb0;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:"Meiryo UI","Yu Gothic UI",Meiryo,sans-serif;background:var(--bg);color:#222;font-size:15px}
+  header{background:var(--rin);color:#fff;padding:12px 20px;display:flex;align-items:center;gap:16px}
+  header h1{font-size:20px;margin:0}
+  header .ver{margin-left:auto;font-size:13px;opacity:.9}
+  main{max-width:1400px;margin:0 auto;padding:16px 20px 40px}
+  .steps{display:flex;gap:10px;margin-bottom:14px}
+  .step{flex:1;background:#fff;border:1px solid var(--line);border-radius:8px;padding:10px 14px;font-size:14px}
+  .step b{display:inline-block;background:var(--navy);color:#fff;border-radius:50%;width:24px;height:24px;text-align:center;line-height:24px;margin-right:6px}
+  .step.done{border-color:var(--ok)}
+  .step.done b{background:var(--ok)}
+  .card{background:#fff;border:1px solid var(--line);border-radius:8px;padding:14px 16px;margin-bottom:14px}
+  .card h2{font-size:16px;margin:0 0 10px;color:var(--navy)}
+  #drop{border:3px dashed #9AB;border-radius:10px;padding:22px;text-align:center;color:#567;cursor:pointer;background:#FAFCFF;transition:.15s}
+  #drop.over{background:#EFE7FA;border-color:var(--rin)}
+  #drop .big{font-size:18px;font-weight:bold;color:var(--navy)}
+  .files{display:flex;gap:12px;margin-top:10px}
+  .fbox{flex:1;border:2px solid var(--line);border-radius:8px;padding:10px 12px;font-size:14px;background:#FAFAFA}
+  .fbox .t{font-weight:bold;margin-bottom:4px}
+  .fbox.ok{border-color:var(--ok);background:#F1FAF3}
+  .fbox.ng{border-color:var(--ng);background:var(--ngbg)}
+  .fbox .st{font-size:13px;color:#555}
+  .dates{display:flex;flex-wrap:wrap;gap:8px}
+  .chip{border:2px solid var(--line);border-radius:8px;padding:6px 10px;cursor:pointer;background:#fff;min-width:110px;text-align:center;user-select:none}
+  .chip .d{font-size:16px;font-weight:bold}
+  .chip .s{font-size:12px;color:#666}
+  .chip.sat .d{color:#1565C0}.chip.sun .d{color:var(--ng)}
+  .chip.on{border-color:var(--rin);background:#EFE7FA}
+  .chip.on .d::before{content:"✔ ";color:var(--rin)}
+  .chip.none{cursor:default;background:#F2F2F2;color:#999;border-style:dashed}
+  .btn{border:none;border-radius:6px;padding:8px 16px;font-size:14px;cursor:pointer;background:#E6EAF0;color:#223}
+  .btn:hover{filter:brightness(.95)}
+  .btn.primary{background:var(--ok);color:#fff;font-size:17px;font-weight:bold;padding:12px 26px}
+  .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .alert{border-radius:6px;padding:10px 14px;margin-bottom:8px;font-size:14px}
+  .alert.ng{background:var(--ngbg);border-left:6px solid var(--ng)}
+  .alert.warn{background:var(--warnbg);border-left:6px solid var(--warn)}
+  .alert.ok{background:#E6F4EA;border-left:6px solid var(--ok)}
+  .alert.info{background:#EEF1F5;border-left:6px solid #8A96A6}
+  .kpi{display:flex;gap:12px;margin-bottom:10px;flex-wrap:wrap}
+  .kpi div{background:#F0F4F9;border-radius:6px;padding:8px 14px;font-size:13px}
+  .kpi b{font-size:20px;color:var(--navy);margin-left:4px}
+  .tblwrap{overflow:auto;max-height:62vh;border:1px solid var(--line)}
+  table{border-collapse:collapse;font-size:14px;white-space:nowrap}
+  th,td{border:1px solid #CCD3DC;padding:4px 8px}
+  thead th{background:var(--navy);color:#fff;position:sticky;top:0;z-index:2}
+  thead th.dsat{background:#1565C0}thead th.dsun{background:#B71C1C}
+  td.n{text-align:right}
+  td.z{color:#BBB}
+  td.kb{font-weight:bold;font-size:16px;text-align:center}
+  td.unreg{background:var(--ngbg)}
+  td.tot{font-weight:bold;background:#EEF4FB}
+  tfoot td{font-weight:bold;background:#DDEBF7;position:sticky;bottom:0}
+  .unreg input{width:64px;font-size:14px;padding:2px 4px;text-transform:uppercase}
+  .muted{color:#777;font-size:12px}
+  details summary{cursor:pointer;color:var(--navy);font-weight:bold}
+  #mdrop{border:2px dashed #BBB;border-radius:8px;padding:12px;text-align:center;color:#667;margin:8px 0;cursor:pointer}
+  #mdrop.over{background:#EEF6FF}
+  #busy{display:none;position:fixed;inset:0;background:rgba(255,255,255,.6);z-index:9;align-items:center;justify-content:center;font-size:20px;font-weight:bold;color:var(--navy)}
+  #busy.on{display:flex}
+</style>
+</head>
+<body>
+<div id="busy">読み込み中…</div>
+<header>
+  <h1>臨かん かんばん山積み</h1>
+  <span>タイムライン（臨かん）× 受注TXT → 品番・日付ごとのかんばん枚数 → Excel</span>
+  <span class="ver">ver 2026-11-17</span>
+</header>
+<main>
+  <!-- 標準作業：3ステップ -->
+  <div class="steps">
+    <div class="step" id="st1"><b>1</b>タイムラインと受注TXTをドロップ</div>
+    <div class="step" id="st2"><b>2</b>臨かんの日付を確かめる（外したい日はタップ）</div>
+    <div class="step" id="st3"><b>3</b>「Excel出力」を押す</div>
+  </div>
+
+  <div class="card">
+    <h2>① ファイル（2つ一緒にドロップしてもOK）</h2>
+    <div id="drop">
+      <div class="big">ここにタイムライン（.xlsx）と受注TXT（.txt）をドラッグ＆ドロップ</div>
+      <div>（クリックしてファイルを選ぶこともできます）</div>
+    </div>
+    <input type="file" id="file" accept=".txt,.tsv,.xlsx" multiple hidden>
+    <div class="files">
+      <div class="fbox" id="fbTL"><div class="t">タイムライン早見表（.xlsx）</div><div class="st">まだ読み込んでいません</div></div>
+      <div class="fbox" id="fbTX"><div class="t">受注TXT</div><div class="st">まだ読み込んでいません</div></div>
+    </div>
+  </div>
+
+  <div class="card" id="dateCard" hidden>
+    <h2>② 臨かんの日付</h2>
+    <div class="row" style="margin-bottom:8px">
+      <button class="btn" id="allOn">すべて選ぶ</button>
+      <button class="btn" id="allOff">選択をクリア</button>
+      <span class="muted">タップで選択／解除。灰色の点線＝タイムラインに臨かんはあるが、受注TXTにまだその日のデータがない日</span>
+    </div>
+    <div class="dates" id="dates"></div>
+  </div>
+
+  <div class="card" id="resCard" hidden>
+    <div class="row" style="justify-content:space-between;margin-bottom:8px">
+      <h2 style="margin:0">③ 臨かん 品番別・日付別 かんばん山積み</h2>
+      <button class="btn primary" id="xlsx">Excel出力</button>
+    </div>
+    <div id="alerts"></div>
+    <div class="kpi" id="kpi"></div>
+    <div class="tblwrap"><table id="tbl"></table></div>
+    <div class="muted" style="margin-top:6px">日付＝工場納入日（オーダーNo先頭8桁＝メインルート日付）／並び順＝かんばん枚数の多い順</div>
+  </div>
+
+  <div class="card">
+    <details>
+      <summary>協豊背番マスタ（内蔵＋追加分）</summary>
+      <div style="margin-top:8px;font-size:14px">
+        協豊背番は品番（10桁）で紐づけます。足りない品番は、下の枠に<b>誤品照合CSV</b>または<b>荷姿一覧Excel</b>をドロップすると追加されます。
+        表の「未登録」セルに直接入力して登録することもできます（このパソコンのブラウザに保存）。
+      </div>
+      <div id="mdrop">誤品照合CSV／荷姿一覧Excel（.xlsx）をここにドロップ（複数可）</div>
+      <input type="file" id="mfile" accept=".csv,.xlsx" multiple hidden>
+      <div class="row">
+        <span id="mcount" class="muted"></span>
+        <button class="btn" id="mclear">追加分を消して内蔵だけに戻す</button>
+      </div>
+      <div id="mlog" class="muted" style="margin-top:6px"></div>
+    </details>
+  </div>
+</main>
+
+<script>
+"use strict";
+/* =========================================================
+   設定（現場で直せるようにここにまとめる）
+   ========================================================= */
+const VER = "2026-11-17";
+const RIN_WORD = "臨かん";                          // タイムラインの「かんばん受信日時」がこの文字の行を臨かんとする
+const LS_KEY = "kanbanYamazumi_kyohoMap_v1";        // 追加・手入力した協豊背番の保存先（納入日別ツールと共通）
+// 内蔵の協豊背番（品番10桁 → 協豊背番）。2026-11-13/16の誤品照合CSV（客先QR 61～64文字目）から取得
+const BUILTIN_MAP = {"1653417010":"0GC3","1661116010":"080A","1777131040":"NA70","1785037010":"A0EP","17850V1010":"A0AJ","2392117040":"0GD3","33804V4010":"M01F","33823V4020":"A0E3","33828V4010":"M01B","33828V4020":"M01D","4436936020":"01P0","4478160020":"A16Z","4643916040":"A023","4735336260":"MA60","4735436150":"MA68","4842237010":"M0J4","51403V2010":"K036","51404V2010":"K03B","5192612010":"C01V","5194136050":"0GF9","5507542010":"A1LU","5507642010":"A1LX","5573142061":"A1JS","5573242051":"A1JV","5803542030":"A1JJ","5803642030":"A1JN","58131V2030":"A18V","5820426010":"NA26","5833912070":"A064","5835760040":"LF95","5836126010":"NA37","6213726100":"NB82","6418512011":"K628","6422862010":"MW98","7130342020":"LT00","7130342050":"A1FU","7130442020":"LT04","7130442040":"A1FX","7130533110":"EB12","7130542010":"LT08","7404360020":"A0U0","7404360030":"A1BR","77305V2010":"A18Z","7784626010":"NA58","8868826A50":"NB07","G415862010":"MX10","G92N412020":"D016","G963E47010":"D04Y","G963H47010":"D064","G963H58010":"D09K","G963J47010":"D068","G986A71010":"A048","G986K71010":"A04C"};
+const REQ_TX = ["オーダーNo","仕入先","納入先","受入","品番類別","かんばん枚数","受注個数"];
+const REQ_TL = ["仕入先","納入先","受入","オーダー日付","オーダーSeq","かんばん受信日時"];
+</script>
+
+<script id="core">
+"use strict";
+/* ===================== 共通 ===================== */
+function decodeText(buf){
+  try{ return new TextDecoder("utf-8",{fatal:true}).decode(buf).replace(/^﻿/,""); }
+  catch(e){ return new TextDecoder("shift_jis").decode(buf); }
+}
+const fmtHin = c => c.length>=12 ? `${c.slice(0,5)}-${c.slice(5,10)}-${c.slice(10,12)}` : c;
+const toInt = s => { const n = parseInt(String(s).trim(),10); return isNaN(n)?0:n; };
+// 数字だけのコードは桁をそろえる（Excelで先頭の0が消えても照合できるように＝ポカヨケ）
+const pad = (v,n) => { v = (v==null?"":String(v)).trim(); return /^\d+$/.test(v) && v.length<n ? v.padStart(n,"0") : v; };
+const mkKey = (shiire,nouki,ukeire,ordNo) => [pad(shiire,4),pad(nouki,4),pad(ukeire,2),ordNo].join("|");
+
+/* ===================== 受注TXT ===================== */
+function parseOrders(text){
+  const lines = text.split(/\r?\n/).filter(l=>l.trim()!=="");
+  if(!lines.length) return {error:"ファイルが空です"};
+  const head = lines[0].split("\t").map(s=>s.trim());
+  const ix = {}; head.forEach((h,i)=>{ if(!(h in ix)) ix[h]=i; });
+  const miss = REQ_TX.filter(k=>!(k in ix));
+  if(miss.length) return {error:"受注TXTではないようです（列が見つかりません："+miss.join("・")+"）"};
+  const g = (c,k) => (k in ix && c[ix[k]]!=null) ? c[ix[k]].trim() : "";
+  const rows=[], bad=[];
+  for(let li=1; li<lines.length; li++){
+    const c = lines[li].split("\t");
+    const ord = g(c,"オーダーNo");
+    if(!/^\d{10}$/.test(ord)){ bad.push(li+1); continue; }
+    const r = {
+      date: ord.slice(0,8), ord,
+      shiire: g(c,"仕入先"), noukisaki: g(c,"納入先"), ukeire: g(c,"受入"),
+      cat: g(c,"品番類別"), sebangou: g(c,"背番号"), bin: g(c,"メインルート便Seq."),
+      nounyuNo: g(c,"納入番号"), kb: toInt(g(c,"かんばん枚数")), qty: toInt(g(c,"受注個数")),
+      shuyo: toInt(g(c,"収容数")), hachubi: g(c,"発注日"), kubun: g(c,"発注区分")
+    };
+    r.hin = fmtHin(r.cat); r.key10 = r.cat.slice(0,10);
+    r.key = mkKey(r.shiire, r.noukisaki, r.ukeire, ord);
+    rows.push(r);
+  }
+  return {rows, bad};
+}
+
+/* ===================== タイムライン（シートの表 → 臨かん行） ===================== */
+function parseTimeline(table){
+  // table: 先頭シートの2次元配列（1行目が見出し）
+  const head = (table[0]||[]).map(v=>String(v??"").trim());
+  const ix = {}; head.forEach((h,i)=>{ if(h && !(h in ix)) ix[h]=i; });   // 同じ見出しが2回ある場合は左側を使う
+  const miss = REQ_TL.filter(k=>!(k in ix));
+  if(miss.length) return {error:"タイムライン早見表ではないようです（列が見つかりません："+miss.join("・")+"）"};
+  const g = (r,k) => (k in ix && r[ix[k]]!=null) ? String(r[ix[k]]).trim() : "";
+  const rin=[]; let total=0;
+  for(let i=1;i<table.length;i++){
+    const r=table[i]; if(!r||!r.length) continue; total++;
+    if(g(r,"かんばん受信日時")!==RIN_WORD) continue;
+    const date=pad(g(r,"オーダー日付"),8), seq=pad(g(r,"オーダーSeq"),2);
+    rin.push({
+      date, seq, shiire:pad(g(r,"仕入先"),4), shukkaba:g(r,"仕入先出荷場"),
+      noukisaki:pad(g(r,"納入先"),4), ukeire:pad(g(r,"受入"),2), name:g(r,"納入先名称"),
+      hatsuRoute:g(r,"仕入先発ルート"), hatsuBin:g(r,"仕入先発便＃"), hatsuDate:g(r,"仕入先発ルート日付"),
+      honRoute:g(r,"本線便ルート"), honBin:g(r,"本線便＃"), arrive:g(r,"納入先受入到着日時"),
+      key: mkKey(g(r,"仕入先"),g(r,"納入先"),g(r,"受入"),date+seq)
+    });
+  }
+  return {rin,total};
+}
+
+/* ===================== 照合 ===================== */
+function matchRin(TX, TL){
+  const tlMap = new Map(TL.rin.map(t=>[t.key,t]));
+  const txDates = new Set(TX.rows.map(r=>r.date));
+  const matched = TX.rows.filter(r=>tlMap.has(r.key)).map(r=>({...r, tl:tlMap.get(r.key)}));
+  const byKey = new Map();
+  matched.forEach(r=>{ const o=byKey.get(r.key)||{n:0,kb:0}; o.n++; o.kb+=r.kb; byKey.set(r.key,o); });
+  const slots = TL.rin.map(t=>{
+    const m=byKey.get(t.key);
+    return {...t, status: m ? "受注あり" : txDates.has(t.date) ? "受注なし" : "TXTに日付なし", n:m?m.n:0, kb:m?m.kb:0};
+  }).sort((a,b)=>a.date.localeCompare(b.date)||a.noukisaki.localeCompare(b.noukisaki)||a.ukeire.localeCompare(b.ukeire)||a.shiire.localeCompare(b.shiire)||a.seq.localeCompare(b.seq));
+  // 突き合わせ：発注区分3なのに臨かん表示がない行（参考）
+  const k3only = TX.rows.filter(r=>r.kubun==="3" && !tlMap.has(r.key));
+  // 臨かんの日付一覧
+  const dmap = new Map();
+  TL.rin.forEach(t=>{ if(!dmap.has(t.date)) dmap.set(t.date,{date:t.date,n:0,kb:0,slots:0}); dmap.get(t.date).slots++; });
+  matched.forEach(r=>{ const o=dmap.get(r.date); o.n++; o.kb+=r.kb; });
+  const dates=[...dmap.values()].map(d=>({...d, inTx: txDates.has(d.date)})).sort((a,b)=>a.date.localeCompare(b.date));
+  return {matched, slots, dates, k3only};
+}
+
+/* 品番 × 日付 で山積み */
+function aggregate(matched, sel, lookup){
+  const rows = matched.filter(r=>sel.has(r.date));
+  const dates = [...new Set(rows.map(r=>r.date))].sort();
+  const di = new Map(dates.map((d,i)=>[d,i]));
+  const g = new Map();
+  rows.forEach(r=>{
+    let o=g.get(r.cat);
+    if(!o){ o={cat:r.cat,hin:r.hin,key10:r.key10,seb:new Set(),uke:new Set(),nm:new Set(),v:new Array(dates.length).fill(0),kb:0,qty:0}; g.set(r.cat,o); }
+    if(r.sebangou) o.seb.add(r.sebangou);
+    if(r.ukeire) o.uke.add(r.ukeire);
+    if(r.tl.name) o.nm.add(r.tl.name);
+    o.v[di.get(r.date)]+=r.kb; o.kb+=r.kb; o.qty+=r.qty;
+  });
+  const num=(a,b)=>a.localeCompare(b,undefined,{numeric:true});
+  const groups=[...g.values()].map(o=>({...o,kyoho:lookup(o.key10),
+      seb:[...o.seb].sort(num).join("・"), uke:[...o.uke].sort().join("・"), nm:[...o.nm].sort().join("・")}))
+    .sort((a,b)=>b.kb-a.kb||a.hin.localeCompare(b.hin));
+  const colTot=dates.map((_,i)=>groups.reduce((s,o)=>s+o.v[i],0));
+  return {rows,dates,groups,colTot,kb:groups.reduce((s,o)=>s+o.kb,0),qty:groups.reduce((s,o)=>s+o.qty,0)};
+}
+
+/* ===================== xlsx 読み取り（外部ライブラリなし） ===================== */
+async function unzip(buf){
+  const dv=new DataView(buf), u8=new Uint8Array(buf), files={};
+  let e=buf.byteLength-22; while(e>=0 && dv.getUint32(e,true)!==0x06054b50) e--;
+  if(e<0) throw new Error("Excel（.xlsx）ではありません");
+  let p=dv.getUint32(e+16,true); const n=dv.getUint16(e+10,true);
+  for(let i=0;i<n;i++){
+    const method=dv.getUint16(p+10,true), csize=dv.getUint32(p+20,true);
+    const nl=dv.getUint16(p+28,true), el=dv.getUint16(p+30,true), cl=dv.getUint16(p+32,true), lo=dv.getUint32(p+42,true);
+    const name=new TextDecoder().decode(u8.subarray(p+46,p+46+nl));
+    const ds=lo+30+dv.getUint16(lo+26,true)+dv.getUint16(lo+28,true);
+    files[name]={method,data:u8.subarray(ds,ds+csize)};
+    p+=46+nl+el+cl;
+  }
+  return async name=>{
+    const f=files[name]; if(!f) return null;
+    if(f.method===0) return new TextDecoder().decode(f.data);
+    const s=new Blob([f.data]).stream().pipeThrough(new DecompressionStream("deflate-raw"));
+    return await new Response(s).text();
+  };
+}
+const unx = s => s.replace(/&(lt|gt|amp|quot|apos|#\d+|#x[0-9a-fA-F]+);/g,(m,e)=>({lt:"<",gt:">",amp:"&",quot:'"',apos:"'"}[e] ?? (e[1]==="x"?String.fromCodePoint(parseInt(e.slice(2),16)):String.fromCodePoint(+e.slice(1)))));
+const textOf = x => { let s=""; x.replace(/<t(?:\s[^>]*)?>([\s\S]*?)<\/t>/g,(m,t)=>{s+=t;}); return unx(s); };
+function colIdx(ref){ let n=0; for(const ch of ref.replace(/\d+/g,"")) n=n*26+ch.charCodeAt(0)-64; return n-1; }
+// 各シートを2次元配列で返す（正規表現で読むので大きいファイルでも速い）
+async function readXlsx(buf){
+  const get=await unzip(buf);
+  const ssx=await get("xl/sharedStrings.xml"), ss=[];
+  if(ssx) ssx.replace(/<si>([\s\S]*?)<\/si>/g,(m,x)=>{ ss.push(textOf(x)); });
+  const wb=await get("xl/workbook.xml"), rels=await get("xl/_rels/workbook.xml.rels");
+  const rmap={}; rels.replace(/<Relationship\b[^>]*>/g,m=>{ const id=/Id="([^"]+)"/.exec(m), t=/Target="([^"]+)"/.exec(m); if(id&&t) rmap[id[1]]=t[1]; });
+  const sheets=[];
+  for(const m of wb.matchAll(/<sheet\b[^>]*>/g)){
+    const name=unx((/name="([^"]*)"/.exec(m[0])||[])[1]||""), rid=(/r:id="([^"]+)"/.exec(m[0])||[])[1];
+    let tgt=rmap[rid]; if(!tgt) continue;
+    tgt=tgt.replace(/^\/?xl\//,""); const x=await get("xl/"+tgt); if(!x) continue;
+    const table=[];
+    for(const rm of x.matchAll(/<row\b([^>]*)>([\s\S]*?)<\/row>/g)){
+      const rn=+((/r="(\d+)"/.exec(rm[1])||[])[1]||table.length+1), a=[];
+      for(const cm of rm[2].matchAll(/<c\b([^>]*?)(?:\/>|>([\s\S]*?)<\/c>)/g)){
+        const at=cm[1], body=cm[2]||"", ref=(/r="([A-Z]+\d+)"/.exec(at)||[])[1], t=(/t="([^"]+)"/.exec(at)||[])[1];
+        if(!ref) continue;
+        const v=(/<v>([\s\S]*?)<\/v>/.exec(body)||[])[1];
+        let val = t==="s" ? ss[+v] : t==="inlineStr" ? textOf(body) : v!=null ? unx(v) : "";
+        a[colIdx(ref)]=val??"";
+      }
+      table[rn-1]=a;
+    }
+    sheets.push({name,table});
+  }
+  return sheets;
+}
+
+/* ===================== 協豊背番の取り込み ===================== */
+function parseCSV(text){
+  const out=[]; let row=[], f="", q=false;
+  for(let i=0;i<text.length;i++){
+    const ch=text[i];
+    if(q){ if(ch==='"'){ if(text[i+1]==='"'){f+='"';i++;} else q=false; } else f+=ch; }
+    else if(ch==='"') q=true;
+    else if(ch===','){ row.push(f); f=""; }
+    else if(ch==='\n'){ row.push(f.replace(/\r$/,"")); out.push(row); row=[]; f=""; }
+    else f+=ch;
+  }
+  if(f!==""||row.length){ row.push(f); out.push(row); }
+  return out;
+}
+/* 誤品照合CSV：客先QR全文の 40～49文字目＝品番、61～64文字目＝協豊背番（J始まりのQRのみ） */
+function mapFromGohinCSV(text){
+  const t=parseCSV(text.replace(/^﻿/,"")); if(!t.length) return null;
+  const h=t[0].map(s=>s.trim()), qi=h.indexOf("客先QR全文"), ri=h.indexOf("結果");
+  if(qi<0) return null;
+  const m={};
+  t.slice(1).forEach(r=>{
+    const q=r[qi]||""; if(ri>=0 && r[ri]!=="OK") return;
+    if(q[0]==="J" && q.length>=64){ const k=q.slice(39,49).trim(), v=q.slice(60,64).trim(); if(k.length===10&&v) m[k]=v; }
+  });
+  return m;
+}
+/* 荷姿一覧Excel：「品番」「背番号」の見出しがある行を探して読む */
+function mapFromSheets(sheets){
+  const m={}, used=[];
+  sheets.forEach(s=>{
+    const rows=s.table;
+    for(let hr=0; hr<Math.min(rows.length,30); hr++){
+      const h=(rows[hr]||[]).map(v=>String(v??"").replace(/\s/g,""));
+      let si=h.indexOf("背番号"); if(si<0) si=h.findIndex(v=>v.includes("背番"));
+      let pi=h.indexOf("品番");   if(pi<0) pi=h.findIndex(v=>v.includes("品番"));
+      if(si>=0&&pi>=0){
+        let c=0;
+        rows.slice(hr+1).forEach(r=>{ if(!r) return;
+          const k=String(r[pi]??"").replace(/[-\s－ー]/g,"").toUpperCase().slice(0,10), v=String(r[si]??"").trim().toUpperCase();
+          if(k.length===10&&v){ m[k]=v; c++; } });
+        used.push(`${s.name}（${c}件）`); break;
+      }
+    }
+  });
+  return {m,used};
+}
+
+/* ===================== Excel（.xlsx）書き出し（外部ライブラリなし） ===================== */
+const CRC=(()=>{const t=new Uint32Array(256);for(let n=0;n<256;n++){let c=n;for(let k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;t[n]=c>>>0;}return t;})();
+function crc32(u){let c=0xFFFFFFFF;for(let i=0;i<u.length;i++)c=CRC[(c^u[i])&255]^(c>>>8);return (c^0xFFFFFFFF)>>>0;}
+function zip(files){
+  const enc=new TextEncoder(), parts=[], cen=[]; let off=0;
+  for(const [name,str] of files){
+    const nb=enc.encode(name), db=enc.encode(str), crc=crc32(db);
+    const lh=new DataView(new ArrayBuffer(30));
+    lh.setUint32(0,0x04034b50,true);lh.setUint16(4,20,true);lh.setUint16(6,0x0800,true);
+    lh.setUint32(14,crc,true);lh.setUint32(18,db.length,true);lh.setUint32(22,db.length,true);lh.setUint16(26,nb.length,true);
+    parts.push(new Uint8Array(lh.buffer),nb,db);
+    const ch=new DataView(new ArrayBuffer(46));
+    ch.setUint32(0,0x02014b50,true);ch.setUint16(4,20,true);ch.setUint16(6,20,true);ch.setUint16(8,0x0800,true);
+    ch.setUint32(16,crc,true);ch.setUint32(20,db.length,true);ch.setUint32(24,db.length,true);ch.setUint16(28,nb.length,true);ch.setUint32(42,off,true);
+    cen.push(new Uint8Array(ch.buffer),nb);
+    off+=30+nb.length+db.length;
+  }
+  const cs=cen.reduce((s,a)=>s+a.length,0), ed=new DataView(new ArrayBuffer(22));
+  ed.setUint32(0,0x06054b50,true);ed.setUint16(8,files.length,true);ed.setUint16(10,files.length,true);ed.setUint32(12,cs,true);ed.setUint32(16,off,true);
+  return new Blob([...parts,...cen,new Uint8Array(ed.buffer)],{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
+}
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const colL=i=>{let s="";i++;while(i>0){const m=(i-1)%26;s=String.fromCharCode(65+m)+s;i=Math.floor((i-1)/26);}return s;};
+const S={norm:0,head:1,txt:2,num:3,numB:4,title:5,note:6,totT:7,totN:8,unreg:9,kyoho:10,yel:11,numZ:12,ctr:13,grn:14,gry:15};
+const STYLES=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
+<numFmts count="1"><numFmt numFmtId="164" formatCode="#,##0;-#,##0;&quot;&quot;"/></numFmts>
+<fonts count="6"><font><sz val="10"/><name val="Arial"/></font><font><b/><sz val="10"/><color rgb="FFFFFFFF"/><name val="Arial"/></font><font><b/><sz val="14"/><name val="Arial"/></font><font><b/><sz val="10"/><name val="Arial"/></font><font><b/><sz val="10"/><color rgb="FFC00000"/><name val="Arial"/></font><font><sz val="9"/><color rgb="FF666666"/><name val="Arial"/></font></fonts>
+<fills count="7"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FF1F4E78"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFDDEBF7"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFFFF2CC"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFE2F0D9"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFEEEEEE"/></patternFill></fill></fills>
+<borders count="2"><border/><border><left style="thin"><color rgb="FF999999"/></left><right style="thin"><color rgb="FF999999"/></right><top style="thin"><color rgb="FF999999"/></top><bottom style="thin"><color rgb="FF999999"/></bottom></border></borders>
+<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>
+<cellXfs count="16">
+<xf numFmtId="0" fontId="0" fillId="0" borderId="0"/>
+<xf numFmtId="0" fontId="1" fillId="2" borderId="1" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>
+<xf numFmtId="0" fontId="0" fillId="0" borderId="1" applyBorder="1"/>
+<xf numFmtId="3" fontId="0" fillId="0" borderId="1" applyNumberFormat="1" applyBorder="1"/>
+<xf numFmtId="3" fontId="3" fillId="0" borderId="1" applyNumberFormat="1" applyFont="1" applyBorder="1"/>
+<xf numFmtId="0" fontId="2" fillId="0" borderId="0" applyFont="1"/>
+<xf numFmtId="0" fontId="5" fillId="0" borderId="0" applyFont="1"/>
+<xf numFmtId="0" fontId="3" fillId="3" borderId="1" applyFont="1" applyFill="1" applyBorder="1"/>
+<xf numFmtId="3" fontId="3" fillId="3" borderId="1" applyNumberFormat="1" applyFont="1" applyFill="1" applyBorder="1"/>
+<xf numFmtId="0" fontId="4" fillId="0" borderId="1" applyFont="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center"/></xf>
+<xf numFmtId="0" fontId="3" fillId="0" borderId="1" applyFont="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center"/></xf>
+<xf numFmtId="0" fontId="3" fillId="4" borderId="1" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center"/></xf>
+<xf numFmtId="164" fontId="0" fillId="0" borderId="1" applyNumberFormat="1" applyBorder="1"/>
+<xf numFmtId="0" fontId="0" fillId="0" borderId="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center"/></xf>
+<xf numFmtId="0" fontId="3" fillId="5" borderId="1" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center"/></xf>
+<xf numFmtId="0" fontId="3" fillId="6" borderId="1" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center"/></xf>
+</cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>`;
+function sheetXml(rows,opt){
+  let x=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">`;
+  if(opt.freeze){ const [r,c]=opt.freeze; x+=`<sheetViews><sheetView workbookViewId="0"><pane${c?` xSplit="${c}"`:""} ySplit="${r}" topLeftCell="${colL(c)}${r+1}" activePane="${c?"bottomRight":"bottomLeft"}" state="frozen"/></sheetView></sheetViews>`; }
+  if(opt.widths) x+="<cols>"+opt.widths.map((w,i)=>`<col min="${i+1}" max="${i+1}" width="${w}" customWidth="1"/>`).join("")+"</cols>";
+  x+="<sheetData>";
+  rows.forEach((r,ri)=>{
+    const ht=opt.heights&&opt.heights[ri]?` ht="${opt.heights[ri]}" customHeight="1"`:"";
+    x+=`<row r="${ri+1}"${ht}>`;
+    r.forEach((c,ci)=>{ if(!c) return; const ref=colL(ci)+(ri+1), s=c.s?` s="${c.s}"`:"";
+      if(c.f) x+=`<c r="${ref}"${s}><f>${esc(c.f)}</f></c>`;
+      else if(typeof c.v==="number") x+=`<c r="${ref}"${s}><v>${c.v}</v></c>`;
+      else if(c.v===""||c.v==null) x+=`<c r="${ref}"${s}/>`;
+      else x+=`<c r="${ref}"${s} t="inlineStr"><is><t xml:space="preserve">${esc(c.v)}</t></is></c>`;
+    });
+    x+="</row>";
+  });
+  x+="</sheetData>";
+  if(opt.filter) x+=`<autoFilter ref="${opt.filter}"/>`;
+  x+=`<pageMargins left="0.4" right="0.4" top="0.5" bottom="0.5" header="0.3" footer="0.3"/>`;
+  if(opt.landscape) x+=`<pageSetup orientation="landscape" fitToWidth="1" fitToHeight="0"/>`;
+  return x+"</worksheet>";
+}
+const WD="日月火水木金土";
+const dObj=d=>new Date(+d.slice(0,4),+d.slice(4,6)-1,+d.slice(6,8));
+const wd=d=>WD[dObj(d).getDay()];
+const md=d=>`${+d.slice(4,6)}/${+d.slice(6,8)}`;
+const ymd=d=>`${d.slice(0,4)}/${d.slice(4,6)}/${d.slice(6,8)}`;
+const nowStr=()=>{const n=new Date();return `${n.getFullYear()}/${n.getMonth()+1}/${n.getDate()} ${String(n.getHours()).padStart(2,"0")}:${String(n.getMinutes()).padStart(2,"0")}`;};
+
+function buildXlsx(A, M, srcTX, srcTL, lookup){
+  const T=v=>({v,s:S.txt}), N=v=>({v,s:S.num});
+  /* シート1：臨かん山積み */
+  const r1=[], FIX=5, nd=A.dates.length, tc=FIX+nd, qc=tc+1;
+  r1.push([{v:`臨かん 品番別・日付別 かんばん枚数 山積み（${A.dates.map(md).join("・")}）`,s:S.title}]);
+  r1.push([{v:`元データ：${srcTL} × ${srcTX}（対象${A.rows.length}行）　出力 ${nowStr()}　ver ${VER}`,s:S.note}]);
+  r1.push([]);
+  r1.push([...["品番","協豊背番","客先背番","受入","納入先名称"].map(v=>({v,s:S.head})),
+           ...A.dates.map(d=>({v:`${md(d)}(${wd(d)})`,s:S.head})),
+           {v:"かんばん枚数 合計",s:S.head},{v:"受注個数 合計",s:S.head}]);
+  const first=5;
+  A.groups.forEach((o,i)=>{
+    const rn=first+i;
+    r1.push([T(o.hin), o.kyoho?{v:o.kyoho,s:S.kyoho}:{v:"未登録",s:S.unreg}, {v:o.seb,s:S.ctr},{v:o.uke,s:S.ctr},{v:o.nm,s:S.ctr},
+      ...o.v.map(v=>({v,s:S.numZ})), {f:`SUM(${colL(FIX)}${rn}:${colL(FIX+nd-1)}${rn})`,s:S.numB}, N(o.qty)]);
+  });
+  const last=first+A.groups.length-1;
+  const tot=[{v:"合計",s:S.totT},...[1,2,3,4].map(()=>({v:"",s:S.totT}))];
+  for(let c=FIX;c<=qc;c++) tot.push({f:`SUM(${colL(c)}${first}:${colL(c)}${last})`,s:S.totN});
+  r1.push(tot,[]);
+  r1.push([{v:"※臨かん＝タイムライン早見表の「かんばん受信日時」が「臨かん」の行。受注TXTとは 仕入先・納入先・受入・オーダーNo（オーダー日付＋オーダーSeq）で照合",s:S.note}]);
+  r1.push([{v:"※日付＝工場納入日（オーダーNo先頭8桁＝メインルート日付）。協豊背番＝品番10桁で紐づけ。「未登録」は荷姿一覧で確認してください",s:S.note}]);
+  r1.push([{v:"※発注がなかった便・受注TXTにまだデータがない臨かん日は「タイムライン照合」シートを見てください",s:S.note}]);
+  /* シート2：臨かん明細 */
+  const h2=["品番","協豊背番","品番類別","客先背番","納入先","納入先名称","受入","工場納入日","便","オーダーNo","納入番号","かんばん枚数","受注個数","収容数","発注日","発注区分","仕入先発ルート","仕入先発便＃","仕入先発ルート日付","本線便ルート","本線便＃","納入先受入到着日時"];
+  const r2=[h2.map(v=>({v,s:S.head}))];
+  [...A.rows].sort((a,b)=>a.date.localeCompare(b.date)||a.cat.localeCompare(b.cat)||a.bin.localeCompare(b.bin,undefined,{numeric:true})).forEach(r=>{
+    const k=lookup(r.key10);
+    r2.push([T(r.hin),k?{v:k,s:S.ctr}:{v:"未登録",s:S.unreg},T(r.cat),T(r.sebangou),T(r.noukisaki),T(r.tl.name),T(r.ukeire),T(ymd(r.date)),T(r.bin),T(r.ord),T(r.nounyuNo),
+      N(r.kb),N(r.qty),N(r.shuyo),T(r.hachubi),T(r.kubun),T(r.tl.hatsuRoute),T(r.tl.hatsuBin),T(r.tl.hatsuDate),T(r.tl.honRoute),T(r.tl.honBin),T(r.tl.arrive)]);
+  });
+  /* シート3：タイムライン照合（臨かん全行の判定） */
+  const h3=["判定","納入日","仕入先","仕入先出荷場","納入先","納入先名称","受入","オーダーSeq","仕入先発ルート日付","仕入先発便＃","本線便ルート","本線便＃","納入先受入到着日時","受注TXT行数","かんばん枚数"];
+  const r3=[h3.map(v=>({v,s:S.head}))];
+  const stS={"受注あり":S.grn,"受注なし":S.yel,"TXTに日付なし":S.gry};
+  M.slots.forEach(t=>r3.push([{v:t.status,s:stS[t.status]},T(ymd(t.date)),T(t.shiire),T(t.shukkaba),T(t.noukisaki),T(t.name),T(t.ukeire),T(t.seq),T(t.hatsuDate),T(t.hatsuBin),T(t.honRoute),T(t.honBin),T(t.arrive),N(t.n),N(t.kb)]));
+  const files=[
+    ["[Content_Types].xml",`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>${[1,2,3].map(i=>`<Override PartName="/xl/worksheets/sheet${i}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`).join("")}<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>`],
+    ["_rels/.rels",`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>`],
+    ["xl/workbook.xml",`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="臨かん山積み" sheetId="1" r:id="rId1"/><sheet name="臨かん明細" sheetId="2" r:id="rId2"/><sheet name="タイムライン照合" sheetId="3" r:id="rId3"/></sheets><definedNames><definedName name="_xlnm._FilterDatabase" localSheetId="1" hidden="1">臨かん明細!$A$1:$V$${r2.length}</definedName><definedName name="_xlnm._FilterDatabase" localSheetId="2" hidden="1">タイムライン照合!$A$1:$O$${r3.length}</definedName></definedNames><calcPr calcId="191029" fullCalcOnLoad="1"/></workbook>`],
+    ["xl/_rels/workbook.xml.rels",`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${[1,2,3].map(i=>`<Relationship Id="rId${i}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet${i}.xml"/>`).join("")}<Relationship Id="rId4" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>`],
+    ["xl/styles.xml",STYLES],
+    ["xl/worksheets/sheet1.xml",sheetXml(r1,{freeze:[4,5],widths:[17,10,12,10,16,...A.dates.map(()=>9),11,11],heights:{3:30},landscape:true})],
+    ["xl/worksheets/sheet2.xml",sheetXml(r2,{freeze:[1,0],widths:[16,9,14,8,7,12,6,11,6,13,9,10,9,7,10,8,12,9,12,11,8,16],filter:`A1:V${r2.length}`})],
+    ["xl/worksheets/sheet3.xml",sheetXml(r3,{freeze:[1,0],widths:[13,11,8,10,8,14,6,10,13,10,12,8,16,11,11],filter:`A1:O${r3.length}`})]
+  ];
+  return zip(files);
+}
+</script>
+
+<script>
+"use strict";
+/* ===================== 画面 ===================== */
+const $=id=>document.getElementById(id);
+let TX=null, TL=null, srcTX="", srcTL="", M=null, SEL=new Set(), LAST=null;
+function loadMap(){ try{ return JSON.parse(localStorage.getItem(LS_KEY))||{}; }catch(e){ return {}; } }
+function saveMap(m){ try{ localStorage.setItem(LS_KEY,JSON.stringify(m)); }catch(e){ alert("保存できませんでした（ブラウザの保存が無効）"); } }
+let EXTRA=loadMap();
+const lookup=k=>EXTRA[k]||BUILTIN_MAP[k]||"";
+function showMapCount(){ $("mcount").textContent=`内蔵 ${Object.keys(BUILTIN_MAP).length}品番 ＋ 追加 ${Object.keys(EXTRA).length}品番`; }
+showMapCount();
+function setStep(n){ ["st1","st2","st3"].forEach((id,i)=>$(id).classList.toggle("done",i<n)); }
+function fbox(id,ok,html){ const b=$(id); b.classList.toggle("ok",ok===true); b.classList.toggle("ng",ok===false); b.querySelector(".st").innerHTML=html; }
+const busy=on=>$("busy").classList.toggle("on",on);
+
+async function readFiles(files){
+  busy(true);
+  for(const f of files){
+    try{
+      if(/\.xlsx$/i.test(f.name)){
+        const sheets=await readXlsx(await f.arrayBuffer());
+        const res=parseTimeline(sheets[0]?sheets[0].table:[]);
+        if(res.error){ fbox("fbTL",false,`✖ ${esc(f.name)}：${esc(res.error)}`); TL=null; continue; }
+        TL=res; srcTL=f.name;
+        fbox("fbTL",true,`✔ ${esc(f.name)}<br>${res.total}行中「${RIN_WORD}」 <b>${res.rin.length}行</b>（${[...new Set(res.rin.map(t=>t.date))].sort().map(md).join("・")||"なし"}）`);
+      }else{
+        const res=parseOrders(decodeText(await f.arrayBuffer()));
+        if(res.error){ fbox("fbTX",false,`✖ ${esc(f.name)}：${esc(res.error)}`); TX=null; continue; }
+        TX=res; srcTX=f.name;
+        const ds=[...new Set(res.rows.map(r=>r.date))].sort();
+        fbox("fbTX",true,`✔ ${esc(f.name)}<br>${res.rows.length}行（納入日 ${md(ds[0])}～${md(ds[ds.length-1])}）`+(res.bad.length?`<br><span style="color:#C62828">✖ オーダーNoが読めない行 ${res.bad.length}行（集計外）</span>`:""));
+      }
+    }catch(e){ fbox(/\.xlsx$/i.test(f.name)?"fbTL":"fbTX",false,`✖ ${esc(f.name)}：読み込めませんでした（${esc(e.message)}）`); }
+  }
+  busy(false);
+  if(TX&&TL){
+    M=matchRin(TX,TL);
+    SEL=new Set(M.dates.filter(d=>d.inTx&&d.n).map(d=>d.date));   // 初期は受注のある臨かん日をすべて選択
+    renderDates(); $("dateCard").hidden=false; render();
+  }else{ $("dateCard").hidden=$("resCard").hidden=true; setStep(0); }
+}
+function renderDates(){
+  const box=$("dates"); box.innerHTML="";
+  if(!M.dates.length){ box.innerHTML=`<div class="alert ng">✖ タイムラインに「${RIN_WORD}」の行がありません</div>`; return; }
+  M.dates.forEach(s=>{
+    const w=dObj(s.date).getDay(), el=document.createElement("div");
+    const can=s.inTx&&s.n>0;
+    el.className="chip"+(w===6?" sat":w===0?" sun":"")+(can?"":" none")+(SEL.has(s.date)?" on":"");
+    el.innerHTML=`<div class="d">${md(s.date)}(${WD[w]})</div><div class="s">${can?`${s.n}行・${s.kb.toLocaleString()}枚`:s.inTx?"受注なし":"受注TXTにまだなし"}</div>`;
+    if(can) el.onclick=()=>{ SEL.has(s.date)?SEL.delete(s.date):SEL.add(s.date); el.classList.toggle("on"); render(); };
+    box.appendChild(el);
+  });
+}
+function render(){
+  if(!M||!SEL.size){ $("resCard").hidden=true; LAST=null; if(M) setStep(1); return; }
+  const A=aggregate(M.matched,SEL,lookup); LAST=A;
+  $("resCard").hidden=false; setStep(2);
+  // アンドン：異常・注意を先頭に出す
+  const un=A.groups.filter(o=>!o.kyoho);
+  const none=M.slots.filter(t=>t.status==="受注なし"&&SEL.has(t.date));
+  const notyet=M.dates.filter(d=>!d.inTx);
+  let al="";
+  if(un.length) al+=`<div class="alert ng">✖ 協豊背番が<b>未登録</b>の品番が ${un.length}件：${un.map(o=>esc(o.hin)).join("、")}　→ 表の赤いセルに入力して登録してください</div>`;
+  if(M.k3only.length) al+=`<div class="alert warn">⚠ 発注区分「3」なのにタイムラインに臨かん表示がない受注が ${M.k3only.length}行あります（集計に入れていません）：${[...new Set(M.k3only.map(r=>md(r.date)+" "+r.hin))].slice(0,8).map(esc).join("、")}</div>`;
+  if(none.length) al+=`<div class="alert warn">⚠ 臨かんの枠があるのに発注がなかった便が ${none.length}件（${[...new Set(none.map(t=>md(t.date)+" "+(t.name||t.noukisaki)+" "+t.ukeire))].map(esc).join("、")}）→ Excelの「タイムライン照合」シート</div>`;
+  if(notyet.length) al+=`<div class="alert info">ℹ 受注TXTにまだデータがない臨かん日：${notyet.map(d=>md(d.date)+"("+wd(d.date)+")").join("・")}（受注が届いたら新しいTXTで出し直してください）</div>`;
+  if(!un.length&&!M.k3only.length&&!none.length) al=`<div class="alert ok">✔ 異常なし</div>`+al;
+  $("alerts").innerHTML=al;
+  $("kpi").innerHTML=`<div>臨かん日<b>${A.dates.map(md).join("・")}</b></div><div>品番<b>${A.groups.length}</b></div><div>かんばん<b>${A.kb.toLocaleString()}</b>枚</div><div>受注個数<b>${A.qty.toLocaleString()}</b>個</div>`;
+  let h=`<thead><tr><th>品番</th><th>協豊背番</th><th>客先背番</th><th>受入</th><th>納入先名称</th>`;
+  A.dates.forEach(d=>{ const w=dObj(d).getDay(); h+=`<th class="${w===6?"dsat":w===0?"dsun":""}">${md(d)}(${WD[w]})</th>`; });
+  h+=`<th>かんばん合計</th><th>受注個数合計</th></tr></thead><tbody>`;
+  A.groups.forEach(o=>{
+    h+=`<tr><td>${esc(o.hin)}</td>`;
+    h+= o.kyoho ? `<td class="kb">${esc(o.kyoho)}</td>`
+                : `<td class="unreg"><input data-k="${o.key10}" placeholder="未登録" maxlength="6"> <button class="btn" data-k="${o.key10}">登録</button></td>`;
+    h+=`<td style="text-align:center">${esc(o.seb)}</td><td style="text-align:center">${esc(o.uke)}</td><td>${esc(o.nm)}</td>`;
+    o.v.forEach(v=>h+=`<td class="n${v?"":" z"}">${v?v.toLocaleString():"–"}</td>`);
+    h+=`<td class="n tot">${o.kb.toLocaleString()}</td><td class="n">${o.qty.toLocaleString()}</td></tr>`;
+  });
+  h+=`</tbody><tfoot><tr><td>合計</td><td></td><td></td><td></td><td></td>${A.colTot.map(v=>`<td class="n">${v.toLocaleString()}</td>`).join("")}<td class="n">${A.kb.toLocaleString()}</td><td class="n">${A.qty.toLocaleString()}</td></tr></tfoot>`;
+  $("tbl").innerHTML=h;
+  $("tbl").querySelectorAll("button[data-k]").forEach(b=>b.onclick=()=>{
+    const inp=$("tbl").querySelector(`input[data-k="${b.dataset.k}"]`), v=inp.value.trim().toUpperCase();
+    if(!/^[0-9A-Z]{2,6}$/.test(v)){ inp.style.outline="3px solid #C62828"; inp.focus(); return; }   // ポカヨケ：英数字2～6桁だけ
+    EXTRA[b.dataset.k]=v; saveMap(EXTRA); showMapCount(); render();
+  });
+}
+
+/* ドラッグ＆ドロップ */
+const drop=$("drop");
+["dragenter","dragover"].forEach(e=>drop.addEventListener(e,ev=>{ev.preventDefault();drop.classList.add("over");}));
+["dragleave","drop"].forEach(e=>drop.addEventListener(e,ev=>{ev.preventDefault();drop.classList.remove("over");}));
+drop.addEventListener("drop",ev=>readFiles([...ev.dataTransfer.files]));
+drop.onclick=()=>$("file").click();
+$("file").onchange=e=>{ readFiles([...e.target.files]); e.target.value=""; };
+window.addEventListener("dragover",e=>e.preventDefault()); window.addEventListener("drop",e=>e.preventDefault());
+
+$("allOn").onclick=()=>{ M.dates.filter(d=>d.inTx&&d.n).forEach(d=>SEL.add(d.date)); renderDates(); render(); };
+$("allOff").onclick=()=>{ SEL.clear(); renderDates(); render(); };
+
+$("xlsx").onclick=()=>{
+  if(!LAST) return;
+  const un=LAST.groups.filter(o=>!o.kyoho);
+  if(un.length && !confirm(`協豊背番が未登録の品番が${un.length}件あります（Excelでは「未登録」と赤字になります）。\nこのまま出力しますか？`)) return;
+  const name=`臨かん山積み_${LAST.dates.map(d=>d.slice(4)).join("_")}.xlsx`;
+  const a=document.createElement("a"); a.href=URL.createObjectURL(buildXlsx(LAST,M,srcTX,srcTL,lookup)); a.download=name; a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),3000); setStep(3);
+};
+
+/* 協豊背番マスタの追加読込 */
+const mdrop=$("mdrop");
+["dragenter","dragover"].forEach(e=>mdrop.addEventListener(e,ev=>{ev.preventDefault();mdrop.classList.add("over");}));
+["dragleave","drop"].forEach(e=>mdrop.addEventListener(e,ev=>{ev.preventDefault();mdrop.classList.remove("over");}));
+mdrop.addEventListener("drop",ev=>addMasterFiles([...ev.dataTransfer.files]));
+mdrop.onclick=()=>$("mfile").click();
+$("mfile").onchange=e=>{ addMasterFiles([...e.target.files]); e.target.value=""; };
+async function addMasterFiles(files){
+  const log=[];
+  for(const f of files){
+    try{
+      let m=null, note="";
+      if(/\.xlsx$/i.test(f.name)){ const r=mapFromSheets(await readXlsx(await f.arrayBuffer())); m=r.m; note=r.used.join("、"); }
+      else m=mapFromGohinCSV(decodeText(await f.arrayBuffer()));
+      if(!m||!Object.keys(m).length){ log.push(`✖ ${f.name}：品番と背番が見つかりませんでした`); continue; }
+      let add=0, chg=0;
+      Object.entries(m).forEach(([k,v])=>{ const cur=lookup(k); if(!cur) add++; else if(cur!==v) chg++; EXTRA[k]=v; });
+      log.push(`✔ ${f.name}：${Object.keys(m).length}品番（新規${add}・変更${chg}）${note?" ["+note+"]":""}`);
+    }catch(e){ log.push(`✖ ${f.name}：読み込めませんでした（${e.message}）`); }
+  }
+  saveMap(EXTRA); showMapCount(); $("mlog").innerHTML=log.map(esc).join("<br>"); render();
+}
+$("mclear").onclick=()=>{ if(confirm("追加・手入力した協豊背番をすべて消して、内蔵だけに戻しますか？")){ EXTRA={}; saveMap(EXTRA); showMapCount(); $("mlog").textContent="追加分を消しました"; render(); } };
+</script>
+</body>
+</html>

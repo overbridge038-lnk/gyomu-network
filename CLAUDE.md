@@ -14,6 +14,22 @@ GitHub Pages（main / root）で公開：https://overbridge038-lnk.github.io/gyo
 | `offline-kit/sw.js` | ほかのツールにオフライン保存を足すときのひな形（ネット優先） |
 | `tools/` | このリポジトリの中に置くツール（PCの中のツールを入れる予定） |
 
+## tools/ に入れたツール（2026-11-17）
+| ファイル | ツール | 元 |
+|---|---|---|
+| shukka-more-check.html | 出荷漏れチェック | PC |
+| shukka-more-auto.html | 出荷漏れ自動照合 | 前の表紙（出荷業務ツール集・版 2026-11-17）に埋め込まれていたもの |
+| hayamihyo.html | 早見表／eかんばん・EDI受注数の統合 | PC |
+| tsumitsuke.html | 積み付け表 作成ツール | PC |
+| rinkan-yamazumi.html | 臨かん かんばん山積み | 前の表紙に埋め込まれていたもの |
+| furidashi-check.html | 購入かんばん振出しチェック表 | PC |
+| shogo-matome.html | 照合結果まとめ | PC。見本データ（作業者名入りの照合記録）は Public のため外した（SAMPLE=null）。charset の宣言を足した |
+| kanri-sheet.html | 管理シート作成ツール（協豊・FTS広田・三五） | PC。単体の協豊・FTS広田版より新しい（PDF対応）ので、まとめ版だけを入れた |
+| sango-zaiko.html | 三五 在庫管理ツール | PC |
+- ver（日付）がなかったツールには、見出しに「ver 2026-11-17」を足した（中身は変えていない）
+- まだ届いていない：積載効率プランナー・在庫カウント・売上・仕入照合・出荷指示書QR照合・かんばんカウンター・出荷内示原紙
+- tools/ のツールは表紙の sw.js が保存する（保存した版を先に使う）。ツールを直したら tools.js の ver と SITE_VER を上げること。CDN（Excelライブラリ・フォント）を使うツールは、一度Wi-Fiで開くと保存されてオフラインでも動く
+
 ## 決まりごと
 - ver（日付）を表紙・各ツールに表示する。表紙を直したら `tools.js` の `SITE_VER` を今日の日付にする
 - 「仕組み」ではなく、ひらがなの「しくみ」と書く

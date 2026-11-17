@@ -1,0 +1,882 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>購入かんばん振出しチェック表</title>
+<link rel="icon" type="image/png" href="data:image/png;base64,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">
+<style>
+/* ===== 色・文字の設定（ここを変えると全体が変わります） ===== */
+:root{
+  --bg:#eef1f4; --panel:#ffffff; --ink:#1b232c; --sub:#5b6773; --line:#cfd6dd;
+  --ok:#1e8e3e; --ok-bg:#e3f4e8; --ng:#d32f2f; --ng-bg:#fde7e7; --warn:#b26a00; --warn-bg:#fff4dc;
+  --accent:#1f4e79; --accent-ink:#ffffff; --drop:#f7fafc;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#14181d; --panel:#1d232a; --ink:#e8edf2; --sub:#9aa6b2; --line:#33404c;
+    --ok:#4cc26f; --ok-bg:#16301f; --ng:#ff6b6b; --ng-bg:#3a1a1a; --warn:#f0b450; --warn-bg:#3a2c12;
+    --accent:#4a8bd0; --accent-ink:#0d1117; --drop:#192028;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#14181d; --panel:#1d232a; --ink:#e8edf2; --sub:#9aa6b2; --line:#33404c;
+  --ok:#4cc26f; --ok-bg:#16301f; --ng:#ff6b6b; --ng-bg:#3a1a1a; --warn:#f0b450; --warn-bg:#3a2c12;
+  --accent:#4a8bd0; --accent-ink:#0d1117; --drop:#192028;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font-family:"BIZ UDPGothic","BIZ UDPゴシック","Meiryo","メイリオ","Hiragino Sans",sans-serif;font-size:16px;line-height:1.5}
+header{background:var(--accent);color:var(--accent-ink);padding:14px 20px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+header h1{margin:0;font-size:24px;letter-spacing:.05em}
+header .std{font-size:14px;opacity:.95}
+main{max-width:1400px;margin:0 auto;padding:16px}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media (max-width:760px){.row{grid-template-columns:1fr}}
+.drop{background:var(--drop);border:3px dashed var(--line);border-radius:12px;padding:18px;min-height:140px;
+  display:flex;flex-direction:column;justify-content:center;gap:8px;cursor:pointer;position:relative;transition:.15s}
+.drop.over{border-color:var(--accent);background:var(--panel)}
+.drop.loaded{border-style:solid;border-color:var(--ok);background:var(--ok-bg)}
+.drop.warnbox{border-style:solid;border-color:var(--warn);background:var(--warn-bg)}
+.drop.err{border-style:solid;border-color:var(--ng);background:var(--ng-bg)}
+.drop .ttl{font-size:20px;font-weight:bold}
+.drop .ttl .no{display:inline-block;background:var(--accent);color:var(--accent-ink);border-radius:50%;width:30px;height:30px;text-align:center;line-height:30px;margin-right:8px}
+.drop .hint{color:var(--sub);font-size:14px}
+.drop .info{font-size:15px;font-weight:bold;word-break:break-all}
+.drop .clr{position:absolute;top:10px;right:10px}
+button{font-family:inherit;font-size:16px;font-weight:bold;border-radius:8px;border:2px solid var(--line);
+  background:var(--panel);color:var(--ink);padding:10px 16px;cursor:pointer;min-height:46px}
+button:hover{border-color:var(--accent)}
+button:disabled{opacity:.4;cursor:not-allowed}
+button.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+button.danger{border-color:var(--ng);color:var(--ng)}
+.bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:14px 0}
+.bar .sp{flex:1}
+label.sw{display:flex;align-items:center;gap:8px;font-size:15px;cursor:pointer}
+label.sw input{width:22px;height:22px}
+/* アンドン（判定表示） */
+#andon{border-radius:12px;padding:16px 20px;margin:14px 0;display:none;align-items:center;gap:20px;flex-wrap:wrap}
+#andon.ok{display:flex;background:var(--ok);color:#fff}
+#andon.ng{display:flex;background:var(--ng);color:#fff;animation:blink 1s step-end 3}
+@keyframes blink{50%{opacity:.55}}
+/* ハンディ担当間違いのエラー（ポカヨケ） */
+#tantoAlert{display:none;border:3px solid var(--ng);background:var(--ng-bg);color:var(--ink);border-radius:12px;padding:14px 18px;margin:0 0 14px}
+#tantoAlert.on{display:block}
+#tantoAlert .ttl{color:var(--ng);font-size:20px;font-weight:bold;margin-bottom:6px}
+#tantoAlert li{margin:4px 0;font-size:16px}
+#andon .big{font-size:44px;font-weight:bold;letter-spacing:.1em}
+#andon .msg{font-size:18px;font-weight:bold}
+.tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:14px}
+@media (max-width:760px){.tiles{grid-template-columns:repeat(2,1fr)}}
+.tile{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+.tile .k{color:var(--sub);font-size:14px}
+.tile .v{font-size:32px;font-weight:bold;font-variant-numeric:tabular-nums}
+.tile.ok .v{color:var(--ok)} .tile.ng .v{color:var(--ng)}
+.tabs{display:flex;gap:6px;flex-wrap:wrap}
+.tabs button.on{background:var(--ink);color:var(--panel);border-color:var(--ink)}
+.tblwrap{background:var(--panel);border:1px solid var(--line);border-radius:10px;overflow:auto;max-height:70vh}
+table{border-collapse:collapse;width:100%;font-size:15px;white-space:nowrap}
+th{position:sticky;top:0;background:var(--panel);border-bottom:2px solid var(--ink);padding:8px 10px;text-align:left;z-index:1}
+td{border-bottom:1px solid var(--line);padding:7px 10px;font-variant-numeric:tabular-nums}
+td.num,th.num{text-align:right}
+tr.ng td{background:var(--ng-bg)}
+.badge{display:inline-block;min-width:48px;text-align:center;font-weight:bold;border-radius:6px;padding:3px 8px;color:#fff}
+.badge.ok{background:var(--ok)} .badge.ng{background:var(--ng)}
+.reason{color:var(--ng);font-weight:bold;white-space:normal;min-width:180px}
+.diff.minus{color:var(--ng);font-weight:bold} .diff.plus{color:var(--warn);font-weight:bold}
+.notes{background:var(--warn-bg);color:var(--ink);border-left:6px solid var(--warn);border-radius:8px;padding:10px 14px;margin:10px 0;display:none;font-size:14px}
+.empty{color:var(--sub);padding:30px;text-align:center}
+details{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 14px;margin-top:16px;font-size:14px}
+details summary{cursor:pointer;font-weight:bold;font-size:15px}
+input[type=file]{display:none}
+.mode{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.mode .mlabel{font-weight:bold;margin-right:4px}
+.mode label{cursor:pointer}
+.mode input{position:absolute;opacity:0;pointer-events:none}
+.mode label span{display:flex;flex-direction:column;border:2px solid var(--line);border-radius:8px;padding:6px 14px;background:var(--panel);font-weight:bold;line-height:1.3}
+.mode label span small{font-weight:normal;color:var(--sub);font-size:12px}
+.mode input:checked + span{border-color:var(--accent);background:var(--accent);color:var(--accent-ink)}
+.mode input:checked + span small{color:var(--accent-ink);opacity:.9}
+.mode input:focus-visible + span{outline:3px solid var(--warn)}
+.xlist{background:var(--warn-bg);border:2px solid var(--warn);border-radius:12px;padding:10px 14px;margin-top:10px}
+.xlist summary{font-weight:bold;cursor:pointer}
+.xlist table{font-size:14px;margin-top:6px}
+.xlist th{position:static;background:transparent}
+.xlist td{background:transparent;white-space:normal}
+.flist{background:var(--panel);border:2px solid var(--ok);border-radius:12px;padding:10px 14px;margin-top:14px}
+.flist .fhead{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:6px}
+.flist .fhead #fsum{color:var(--sub);font-size:14px}
+.flist .sp{flex:1}
+.flist table{font-size:15px}
+.flist th{position:static}
+.flist td input{width:24px;height:24px;cursor:pointer}
+.flist tr.sel td{background:var(--ng-bg)}
+</style>
+</head>
+<body>
+<header>
+  <h1>購入かんばん振出しチェック表 <span style="font-size:14px;font-weight:normal;opacity:.9">ver 2026.11.03</span></h1>
+  <div class="std">手順：① 振出し表(Excel)を置く → ② 読取データ(TXT)を置く → 自動で判定 → NGを確認 → CSV出力</div>
+</header>
+<main>
+  <div class="row">
+    <div class="drop" id="dropX" tabindex="0">
+      <button class="clr danger" id="clrX" title="振出し表をクリア">クリア</button>
+      <div class="ttl"><span class="no">1</span>かんばん振出し表（Excel）</div>
+      <div class="hint">ここにドラッグ＆ドロップ（クリックでファイル選択）　.xlsx / .xlsm</div>
+      <div class="info" id="infoX">未読込</div>
+      <input type="file" id="fileX" accept=".xlsx,.xlsm">
+    </div>
+    <div class="drop" id="dropT" tabindex="0">
+      <button class="clr danger" id="clrT" title="読取データをクリア">クリア</button>
+      <div class="ttl"><span class="no">2</span>バーコード読取データ（TXT）</div>
+      <div class="hint">ここにドラッグ＆ドロップ（複数可・クリックでファイル選択）　HTRESULT_… ／ .txt</div>
+      <div class="info" id="infoT">未読込</div>
+      <input type="file" id="fileT" multiple>
+      <input type="file" id="dirT" webkitdirectory multiple>
+      <div><button type="button" id="pickDir" class="primary">📁 フォルダごと選ぶ</button>
+        <span class="hint">フォルダや多数のファイルをまとめて置いてOK。振出しデータ以外は自動で除外します</span></div>
+    </div>
+  </div>
+
+  <div class="flist" id="flist" style="display:none">
+    <div class="fhead">
+      <label class="sw"><input type="checkbox" id="chkAllT">全選択</label>
+      <b>読み込んだ読取データ（TXT）</b><span id="fsum"></span>
+      <span class="sp"></span>
+      <button class="danger" id="delSel" disabled>選択したファイルを削除</button>
+    </div>
+    <table><thead><tr><th style="width:56px">選択</th><th>ファイル名</th><th class="num">照合に使う件数</th><th class="num">全件数</th><th>担当別</th></tr></thead>
+    <tbody id="fbody"></tbody></table>
+  </div>
+
+  <details class="xlist" id="xlist" style="display:none">
+    <summary id="xsum"></summary>
+    <table><thead><tr><th>除外したファイル</th><th>理由</th></tr></thead><tbody id="xbody"></tbody></table>
+  </details>
+
+  <div class="bar">
+    <div class="mode" role="radiogroup" aria-label="判定モード">
+      <span class="mlabel">判定モード</span>
+      <label><input type="radio" name="mode" value="std" checked><span>標準<small>ハンド変更→なければ合計</small></span></label>
+      <label><input type="radio" name="mode" value="hand"><span>ハンド変更（P列）のみ<small>３．集計表のP列とフリダシ便を照合</small></span></label>
+    </div>
+    <span class="sp"></span>
+    <button class="danger" id="clrAll">すべてクリア</button>
+  </div>
+
+  <div class="notes" id="notes"></div>
+  <div id="andon"><div class="big" id="andonBig"></div><div class="msg" id="andonMsg"></div></div>
+  <div id="tantoAlert"></div>
+
+  <section id="result" style="display:none">
+    <div class="tiles">
+      <div class="tile"><div class="k">照合した背番号</div><div class="v" id="tAll">0</div></div>
+      <div class="tile ok"><div class="k">OK</div><div class="v" id="tOk">0</div></div>
+      <div class="tile ng"><div class="k">NG</div><div class="v" id="tNg">0</div></div>
+      <div class="tile"><div class="k">振出し数 ／ 読取枚数</div><div class="v" id="tQty">0</div></div>
+    </div>
+    <div class="bar">
+      <div class="tabs" id="tabs">
+        <button data-f="all" class="on">全て</button>
+        <button data-f="ok">OKのみ</button>
+        <button data-f="ng">NGのみ</button>
+      </div>
+      <span class="sp"></span>
+      <button class="primary" data-csv="all">CSV出力：全て</button>
+      <button class="primary" data-csv="ok">CSV出力：OKのみ</button>
+      <button class="primary" data-csv="ng">CSV出力：NGのみ</button>
+    </div>
+    <div class="tblwrap"><table>
+      <thead><tr>
+        <th>判定</th><th>NG理由</th><th>振出し便</th><th>出荷背番</th><th>素材背番</th><th>トヨタ品番</th>
+        <th>素材収容数</th><th>比率</th><th>合計(受注)</th><th>ハンド変更</th><th>振出し数</th><th>読取枚数</th><th>差異</th><th>読取担当</th>
+      </tr></thead>
+      <tbody id="tb"></tbody>
+    </table></div>
+  </section>
+
+  <details>
+    <summary>判定のルール（標準）</summary>
+    <ul>
+      <li>振出し表は「３．集計表（EDI+eかんばん)」の <b>素材背番</b> ごとに振出し数を出します（同じ素材背番が複数行あれば合算）。</li>
+      <li><b>振出し数</b>：「ハンド変更」に数値があればその値、空欄なら「合計」（EDI受注数＋e受注数）。</li>
+      <li>比率がある品番でハンド変更が<b>端数のまま</b>（例 6.67）の場合は「ハンド変更 未入力」としてNGにします。</li>
+      <li>読取データ（TXT）は、読取担当が <b>「フリダシ〇〇ビン」「フリダシダッシ〇〇ビン」</b>（例 ﾌﾘﾀﾞｼ01ﾋﾞﾝ、ﾌﾘﾀﾞｼﾀﾞｯｼ01ﾋﾞﾝ）の行だけを使い、<b>背番号</b>（27列目）ごとに読取枚数を数えます。それ以外の担当名の行（ｼﾞｪﾗﾙﾄﾞ など）は照合に使いません。</li>
+      <li>振出し表にあるのに読取0の背番号は<b>「読取なし（振出し漏れ）」</b>、TXTにあって振出し表にない背番号は<b>「振出し表にない背番号」</b>としてNGにします。</li>
+      <li>便別の振出し記録（1便〜4便の「合計」列がある表）は、読取担当名の便番号（ﾌﾘﾀﾞｼ01ﾋﾞﾝ→1便）の列を振出し数にします。</li>
+      <li><b>ハンディ担当間違いのチェック</b>：便別の表では、便ごとに「その便の担当名で読んだ枚数」と「その便の振出し数」も照合します。ある便の担当で多く読み、別の便が不足または未読取のときは「ハンディ担当間違いの疑い」としてNGにし、赤枠で正しい担当名を表示します（例：2便分を ﾌﾘﾀﾞｼﾀﾞｯｼ01ﾋﾞﾝ で読んだ → 02ﾋﾞﾝ で読む）。振出し表にない便番号の担当名（例 05ﾋﾞﾝ）もエラーにします。</li>
+      <li><b>ハンド変更（P列）のみモード</b>：「３．集計表（EDI+eかんばん)」のP列ハンド変更に記載された数だけを振出し数にし、フリダシ便の読取枚数と照合します。P列が空欄なのに読み取られた背番号は「ハンド変更（P列）に記載なし」でNGにします。</li>
+      <li>振出しデータが入っていない振出し表（合計・ハンド変更がすべて空欄または0。P列のみモードではP列がすべて空欄または0）は自動で対象外にし、判定しません。前に読み込んだ振出し表があれば、そちらで判定を続けます。</li>
+      <li>OK＝振出し数と読取枚数が一致。NG＝読取なし／読取不足／読取過多／振出し表にない背番号／二重読み／ハンド変更未入力。</li>
+      <li>②にはフォルダごと・多数のファイルをまとめて置けます。フリダシ便の行がないファイル、空・テキスト以外・読込済みのファイルは<b>自動で除外</b>し、次のファイルの取込に進みます。除外したファイルと理由は黄色の一覧に出ます。</li>
+      <li>Excel（振出し表）をTXTと一緒にまとめて置いても①に取り込みます。振出し表が複数あるときは、振出しデータが入っているもののうち<b>更新日時が最新</b>の1つを使います。①に使用中のファイル名と更新日時が出るので確認してください。</li>
+      <li>読取データ（TXT）は複数ファイルを置くと合算して照合します。不要なファイルは一覧でチェックして「選択したファイルを削除」で外せます（外すと自動で再判定）。</li>
+      <li>Excelは保存済み（計算済み）の値を読みます。振出し表を更新したら、上書き保存してから置いてください。</li>
+    </ul>
+  </details>
+</main>
+
+<script>
+"use strict";
+/* ============================================================
+   設定（帳票レイアウトが変わったらここを直す）
+   ============================================================ */
+const CFG = {
+  // 振出し表：優先して探すシート名（含む文字）
+  sheetPrefer: ["集計表", "振り出し確認", "振出し"],
+  // 読取TXT（タブ区切り）の列番号（1始まり＝照合実績出力レイアウトの順）
+  txt: { tanto:3, date:5, time:6, kubun:12, sebango:27, hinban:28, shuyo:29, edaban:31, shaSebango:38 },
+  ekanKubun: "EKAN_MAE",
+  // 照合に使う読取担当名（半角・全角どちらでも可。〇〇は数字）。これ以外の担当名の行は使わない
+  tantoPattern: /^フリダシ(ダッシ)?\d+ビン$/,   // 「フリダシ〇〇ビン」「フリダシダッシ〇〇ビン」
+  // 二重読み判定に使う列（16列目以降の内容が全く同じなら同じかんばんとみなす）
+  dupFromCol: 16
+};
+
+/* ============================================================
+   xlsx 読み込み（外部ライブラリ不要・オフライン動作）
+   ============================================================ */
+async function unzip(buf){
+  const dv = new DataView(buf), u8 = new Uint8Array(buf);
+  let eocd = -1;
+  for (let i = buf.byteLength - 22; i >= Math.max(0, buf.byteLength - 70000); i--){
+    if (dv.getUint32(i, true) === 0x06054b50){ eocd = i; break; }
+  }
+  if (eocd < 0) throw new Error("Excelファイルとして読めません");
+  const n = dv.getUint16(eocd + 10, true);
+  let p = dv.getUint32(eocd + 16, true);
+  const files = {};
+  const td = new TextDecoder();
+  for (let k = 0; k < n; k++){
+    const method = dv.getUint16(p + 10, true), csize = dv.getUint32(p + 20, true);
+    const nl = dv.getUint16(p + 28, true), xl = dv.getUint16(p + 30, true), cl = dv.getUint16(p + 32, true);
+    const lho = dv.getUint32(p + 42, true);
+    const name = td.decode(u8.subarray(p + 46, p + 46 + nl));
+    files[name] = { method, csize, lho };
+    p += 46 + nl + xl + cl;
+  }
+  return {
+    has: n => !!files[n],
+    names: () => Object.keys(files),
+    async text(name){
+      const f = files[name]; if (!f) return null;
+      const nl = dv.getUint16(f.lho + 26, true), xl = dv.getUint16(f.lho + 28, true);
+      const data = u8.subarray(f.lho + 30 + nl + xl, f.lho + 30 + nl + xl + f.csize);
+      if (f.method === 0) return td.decode(data);
+      const ds = new DecompressionStream("deflate-raw");
+      const out = await new Response(new Blob([data]).stream().pipeThrough(ds)).arrayBuffer();
+      return td.decode(out);
+    }
+  };
+}
+// 文字列セルの本文だけを取り出す（ふりがな<rPh>は除外）
+function siText(si){
+  let out = "";
+  for (const ch of si.children){
+    if (ch.localName === "t") out += ch.textContent;
+    else if (ch.localName === "r") for (const t of ch.children){ if (t.localName === "t") out += t.textContent; }
+  }
+  return out;
+}
+const xmlParse = s => new DOMParser().parseFromString(s, "application/xml");
+const colNum = ref => { let n = 0; for (const c of ref.replace(/\d+/g, "")) n = n * 26 + (c.charCodeAt(0) - 64); return n - 1; };
+
+async function readWorkbook(buf){
+  const z = await unzip(buf);
+  const wb = xmlParse(await z.text("xl/workbook.xml"));
+  const rels = xmlParse(await z.text("xl/_rels/workbook.xml.rels"));
+  const relMap = {};
+  for (const r of rels.getElementsByTagName("Relationship")) relMap[r.getAttribute("Id")] = r.getAttribute("Target");
+  const sheets = [];
+  for (const s of wb.getElementsByTagName("sheet")){
+    const rid = s.getAttribute("r:id") || s.getAttributeNS("http://schemas.openxmlformats.org/officeDocument/2006/relationships", "id");
+    let t = relMap[rid] || ""; t = t.replace(/^\/?xl\//, "").replace(/^\//, "");
+    sheets.push({ name: s.getAttribute("name"), path: "xl/" + t });
+  }
+  let ss = [];
+  const sst = await z.text("xl/sharedStrings.xml");
+  if (sst){
+    const d = xmlParse(sst);
+    ss = Array.from(d.getElementsByTagName("si")).map(siText);
+  }
+  return {
+    sheets,
+    async rows(sheet){
+      const d = xmlParse(await z.text(sheet.path));
+      const out = [];
+      for (const r of d.getElementsByTagName("row")){
+        const ri = parseInt(r.getAttribute("r"), 10) - 1;
+        const arr = [];
+        for (const c of r.getElementsByTagName("c")){
+          const t = c.getAttribute("t"), v = c.getElementsByTagName("v")[0];
+          let val = null;
+          if (t === "s") val = v ? ss[+v.textContent] : null;
+          else if (t === "inlineStr"){ const is = c.getElementsByTagName("is")[0]; val = is ? siText(is) : null; }
+          else if (t === "str" || t === "e") val = v ? v.textContent : null;
+          else if (t === "b") val = v ? v.textContent === "1" : null;
+          else if (v) { const num = Number(v.textContent); val = isNaN(num) ? v.textContent : num; }
+          arr[colNum(c.getAttribute("r"))] = val;
+        }
+        out[ri] = arr;
+      }
+      return out;
+    }
+  };
+}
+
+/* ============================================================
+   振出し表 → 素材背番ごとの振出し数
+   ============================================================ */
+const norm = v => (v === null || v === undefined) ? "" : String(v).replace(/[\s　]/g, "").toUpperCase();
+const num = v => (v === null || v === undefined || v === "") ? null : (typeof v === "number" ? v : (isNaN(Number(v)) ? null : Number(v)));
+
+function findHeader(rows){
+  for (let r = 0; r < Math.min(rows.length, 30); r++){
+    const row = rows[r]; if (!row) continue;
+    const cells = Array.from(row, v => norm(v));
+    const iS = cells.indexOf("素材背番");
+    if (iS < 0) continue;
+    const after = (label) => { for (let i = iS; i < cells.length; i++){ if (cells[i] === label) return i; } return -1; };
+    const before = (label) => { for (let i = iS; i >= Math.max(0, iS - 3); i--){ if (cells[i] === label) return i; } return -1; };
+    const iTotal = after("合計") >= 0 ? after("合計") : after("受注数");
+    if (iTotal < 0) continue;
+    // 同じ行の次ブロック（右側の重複表）に入らないよう、次の「素材背番」までに限定
+    let end = cells.indexOf("素材背番", iS + 1); if (end < 0) end = cells.length;
+    const lim = i => (i >= 0 && i < end) ? i : -1;
+    // 便別の振出し記録（見出しの上の行に「1便」「2便」…、その下に「合計」が並ぶ形式）を検出
+    const binCols = [];
+    const up = rows[r - 1] ? Array.from(rows[r - 1], v => norm(v).normalize("NFKC")) : [];
+    for (let i = 0; i < end; i++){
+      if (cells[i] !== "合計") continue;
+      const m = (up[i] || "").match(/^(\d+)便$/);
+      if (m) binCols.push({ bin: +m[1], col: i });
+    }
+    return {
+      row: r, iS, iTotal: lim(iTotal), binCols,
+      iShip: before("出荷背番") >= 0 ? before("出荷背番") : lim(after("出荷背番")), iHin: lim(after("トヨタ品番")), iSz: lim(after("素材収容数")),
+      iRatio: lim(after("比率")), iKan: lim(after("完成品収容数")), iHand: lim(after("ハンド変更")),
+      iBin: lim(after("振り出し便")), iEdi: lim(after("EDI受注数")), iE: lim(after("e受注数")),
+      totalLabel: cells[iTotal]
+    };
+  }
+  return null;
+}
+
+async function parsePlan(buf){
+  const wb = await readWorkbook(buf);
+  const order = [...wb.sheets].sort((a, b) => {
+    const s = n => { const i = CFG.sheetPrefer.findIndex(p => n.includes(p)); return i < 0 ? 99 : i; };
+    return s(a.name) - s(b.name);
+  });
+  for (const sh of order){
+    const rows = await wb.rows(sh);
+    const h = findHeader(rows);
+    if (!h) continue;
+    const map = new Map(); let lines = 0;
+    for (let r = h.row + 1; r < rows.length; r++){
+      const row = rows[r]; if (!row) continue;
+      const key = norm(row[h.iS]); if (!key) continue;
+      lines++;
+      const total = num(row[h.iTotal]) ?? 0;
+      const ratio = h.iRatio >= 0 && row[h.iRatio] !== null && row[h.iRatio] !== undefined && String(row[h.iRatio]).trim() !== "" ? String(row[h.iRatio]).trim() : "";
+      const handRaw = h.iHand >= 0 ? row[h.iHand] : null;
+      const hand = num(handRaw);
+      let plan, basis, flag = "";
+      if (hand !== null){ plan = hand; basis = "ハンド変更"; if (!Number.isInteger(Math.round(hand * 1e6) / 1e6)) flag = "ハンド変更 未入力（端数 " + (Math.round(hand * 100) / 100) + "）"; }
+      else { plan = total; basis = h.totalLabel; }
+      let e = map.get(key);
+      if (!e){ e = { sozai: key, ship: [], hin: [], sz: "", ratio: "", kan: "", total: 0, hand: null, plan: 0, bin: [], basis: [], flags: [], byBin: null }; map.set(key, e); }
+      if (h.binCols.length){
+        // 便別形式：便ごとの合計を持っておき、照合時に読取担当の便で振出し数を決める
+        e.byBin = e.byBin || {};
+        for (const bc of h.binCols) e.byBin[bc.bin] = (e.byBin[bc.bin] || 0) + (num(row[bc.col]) ?? 0);
+      }
+      const ship = norm(row[h.iShip]); if (ship && !e.ship.includes(ship)) e.ship.push(ship);
+      const hin = h.iHin >= 0 ? norm(row[h.iHin]) : ""; if (hin && !e.hin.includes(hin)) e.hin.push(hin);
+      if (h.iSz >= 0 && e.sz === "") e.sz = row[h.iSz] ?? "";
+      if (ratio && !e.ratio) e.ratio = ratio;
+      if (h.iKan >= 0 && e.kan === "") e.kan = row[h.iKan] ?? "";
+      e.total += total;
+      if (hand !== null) e.hand = (e.hand ?? 0) + hand;
+      e.plan += plan;
+      const bin = h.iBin >= 0 && row[h.iBin] !== null && row[h.iBin] !== undefined ? String(row[h.iBin]).trim() : "";
+      if (bin && !e.bin.includes(bin)) e.bin.push(bin);
+      if (!e.basis.includes(basis)) e.basis.push(basis);
+      if (flag) e.flags.push(flag);
+    }
+    return { map, sheet: sh.name, lines, binCols: h.binCols, hasHand: h.iHand >= 0 };
+  }
+  throw new Error("振出し表に「素材背番」「合計（または受注数）」の見出しが見つかりません");
+}
+
+/* ============================================================
+   読取TXT → 背番号ごとの読取枚数
+   ============================================================ */
+function decodeText(buf){
+  try { return new TextDecoder("utf-8", { fatal: true }).decode(buf); }
+  catch(e){ return new TextDecoder("shift_jis").decode(buf); }
+}
+function parseScan(buf){
+  const text = decodeText(buf).replace(/^﻿/, "");
+  const lines = text.split(/\r?\n/).filter(l => l.trim() !== "");
+  const C = CFG.txt, recs = [];
+  let bad = 0;
+  for (const l of lines){
+    const t = l.split("\t");
+    if (t.length < C.sebango){ bad++; continue; }
+    recs.push({
+      tanto: (t[C.tanto - 1] || "").trim(), kubun: (t[C.kubun - 1] || "").trim(),
+      seb: norm(t[C.sebango - 1]), sha: norm(t[C.shaSebango - 1]),
+      dupKey: t.slice(CFG.dupFromCol - 1).join("\t"), date: t[C.date - 1] || "", time: t[C.time - 1] || ""
+    });
+  }
+  if (!recs.length) throw new Error("読取データ（タブ区切り）として読める行がありません");
+  return { recs, bad };
+}
+
+/* ============================================================
+   照合
+   ============================================================ */
+// 振出しデータが入っているか（標準＝合計またはハンド変更に1以上、P列のみ＝P列に1以上）
+function planHasData(plan, mode){
+  for (const e of plan.map.values()){
+    if (mode === "hand"){ if ((e.hand ?? 0) > 0) return true; }
+    else if (e.byBin ? Object.values(e.byBin).some(v => v > 0) : e.plan > 0) return true;
+  }
+  return false;
+}
+const modeDataLabel = m => m === "hand" ? "ハンド変更（P列）が空欄または0" : "合計・ハンド変更がすべて空欄または0";
+function loadMode(){ try { return localStorage.getItem("furidashi.mode") === "hand" ? "hand" : "std"; } catch(e){ return "std"; } }
+const state = { mode: loadMode(), txtFiles: [], txtSeq: 0, plan: null, scan: null, planName: "", scanName: "", results: [], filter: "all" };
+
+function judge(){
+  const scanMap = new Map(); let excluded = 0; const exNames = new Map();
+  const seen = new Map();
+  const binName = new Map();   // 便番号 → 読取担当名（表示用）
+  for (const r of state.scan.recs){
+    // 担当名が「フリダシ〇〇ビン」以外の行は使わない（eかんばん行も念のため除外）
+    if (!isFuridashi(r.tanto) || r.kubun === CFG.ekanKubun){ excluded++; exNames.set(r.tanto, (exNames.get(r.tanto) || 0) + 1); continue; }
+    const key = r.seb;
+    if (!key) continue;
+    let s = scanMap.get(key);
+    if (!s){ s = { n: 0, tanto: new Map(), dup: 0, byBin: {} }; scanMap.set(key, s); }
+    s.n++;
+    const bn = binOf(r.tanto);
+    if (bn !== null){ s.byBin[bn] = (s.byBin[bn] || 0) + 1; if (!binName.has(bn)) binName.set(bn, r.tanto); }
+    s.tanto.set(r.tanto, (s.tanto.get(r.tanto) || 0) + 1);
+    const dk = key + "\t" + r.dupKey;
+    if (seen.has(dk)) s.dup++; else seen.set(dk, 1);
+  }
+  // 便別形式の振出し表は、読取担当名の便番号（ﾌﾘﾀﾞｼ01ﾋﾞﾝ→1便）の列だけを振出し数にする
+  const bins = [...new Set(state.scan.recs.filter(r => isFuridashi(r.tanto)).map(r => binOf(r.tanto)).filter(n => n !== null))].sort((a, b) => a - b);
+  const handMode = state.mode === "hand";
+  const planOf = p => {
+    // ハンド変更（P列）のみモード：P列に記載された数だけを振出し数にする（空欄は「記載なし」）
+    if (handMode) return { plan: p.hand ?? 0, total: p.total, bin: p.bin.join(","), basis: "ハンド変更(P列)", none: p.hand === null };
+    if (!p.byBin) return { plan: p.plan, total: p.total, bin: p.bin.join(","), basis: p.basis.join("+") };
+    const use = bins.length ? bins : Object.keys(p.byBin).map(Number);
+    const v = use.reduce((a, n) => a + (p.byBin[n] || 0), 0);
+    return { plan: v, total: v, bin: use.map(n => n + "便").join(","), basis: use.map(n => n + "便合計").join("+") };
+  };
+  // 照合：振出し表と読取の両方を突き合わせ、片方にしかない背番号もNGにする（見逃し防止）
+  const res = [];
+  const suspects = [];
+  const tantoLabel = n => binName.get(n) || (n + "便の担当");
+  const keys = new Set([...state.plan.map.keys(), ...scanMap.keys()]);
+  for (const k of keys){
+    const p = state.plan.map.get(k), s = scanMap.get(k);
+    const pp = p ? planOf(p) : null;
+    const plan = pp ? pp.plan : 0, cnt = s ? s.n : 0;
+    if (!s && plan === 0) continue;               // 振出し0・読取0は対象外
+    const reasons = [];
+    if (!p) reasons.push("振出し表にない背番号");
+    else if (p.flags.length) reasons.push(...p.flags);
+    else if (pp.none) reasons.push("ハンド変更（P列）に記載なし");
+    else if (cnt === 0) reasons.push("読取なし（振出し漏れ） -" + round2(plan));
+    else {
+      const d = cnt - plan;
+      if (d < 0) reasons.push("読取不足 " + round2(d));
+      if (d > 0) reasons.push("読取過多 +" + round2(d));
+    }
+    // ポカヨケ：便ごとに「その便の担当名で読んだ枚数」と「その便の振出し数」を突き合わせ、ハンディ担当の間違いを見つける
+    if (!handMode && p && p.byBin && s){
+      const d = {};
+      for (const n of bins) d[n] = (s.byBin[n] || 0) - (p.byBin[n] || 0);
+      const binsWithDiff = bins.filter(n => d[n] !== 0);
+      if (binsWithDiff.length){
+        const pieces = binsWithDiff.map(n => n + "便" + (d[n] > 0 ? "+" : "") + round2(d[n]));
+        const over = binsWithDiff.filter(n => d[n] > 0), short = binsWithDiff.filter(n => d[n] < 0);
+        const unread = Object.keys(p.byBin).map(Number).filter(n => !bins.includes(n) && (p.byBin[n] || 0) > 0);
+        const sus = [];
+        for (const o of over){
+          const cand = [...short.filter(n => -d[n] === d[o]), ...unread.filter(n => p.byBin[n] === d[o]),
+                        ...short.filter(n => -d[n] !== d[o]), ...unread.filter(n => p.byBin[n] !== d[o])];
+          if (cand.length) sus.push({ reader: o, bin: cand[0], qty: d[o] });
+        }
+        if (sus.length){
+          for (const x of sus){
+            reasons.unshift("ハンディ担当間違いの疑い：" + x.bin + "便分を" + tantoLabel(x.reader) + "で読んだ可能性");
+            suspects.push({ reader: x.reader, bin: x.bin, sozai: k, qty: x.qty });
+          }
+        }
+        reasons.push("便別の枚数ずれ " + pieces.join("・"));
+      }
+    }
+    if (s && s.dup) reasons.push("二重読みの疑い " + s.dup + "件");
+    res.push({
+      ok: reasons.length === 0, reason: reasons.join("／"),
+      bin: pp ? pp.bin : "", ship: p ? p.ship.join(",") : "", sozai: k, hin: p ? p.hin.join(",") : "",
+      sz: p ? p.sz : "", ratio: p ? p.ratio : "", total: pp ? pp.total : "", hand: p && p.hand !== null ? round2(p.hand) : "",
+      plan: pp ? round2(plan) : "", basis: pp ? pp.basis : "", cnt, diff: p ? round2(cnt - plan) : "",
+      tanto: s ? [...s.tanto].map(([t, n]) => t + "×" + n).join(" ") : ""
+    });
+  }
+  state.bins = bins;
+  // 振出し表にない便番号の担当名（例 ﾌﾘﾀﾞｼ05ﾋﾞﾝ）
+  const planBins = (state.plan.binCols || []).map(b => b.bin);
+  state.badBins = (!handMode && planBins.length) ? bins.filter(n => !planBins.includes(n)).map(n => tantoLabel(n)) : [];
+  state.suspects = suspects; state.binName = binName;
+  res.sort((a, b) => (a.ok - b.ok) || binOrder(a.bin) - binOrder(b.bin) || a.sozai.localeCompare(b.sozai));
+  state.results = res;
+  state.excluded = excluded; state.exNames = exNames; 
+  render();
+}
+// 担当名の判定：半角ｶﾅ・全角を揃えて（NFKC）から「フリダシ＋数字＋ビン」か確認
+const isFuridashi = name => CFG.tantoPattern.test(String(name || "").normalize("NFKC").replace(/\s/g, ""));
+// 担当名から便番号を取り出す（ﾌﾘﾀﾞｼ01ﾋﾞﾝ・ﾌﾘﾀﾞｼﾀﾞｯｼ01ﾋﾞﾝ → 1）
+const binOf = name => { const m = String(name || "").normalize("NFKC").match(/(\d+)ビン/); return m ? +m[1] : null; };
+const round2 = v => Math.round(v * 100) / 100;
+const binOrder = b => { const m = String(b).match(/\d/); return m ? +m[0] : 9; };
+
+/* ============================================================
+   表示（見える化・アンドン）
+   ============================================================ */
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+function render(){
+  const R = state.results, ok = R.filter(r => r.ok).length, ng = R.length - ok;
+  document.getElementById("result").style.display = "";
+  document.getElementById("tAll").textContent = R.length;
+  document.getElementById("tOk").textContent = ok;
+  document.getElementById("tNg").textContent = ng;
+  const sp = R.reduce((a, r) => a + (+r.plan || 0), 0), sc = R.reduce((a, r) => a + r.cnt, 0);
+  document.getElementById("tQty").textContent = round2(sp) + " ／ " + sc;
+  const an = document.getElementById("andon");
+  an.className = ng ? "ng" : "ok";
+  document.getElementById("andonBig").textContent = ng ? "NG " + ng + "件" : "全数OK";
+  const tErr = (state.suspects && state.suspects.length) || (state.badBins && state.badBins.length);
+  document.getElementById("andonMsg").textContent = ng
+    ? (tErr ? "ハンディ担当の間違いの疑いがあります（下の赤枠）。" : "") + "赤い行を確認してください（読取なし・不足・過多・ハンド変更未入力など）。NGは表の先頭に並んでいます。"
+    : "振出し数と読取枚数がすべて一致しました。";
+  drawTantoAlert();
+  if (ng) beep();
+  const notes = [];
+  notes.push("振出し表：「" + state.plan.sheet + "」から " + state.plan.lines + " 行を読込");
+  if (state.mode === "hand"){
+    notes.push("判定モード：ハンド変更（P列）のみ — P列に記載された数とフリダシ便の読取枚数を照合しています");
+    if (!state.plan.hasHand) notes.push("⚠ この振出し表には「ハンド変更」列がありません。標準モードで判定してください");
+  }
+  if (state.excluded) notes.push("フリダシ〇〇ビン／フリダシダッシ〇〇ビン以外の担当の行 " + state.excluded + " 件は照合に使いませんでした（" + [...state.exNames].map(([k, v]) => (k || "担当なし") + " " + v).join("、") + "）");
+  if (state.plan.binCols && state.plan.binCols.length) notes.push("便別の振出し表です。読取担当の便（" + (state.bins.length ? state.bins.map(n => n + "便").join("・") : "不明→全便") + "）の合計で照合しました");
+  if (state.scan.bad) notes.push("読取データの列数不足行 " + state.scan.bad + " 件を読み飛ばしました");
+  const nb = document.getElementById("notes"); nb.innerHTML = notes.map(esc).join("<br>"); nb.style.display = "block";
+  drawTable();
+}
+// ハンディ担当間違いのエラー表示（どの担当名で・どの便を読んだ疑いか、正しい担当名）
+function drawTantoAlert(){
+  const box = document.getElementById("tantoAlert");
+  const S = state.suspects || [], B = state.badBins || [];
+  if (!S.length && !B.length){ box.className = ""; box.innerHTML = ""; return; }
+  const groups = new Map();
+  for (const x of S){ const g = x.reader + ">" + x.bin; if (!groups.has(g)) groups.set(g, { reader: x.reader, bin: x.bin, items: [] }); groups.get(g).items.push(x.sozai + "（" + x.qty + "枚）"); }
+  const name = n => (state.binName && state.binName.get(n)) || (n + "便の担当");
+  const right = (rd, bn) => { const nm = name(rd); return /\d+(?=ﾋﾞﾝ|ビン)/.test(nm) ? nm.replace(/(\d+)(?=ﾋﾞﾝ|ビン)/, m => String(bn).padStart(m.length, "0")) : bn + "便の担当"; };
+  const li = [];
+  for (const g of groups.values())
+    li.push("<b>" + esc(name(g.reader)) + "</b> で <b>" + g.bin + "便</b> のかんばんを読んだ疑い：" + esc(g.items.join("、")) + " → " + g.bin + "便は <b>" + esc(right(g.reader, g.bin)) + "</b> で読んでください");
+  if (B.length) li.push("振出し表にない便の担当名で読んでいます：<b>" + esc(B.join("、")) + "</b> → ハンディの担当を確認してください");
+  box.innerHTML = '<div class="ttl">⚠ ハンディ担当の間違いの疑い</div><ul>' + li.map(x => "<li>" + x + "</li>").join("") + "</ul>";
+  box.className = "on";
+}
+function drawTable(){
+  const f = state.filter;
+  const R = state.results.filter(r => f === "all" || (f === "ok" ? r.ok : !r.ok));
+  const tb = document.getElementById("tb");
+  if (!R.length){ tb.innerHTML = '<tr><td colspan="14" class="empty">該当するデータはありません</td></tr>'; return; }
+  tb.innerHTML = R.map(r => {
+    const dc = r.diff === "" ? "" : (r.diff < 0 ? "diff minus" : r.diff > 0 ? "diff plus" : "");
+    return `<tr class="${r.ok ? "" : "ng"}">
+      <td><span class="badge ${r.ok ? "ok" : "ng"}">${r.ok ? "OK" : "NG"}</span></td>
+      <td class="reason">${esc(r.reason)}</td><td>${esc(r.bin)}</td><td>${esc(r.ship)}</td><td><b>${esc(r.sozai)}</b></td><td>${esc(r.hin)}</td>
+      <td class="num">${esc(r.sz)}</td><td>${esc(r.ratio)}</td><td class="num">${esc(r.total)}</td><td class="num">${esc(r.hand)}</td>
+      <td class="num"><b>${esc(r.plan)}</b></td><td class="num"><b>${r.cnt}</b></td>
+      <td class="num ${dc}">${r.diff === "" ? "" : (r.diff > 0 ? "+" : "") + r.diff}</td><td>${esc(r.tanto)}</td></tr>`;
+  }).join("");
+}
+function beep(){
+  try {
+    const ac = new (window.AudioContext || window.webkitAudioContext)();
+    [0, 0.35].forEach(t => {
+      const o = ac.createOscillator(), g = ac.createGain();
+      o.type = "square"; o.frequency.value = 880; g.gain.value = 0.08;
+      o.connect(g); g.connect(ac.destination); o.start(ac.currentTime + t); o.stop(ac.currentTime + t + 0.2);
+    });
+  } catch(e){}
+}
+
+/* ============================================================
+   CSV出力（Excelで文字化けしないようBOM付きUTF-8）
+   ============================================================ */
+function downloadCsv(kind){
+  const R = state.results.filter(r => kind === "all" || (kind === "ok" ? r.ok : !r.ok));
+  const head = ["判定","NG理由","振出し便","出荷背番","素材背番","トヨタ品番","素材収容数","比率","合計(受注)","ハンド変更","振出し数","振出し数の基準","読取枚数","差異","読取担当","振出し表ファイル","読取データファイル","照合日時"];
+  const now = new Date(), stamp = fmt(now);
+  const q = v => { const s = String(v ?? ""); return /[",\r\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
+  const lines = [head.map(q).join(",")];
+  for (const r of R){
+    lines.push([r.ok ? "OK" : "NG", r.reason, r.bin, r.ship, r.sozai, r.hin, r.sz, r.ratio, r.total, r.hand, r.plan, r.basis, r.cnt, r.diff, r.tanto, state.planName, state.scanName, stamp].map(q).join(","));
+  }
+  const blob = new Blob(["﻿" + lines.join("\r\n")], { type: "text/csv;charset=utf-8" });
+  const a = document.createElement("a");
+  const label = { all: "全て", ok: "OKのみ", ng: "NGのみ" }[kind];
+  a.href = URL.createObjectURL(blob);
+  a.download = "振出しチェック_" + stamp.replace(/[\/: ]/g, "").slice(0, 12) + "_" + label + ".csv";
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+}
+const fmt = d => d.getFullYear() + "/" + p2(d.getMonth() + 1) + "/" + p2(d.getDate()) + " " + p2(d.getHours()) + ":" + p2(d.getMinutes());
+const p2 = n => String(n).padStart(2, "0");
+
+/* ============================================================
+   ファイル投入（ドラッグ＆ドロップ）・クリア
+   ============================================================ */
+function isExcel(f){ return /\.(xlsx|xlsm)$/i.test(f.name); }
+/* ---- 読取データ（TXT）1ファイルの取込。振出しデータでなければ理由を返して除外 ---- */
+const SKIP_EXT = /\.(pdf|png|jpe?g|gif|bmp|ico|lnk|exe|zip|7z|lzh|docx?|pptx?|xls|csv|html?|ini|db|tmp)$/i;
+const MAX_TXT_SIZE = 30 * 1024 * 1024;   // 30MB を超えるファイルは読込まない
+async function addTxt(f){
+  if (SKIP_EXT.test(f.name)) return { ok: false, name: f.name, reason: "テキストデータではありません" };
+  if (f.size === 0) return { ok: false, name: f.name, reason: "空のファイルです" };
+  if (f.size > MAX_TXT_SIZE) return { ok: false, name: f.name, reason: "ファイルが大きすぎます（30MB超）" };
+  // ポカヨケ：同じファイルを二度読み込まない
+  if (state.txtFiles.some(x => x.name === f.name && x.size === f.size)) return { ok: false, name: f.name, reason: "読込済みです（二重読込を防止）" };
+  let sc;
+  try { sc = parseScan(await f.arrayBuffer()); } catch(e){ return { ok: false, name: f.name, reason: e.message }; }
+  const tc = {}; sc.recs.filter(r => isFuridashi(r.tanto)).forEach(r => tc[r.tanto] = (tc[r.tanto] || 0) + 1);
+  const used = Object.values(tc).reduce((x, y) => x + y, 0);
+  if (!used) return { ok: false, name: f.name, reason: "読取担当「フリダシ〇〇ビン」「フリダシダッシ〇〇ビン」の行がありません" };
+  state.txtFiles.push({ id: ++state.txtSeq, name: f.name, size: f.size, recs: sc.recs, bad: sc.bad, tc, used, sel: false });
+  return { ok: true, name: f.name, used, all: sc.recs.length, tc };
+}
+/* ---- まとめて投入：Excelは①へ、それ以外は②へ。②は誤ったデータを除外して次へ進む ---- */
+async function loadBatch(files, slot){
+  const xl = files.filter(isExcel), tx = files.filter(f => !isExcel(f));
+  if (slot === "X" && !xl.length && tx.length) slot = "T";       // ①にTXTを落としても②へ回す
+  const ng = [];
+  if (xl.length === 1 && files.length === 1) await loadFile(xl[0], "X");   // Excel 1つだけ → 従来どおり①へ
+  else if (xl.length) await loadPlanBatch(xl, ng);                         // まとめて置いた中のExcel → 振出しデータ入りの最新を①へ
+  if (!tx.length){ drawExcluded(ng); refresh(); return; }
+  const box = document.getElementById("dropT"), info = document.getElementById("infoT");
+  box.classList.remove("loaded", "err", "warnbox");
+  const ok = [];
+  for (let i = 0; i < tx.length; i++){
+    info.textContent = "読込中… " + (i + 1) + " ／ " + tx.length + "　" + tx[i].name;
+    const r = await addTxt(tx[i]);
+    (r.ok ? ok : ng).push(r);
+  }
+  rebuildScan();
+  if (tx.length === 1){
+    const r = ok[0] || ng[0];
+    info.textContent = r.ok
+      ? "✔ " + r.name + "（照合に使う " + r.used + " 件／全 " + r.all + " 件：" + Object.entries(r.tc).map(([k, v]) => k + " " + v).join("、") + "）"
+      : "✖ 読めません：" + r.name + "：" + r.reason;
+  } else {
+    info.textContent = "✔ 取込 " + ok.length + " ファイル（照合に使う " + ok.reduce((a, r) => a + r.used, 0) + " 件）　／　除外 " + ng.length + " ファイル";
+  }
+  if (!ok.length && state.txtFiles.length) info.textContent += "　／ 読込済みの " + state.txtFiles.length + " ファイルで判定を続けます";
+  box.classList.add(ok.length ? "loaded" : state.txtFiles.length ? "warnbox" : "err");
+  drawExcluded(ng);
+  drawFileList();
+  refresh();
+}
+/* ---- まとめて置かれたExcel：振出しデータ入りのものだけを候補にし、更新日時が最新の1つを①に使う ---- */
+async function loadPlanBatch(xl, ng){
+  const box = document.getElementById("dropX"), info = document.getElementById("infoX");
+  const good = [];
+  for (const f of xl){
+    info.textContent = "読込中… " + f.name;
+    try {
+      const np = await parsePlan(await f.arrayBuffer());
+      if (!planHasData(np, state.mode)) ng.push({ name: f.name, reason: "振出しデータが入っていない振出し表です（" + modeDataLabel(state.mode) + "）" });
+      else good.push({ f, np });
+    } catch(e){ ng.push({ name: f.name, reason: e.message }); }
+  }
+  if (!good.length){
+    info.textContent = "✖ 対象外：まとめて置いたExcelに振出しデータの入った振出し表がありません" + (state.plan ? "　／ 前のファイル「" + state.planName + "」で判定を続けます" : "");
+    box.classList.remove("loaded", "err", "warnbox"); box.classList.add(state.plan ? "warnbox" : "err");
+    return;
+  }
+  good.sort((a, b) => b.f.lastModified - a.f.lastModified);
+  const use = good[0];
+  for (const g of good.slice(1)) ng.push({ name: g.f.name, reason: "振出し表が複数あるため、更新日時が新しい「" + use.f.name + "」を使いました" });
+  state.plan = use.np; state.planName = use.f.name;
+  state.planInfo = "✔ " + use.f.name + "（素材背番 " + use.np.map.size + " 種・更新 " + fmt(new Date(use.f.lastModified)) + "）";
+  info.textContent = state.planInfo;
+  box.classList.remove("err", "warnbox", "modeng"); box.classList.add("loaded");
+}
+function drawExcluded(ng){
+  const box = document.getElementById("xlist");
+  if (!ng.length){ box.style.display = "none"; return; }
+  box.style.display = "";
+  box.open = ng.length <= 5;
+  document.getElementById("xsum").textContent = "⚠ 振出しデータではないため自動で除外したファイル：" + ng.length + " 件（クリックで一覧）";
+  document.getElementById("xbody").innerHTML = ng.map(r => `<tr><td>${esc(r.name)}</td><td>${esc(r.reason)}</td></tr>`).join("");
+}
+/* ---- フォルダを落とされたら中のファイルを全部取り出す ---- */
+async function filesFromDrop(dt){
+  const items = dt.items ? [...dt.items] : [];
+  const entries = items.map(it => it.webkitGetAsEntry ? it.webkitGetAsEntry() : null).filter(Boolean);
+  if (!entries.length || !entries.some(e => e.isDirectory)) return [...dt.files];
+  const out = [];
+  const walk = async (en) => {
+    if (en.isFile) out.push(await new Promise((res, rej) => en.file(res, rej)));
+    else if (en.isDirectory){
+      const rd = en.createReader();
+      let batch;
+      do { batch = await new Promise((res, rej) => rd.readEntries(res, rej)); for (const c of batch) await walk(c); } while (batch.length);
+    }
+  };
+  for (const en of entries) await walk(en);
+  return out;
+}
+async function loadFile(f, slot){
+  // ポカヨケ：置き場所を間違えても拡張子で振り分ける
+  if (isExcel(f)) slot = "X"; else if (slot === "X") slot = "T";
+  const box = document.getElementById("drop" + slot), info = document.getElementById("info" + slot);
+  box.classList.remove("loaded", "err", "warnbox"); info.textContent = "読込中… " + f.name;
+  try {
+    const buf = await f.arrayBuffer();
+    if (slot === "X"){
+      const np = await parsePlan(buf);
+      // 自働化：振出しデータが入っていないファイルは受け付けず、対象外にする
+      if (!planHasData(np, state.mode)) throw new Error("振出しデータが入っていません（" + modeDataLabel(state.mode) + "）→ このファイルは対象外にしました");
+      state.plan = np; state.planName = f.name;
+      state.planInfo = "✔ " + f.name + "（素材背番 " + np.map.size + " 種・更新 " + fmt(new Date(f.lastModified)) + "）";
+      info.textContent = state.planInfo;
+    }
+    box.classList.add("loaded");
+  } catch(e){
+    if (slot === "X"){
+      // 前に読み込んだ振出し表があれば、それを使い続ける（対象外のファイルで上書きしない）
+      info.textContent = "✖ 対象外：" + f.name + "：" + e.message + (state.plan ? "　／ 前のファイル「" + state.planName + "」で判定を続けます" : "");
+      box.classList.add(state.plan ? "warnbox" : "err");
+    } else {
+      box.classList.add("err"); info.textContent = "✖ 読めません：" + f.name + "：" + e.message;
+    }
+  }
+  refresh();
+}
+function refresh(){
+  // モードを切り替えたとき、そのモードで使う振出しデータが無ければ判定しない（対象外）
+  const bx = document.getElementById("dropX"), ix = document.getElementById("infoX");
+  let usable = !!state.plan;
+  if (state.plan){
+    if (planHasData(state.plan, state.mode)){
+      if (bx.classList.contains("modeng")){ bx.classList.remove("modeng", "err"); bx.classList.add("loaded"); ix.textContent = state.planInfo; }
+    } else {
+      usable = false;
+      bx.classList.remove("loaded", "warnbox"); bx.classList.add("err", "modeng");
+      ix.textContent = "✖ 対象外：" + state.planName + "：振出しデータが入っていません（" + modeDataLabel(state.mode) + "）";
+    }
+  }
+  if (usable && state.scan) judge();
+  else {
+    document.getElementById("result").style.display = "none";
+    document.getElementById("andon").className = "";
+    document.getElementById("notes").style.display = "none";
+  }
+}
+function clearSlot(slot){
+  if (slot === "X"){ state.plan = null; state.planName = ""; } else { state.txtFiles = []; rebuildScan(); drawFileList(); drawExcluded([]); }
+  const box = document.getElementById("drop" + slot);
+  box.classList.remove("loaded", "err", "warnbox", "modeng");
+  document.getElementById("info" + slot).textContent = "未読込";
+  document.getElementById("file" + slot).value = "";
+  refresh();
+}
+for (const slot of ["X", "T"]){
+  const box = document.getElementById("drop" + slot), inp = document.getElementById("file" + slot);
+  box.addEventListener("click", e => { if (e.target.closest(".clr") || e.target.closest("#pickDir")) return; inp.click(); });
+  box.addEventListener("keydown", e => { if (e.target !== box) return; if (e.key === "Enter" || e.key === " ") inp.click(); });
+  inp.addEventListener("change", async () => { const fs = [...inp.files]; inp.value = ""; await loadBatch(fs, slot); });
+  box.addEventListener("dragover", e => { e.preventDefault(); box.classList.add("over"); });
+  box.addEventListener("dragleave", () => box.classList.remove("over"));
+  box.addEventListener("drop", async e => { e.preventDefault(); e.stopPropagation(); box.classList.remove("over"); await loadBatch(await filesFromDrop(e.dataTransfer), slot); });
+  document.getElementById("clr" + slot).addEventListener("click", e => { e.stopPropagation(); clearSlot(slot); });
+}
+/* ---- 読取データ（TXT）は複数ファイルを合算。ファイルごとに選択して削除できる ---- */
+function rebuildScan(){
+  const F = state.txtFiles;
+  state.scan = F.length ? { recs: F.flatMap(x => x.recs), bad: F.reduce((a, x) => a + x.bad, 0) } : null;
+  state.scanName = F.map(x => x.name).join(" + ");
+}
+function drawFileList(){
+  const F = state.txtFiles, box = document.getElementById("flist");
+  box.style.display = F.length ? "" : "none";
+  document.getElementById("fbody").innerHTML = F.map(x => `<tr class="${x.sel ? "sel" : ""}">
+    <td><input type="checkbox" data-id="${x.id}" ${x.sel ? "checked" : ""} aria-label="${esc(x.name)}を選択"></td>
+    <td><b>${esc(x.name)}</b></td><td class="num">${x.used}</td><td class="num">${x.recs.length}</td>
+    <td>${esc(Object.entries(x.tc).map(([k, v]) => k + " " + v).join("、"))}</td></tr>`).join("");
+  const nSel = F.filter(x => x.sel).length;
+  document.getElementById("fsum").textContent = F.length + " ファイル／照合に使う " + F.reduce((a, x) => a + x.used, 0) + " 件" + (nSel ? "（" + nSel + " ファイル選択中）" : "");
+  document.getElementById("delSel").disabled = !nSel;
+  const all = document.getElementById("chkAllT");
+  all.checked = F.length > 0 && nSel === F.length; all.indeterminate = nSel > 0 && nSel < F.length;
+  const dT = document.getElementById("dropT"), iT = document.getElementById("infoT");
+  if (!F.length && !dT.classList.contains("err")){ dT.classList.remove("loaded"); iT.textContent = "未読込"; }
+}
+document.getElementById("fbody").addEventListener("change", e => {
+  const id = +e.target.dataset.id; const x = state.txtFiles.find(f => f.id === id);
+  if (x){ x.sel = e.target.checked; drawFileList(); }
+});
+document.getElementById("chkAllT").addEventListener("change", e => {
+  state.txtFiles.forEach(x => x.sel = e.target.checked); drawFileList();
+});
+document.getElementById("delSel").addEventListener("click", () => {
+  const del = state.txtFiles.filter(x => x.sel);
+  if (!del.length) return;
+  state.txtFiles = state.txtFiles.filter(x => !x.sel);
+  rebuildScan();
+  const dT = document.getElementById("dropT"), iT = document.getElementById("infoT");
+  dT.classList.remove("err");
+  if (state.txtFiles.length){ dT.classList.add("loaded"); iT.textContent = "🗑 削除：" + del.map(x => x.name).join("、") + "　→ 残り " + state.txtFiles.length + " ファイルで再判定しました"; }
+  else { document.getElementById("fileT").value = ""; }
+  drawFileList(); refresh();
+});
+
+// 判定モードの切替（前回の選択を覚えておく）
+document.querySelectorAll('input[name="mode"]').forEach(r => {
+  r.checked = r.value === state.mode;
+  r.addEventListener("change", () => {
+    state.mode = r.value;
+    try { localStorage.setItem("furidashi.mode", state.mode); } catch(e){}
+    refresh();
+  });
+});
+
+// 枠の外に落としてもブラウザでファイルが開かないようにする
+window.addEventListener("dragover", e => e.preventDefault());
+window.addEventListener("drop", async e => { e.preventDefault(); await loadBatch(await filesFromDrop(e.dataTransfer), "T"); });
+document.getElementById("pickDir").addEventListener("click", e => { e.stopPropagation(); document.getElementById("dirT").click(); });
+document.getElementById("dirT").addEventListener("change", async e => { const fs = [...e.target.files]; e.target.value = ""; await loadBatch(fs, "T"); });
+document.getElementById("clrAll").addEventListener("click", () => { clearSlot("X"); clearSlot("T"); });
+document.getElementById("tabs").addEventListener("click", e => {
+  const b = e.target.closest("button"); if (!b) return;
+  state.filter = b.dataset.f;
+  document.querySelectorAll("#tabs button").forEach(x => x.classList.toggle("on", x === b));
+  drawTable();
+});
+document.querySelectorAll("[data-csv]").forEach(b => b.addEventListener("click", () => downloadCsv(b.dataset.csv)));
+</script>
+</body>
+</html>

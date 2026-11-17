@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>積み付け表 作成ツール</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNTYgMjU2IiB3aWR0aD0iMjU2IiBoZWlnaHQ9IjI1NiI+CiAgPGRlZnM+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImJnIiB4MT0iMCIgeTE9IjAiIHgyPSIwIiB5Mj0iMSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzFkNGE3NCIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiMwZjI4NDAiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImJveCIgeDE9IjAiIHkxPSIwIiB4Mj0iMCIgeTI9IjEiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiNmMmIyNWMiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjZDk4YTJiIi8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogIDwvZGVmcz4KCiAgPCEtLSDog4zmma8gLS0+CiAgPHJlY3QgeD0iOCIgeT0iOCIgd2lkdGg9IjI0MCIgaGVpZ2h0PSIyNDAiIHJ4PSI1MiIgZmlsbD0idXJsKCNiZykiLz4KCiAgPCEtLSDml6nopovooajvvIjmmYLliLvjga7lhaXjgaPjgZ/ooajvvIkgLS0+CiAgPGcgdHJhbnNmb3JtPSJyb3RhdGUoLTYgNzAgMTEyKSI+CiAgICA8cmVjdCB4PSIyNiIgeT0iNTIiIHdpZHRoPSI5MiIgaGVpZ2h0PSIxMTgiIHJ4PSIxMCIgZmlsbD0iI2ZmZmZmZiIvPgogICAgPHJlY3QgeD0iMjYiIHk9IjUyIiB3aWR0aD0iOTIiIGhlaWdodD0iMjQiIHJ4PSIxMCIgZmlsbD0iI2NmZTZmZiIvPgogICAgPHJlY3QgeD0iMjYiIHk9IjY2IiB3aWR0aD0iOTIiIGhlaWdodD0iMTAiIGZpbGw9IiNjZmU2ZmYiLz4KICAgIDxnIHN0cm9rZT0iIzdmOTVhYiIgc3Ryb2tlLXdpZHRoPSI1IiBzdHJva2UtbGluZWNhcD0icm91bmQiPgogICAgICA8bGluZSB4MT0iMzgiIHkxPSI5NCIgIHgyPSIxMDYiIHkyPSI5NCIvPgogICAgICA8bGluZSB4MT0iMzgiIHkxPSIxMTQiIHgyPSIxMDYiIHkyPSIxMTQiLz4KICAgICAgPGxpbmUgeDE9IjM4IiB5MT0iMTM0IiB4Mj0iMTA2IiB5Mj0iMTM0Ii8+CiAgICAgIDxsaW5lIHgxPSIzOCIgeTE9IjE1NCIgeDI9Ijg4IiAgeTI9IjE1NCIvPgogICAgPC9nPgogICAgPGxpbmUgeDE9IjYyIiB5MT0iODQiIHgyPSI2MiIgeTI9IjE2MiIgc3Ryb2tlPSIjYzJjY2Q2IiBzdHJva2Utd2lkdGg9IjMiLz4KICA8L2c+CiAgPCEtLSDmmYLoqIjvvIjjgr/jgqTjg6Djg6njgqTjg7PvvIkgLS0+CiAgPGNpcmNsZSBjeD0iMTA4IiBjeT0iNTgiIHI9IjI2IiBmaWxsPSIjZmZmZmZmIiBzdHJva2U9IiMxZDRhNzQiIHN0cm9rZS13aWR0aD0iNiIvPgogIDxwYXRoIGQ9Ik0xMDggNDIgVjU4IEwxMTkgNjYiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2QxMjQyZiIgc3Ryb2tlLXdpZHRoPSI2IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KCiAgPCEtLSDlpInmj5vjga7nn6LljbAgLS0+CiAgPHBhdGggZD0iTTExMiAxMzIgSDE0MCBWMTE2IEwxNzAgMTQyIEwxNDAgMTY4IFYxNTIgSDExMiBaIiBmaWxsPSIjZmZkMjNmIiBzdHJva2U9IiMwZjI4NDAiIHN0cm9rZS13aWR0aD0iNCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPgoKICA8IS0tIOepjeOBv+S7mOOBkeOBn+iNt+euse+8iOODkeODrOODg+ODiOS4iu+8iSAtLT4KICA8cmVjdCB4PSIxNTAiIHk9IjIwNiIgd2lkdGg9Ijg4IiBoZWlnaHQ9IjEwIiByeD0iMyIgZmlsbD0iIzhhNWEyYiIvPgogIDxyZWN0IHg9IjE1NiIgeT0iMjE2IiB3aWR0aD0iMTAiIGhlaWdodD0iMTAiIGZpbGw9IiM4YTVhMmIiLz4KICA8cmVjdCB4PSIxOTAiIHk9IjIxNiIgd2lkdGg9IjEwIiBoZWlnaHQ9IjEwIiBmaWxsPSIjOGE1YTJiIi8+CiAgPHJlY3QgeD0iMjIyIiB5PSIyMTYiIHdpZHRoPSIxMCIgaGVpZ2h0PSIxMCIgZmlsbD0iIzhhNWEyYiIvPgogIDxnIHN0cm9rZT0iIzdhNGExNyIgc3Ryb2tlLXdpZHRoPSIzIj4KICAgIDxyZWN0IHg9IjE1MiIgeT0iMTY2IiB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHJ4PSI0IiBmaWxsPSJ1cmwoI2JveCkiLz4KICAgIDxyZWN0IHg9IjE5NiIgeT0iMTY2IiB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHJ4PSI0IiBmaWxsPSJ1cmwoI2JveCkiLz4KICAgIDxyZWN0IHg9IjE3NCIgeT0iMTI0IiB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHJ4PSI0IiBmaWxsPSJ1cmwoI2JveCkiLz4KICA8L2c+CiAgPGcgc3Ryb2tlPSIjYTg2NDFmIiBzdHJva2Utd2lkdGg9IjUiPgogICAgPGxpbmUgeDE9IjE3MiIgeTE9IjE2OCIgeDI9IjE3MiIgeTI9IjE4MiIvPgogICAgPGxpbmUgeDE9IjIxNiIgeTE9IjE2OCIgeDI9IjIxNiIgeTI9IjE4MiIvPgogICAgPGxpbmUgeDE9IjE5NCIgeTE9IjEyNiIgeDI9IjE5NCIgeTI9IjE0MCIvPgogIDwvZz4KCiAgPCEtLSDmtojovrzjg4Hjgqfjg4Pjgq8gLS0+CiAgPGNpcmNsZSBjeD0iMjE0IiBjeT0iOTIiIHI9IjI2IiBmaWxsPSIjMWE3ZjM3IiBzdHJva2U9IiNmZmZmZmYiIHN0cm9rZS13aWR0aD0iNSIvPgogIDxwYXRoIGQ9Ik0yMDEgOTIgTDIxMCAxMDIgTDIyOCA4MiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZmZmZmZmIiBzdHJva2Utd2lkdGg9IjgiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPgo8L3N2Zz4K">
+<style>
+/* ===== 画面用 ===== */
+:root{
+  --ink:#1f2328; --sub:#57606a; --line:#9aa4ae; --bg:#f4f5f7; --card:#fff;
+  --accent:#0b5cad; --ng:#d1242f; --warn:#b58100; --ok:#1a7f37;
+  --c-even:#CCFFFF;   /* 偶数便の列色（元Excelと同じ） */
+  --c-normal:#00B050; /* 正常化(NORMAL) */
+  --c-slide:#FFFF00;  /* スライド中(SLIDE) */
+  --c-stop:#D3D3D3;   /* 納入停止(STOP) */
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Meiryo","Yu Gothic UI","Hiragino Sans",sans-serif;font-size:14px}
+header.app{background:#14324f;color:#fff;padding:10px 16px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+header.app h1{font-size:18px;margin:0}
+header.app .src{font-size:12px;opacity:.85}
+main{padding:12px 16px;max-width:1500px;margin:0 auto}
+.card{background:var(--card);border:1px solid #d0d7de;border-radius:8px;padding:12px 14px;margin-bottom:12px}
+.steps{margin:0 0 6px;padding-left:20px;color:var(--sub);font-size:13px}
+#drop{border:3px dashed #8aa4c0;border-radius:10px;padding:22px;text-align:center;background:#f8fbff;cursor:pointer;font-size:16px}
+#drop.over{background:#e3f0ff;border-color:var(--accent)}
+#drop b{color:var(--accent)}
+.row{display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end}
+.row label{display:flex;flex-direction:column;font-size:12px;color:var(--sub);gap:3px}
+.row input,.row select{font-size:15px;padding:6px 8px;border:1px solid #aab4be;border-radius:6px;min-width:120px}
+button{font-size:15px;padding:8px 16px;border-radius:6px;border:1px solid #0b5cad;background:var(--accent);color:#fff;cursor:pointer}
+button.sec{background:#fff;color:var(--accent)}
+button:disabled{opacity:.4;cursor:default}
+details summary{cursor:pointer;color:var(--accent);font-size:13px}
+table.relay{border-collapse:collapse;margin-top:6px}
+table.relay td,table.relay th{border:1px solid #ccc;padding:3px 6px;font-size:13px}
+table.relay input{font-size:13px;padding:3px 5px;width:140px}
+/* アンドン（異常表示） */
+#andon .item{padding:8px 10px;border-radius:6px;margin:4px 0;font-size:14px}
+#andon .ng{background:#ffebe9;border-left:6px solid var(--ng)}
+#andon .warn{background:#fff8c5;border-left:6px solid var(--warn)}
+#andon .ok{background:#dafbe1;border-left:6px solid var(--ok)}
+#andon .info{background:#eef2f6;border-left:6px solid #8c959f}
+#andon ul{margin:4px 0 0;padding-left:20px;font-size:13px}
+/* 日付タブ */
+#tabs{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0}
+#tabs button{background:#fff;color:var(--ink);border:1px solid #aab4be;padding:6px 10px;font-size:14px;min-width:84px}
+#tabs button .n{display:block;font-size:11px;color:var(--sub)}
+#tabs button.sat{color:#0b5cad}
+#tabs button.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+#tabs button.on .n{color:#dbe9f7}
+#tabs button.bad{outline:3px solid var(--ng)}
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px}
+.binsum{font-size:13px;color:var(--sub)}
+.hidden{display:none!important}
+
+/* ===== 積み付け表（元Excelの体裁） ===== */
+.sheet{background:#fff;padding:14px 16px;border:1px solid #c9d1d9;overflow-x:auto;font-family:"MS PGothic","ＭＳ Ｐゴシック","Meiryo",sans-serif;font-size:12.5px;color:#000}
+.sheet + .sheet{margin-top:16px}
+.shead{display:grid;grid-template-columns:auto 1fr auto;gap:8px 18px;align-items:start;margin-bottom:8px;min-width:980px}
+.shead .ttl{font-size:20px;font-weight:bold;letter-spacing:.1em}
+.shead .date{font-size:20px;font-weight:bold;border:1px solid #000;padding:2px 12px;display:inline-block;margin-top:4px}
+.shead .bin td{padding:1px 6px 1px 0;font-size:13px}
+.shead .bin td.v{font-weight:bold;font-size:15px}
+.legend{border-collapse:collapse;font-size:12px}
+.legend td{padding:1px 4px}
+.legend .sw{border:1px solid #888;padding:1px 6px;white-space:nowrap}
+.corp{text-align:right;font-size:13px;line-height:1.5}
+table.tt{border-collapse:collapse;min-width:980px;width:100%}
+table.tt th,table.tt td{border:1px solid #000;padding:1px 4px;text-align:center;white-space:nowrap;height:19px}
+table.tt th{font-weight:normal;background:#f2f2f2}
+table.tt th.grp{background:#dde4ee;font-weight:bold}
+table.tt td.even,table.tt th.even{background:var(--c-even)}
+table.tt td.o-NORMAL1{background:var(--c-normal)}
+table.tt td.o-SLIDE{background:var(--c-slide)}
+table.tt td.o-STOP{background:var(--c-stop);text-decoration:line-through}
+table.tt tr.top td{border-top:1.5px solid #000}
+table.tt td.sub{border-top:1px solid #000}
+table.tt td.nm{text-align:left}
+table.tt td.ord{min-width:78px;font-variant-numeric:tabular-nums}
+table.tt td.ord[title]{cursor:help}
+table.tt td.unk{color:var(--ng);font-weight:bold}
+.comments{margin-top:10px;font-size:12px;line-height:1.7;min-width:980px}
+
+/* ===== 印刷（A4縦・1日1ページ） ===== */
+@page{size:A4 portrait;margin:8mm}
+@media print{
+  body{background:#fff}
+  header.app,.noprint,#tabs,.toolbar,.card{display:none!important}
+  main{padding:0;max-width:none}
+  .sheet{page-break-after:always;break-after:page}
+  .sheet:last-of-type{page-break-after:auto;break-after:auto}
+  *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+}
+/* 印刷直前に付ける体裁（JSで1ページに収まるよう縮小率を計算） */
+body.printing .sheet{width:900px;border:none;padding:0;overflow:visible;font-size:12px}
+body.printing .sheet + .sheet{margin-top:0}
+body.printing .shead,body.printing table.tt,body.printing .comments{min-width:0}
+body.printing table.tt th,body.printing table.tt td{height:auto;padding:0 2px;line-height:1.2}
+body.printing .shead{grid-template-columns:auto auto;}
+body.printing .shead .corp{grid-column:2;grid-row:1}
+body.printing .shead > div:nth-child(2){grid-column:1 / span 2;grid-row:2}
+body.printing .comments{margin-top:4px;line-height:1.4}
+</style>
+</head>
+<body>
+<header class="app">
+  <h1>積み付け表 作成ツール<span style="font-size:.6em;font-weight:400;opacity:.75;margin-left:.4em;white-space:nowrap">ver 2026-11-17</span></h1>
+  <span class="src" id="srcName">タイムライン早見表（Excel）を読み込んでください</span>
+</header>
+
+<main>
+  <!-- 標準作業（手順） -->
+  <div class="card noprint">
+    <ol class="steps">
+      <li>タイムライン早見表のExcel（.xlsx / .xlsm / .csv）を下の枠にドラッグ、またはクリックして選択</li>
+      <li>赤・黄の「お知らせ」を確認（便未割当のオーダーなど）</li>
+      <li>日付を選んで内容確認 →「この日を印刷」または「全日印刷」（A4縦・1日1枚）</li>
+    </ol>
+    <div id="drop">ここに <b>タイムライン早見表</b> をドロップ ／ クリックして選択
+      <input type="file" id="file" accept=".xlsx,.xlsm,.csv" hidden>
+    </div>
+  </div>
+
+  <div class="card noprint hidden" id="settings">
+    <div class="row">
+      <label>調物便名（仕入先発ルート）<select id="route"></select></label>
+      <label>協豊便名<input id="kyohoBin" value="五和便"></label>
+      <label>表示開始日<select id="dFrom"></select></label>
+      <label>表示終了日<select id="dTo"></select></label>
+      <label>会社名<input id="corp1" value="㈱五和製作所"></label>
+      <label>部署名<input id="corp2" value="五和　出荷場"></label>
+    </div>
+    <details style="margin-top:8px">
+      <summary>中継地コード → 名称（新しいコードが出たらここで追加）</summary>
+      <table class="relay" id="relayTbl"><thead><tr><th>コード</th><th>名称</th></tr></thead><tbody></tbody></table>
+    </details>
+  </div>
+
+  <div class="card noprint hidden" id="andon"></div>
+
+  <div class="noprint hidden" id="viewCtl">
+    <div id="tabs"></div>
+    <div class="toolbar">
+      <button id="btnPrintDay">この日を印刷</button>
+      <button id="btnPrintAll" class="sec">全日印刷（表示期間）</button>
+      <span class="binsum" id="binsum"></span>
+    </div>
+  </div>
+
+  <div id="sheets"></div>
+</main>
+
+<script>
+"use strict";
+/* =========================================================
+   設定（現場で変更しやすいようにここにまとめています）
+   ========================================================= */
+const DEFAULT_RELAY = { L384:"ユーネットみよし", L338:"愛陸TBC", L32W:"愛陸小牧" };
+const DEFAULT_KYOHO_BIN = { TST2F10:"五和便" };   // 調物便名 → 協豊便名
+const COMMENTS = [
+  "◆この積み付け表は『オーダー』で表現しています（便数ではありません）",
+  "",
+  "◆2024/9/5 システム改修　：　タイムライン早見表のQ列に”CUT”と記載のあるオーダーは本積み付け表に記載されません",
+  "◆2025/10/20 システム改修　：　上段の＜凡例＞参照"
+];
+// 早見表で使う列（1行目の見出し名で探す。列の位置が変わっても動く）
+const COL = {
+  base:"物理拠点名", sup:"仕入先", supK:"仕入先工区", supS:"仕入先出荷場",
+  dst:"納入先", dstK:"納入先工区", uke:"受入", dstName:"納入先名称",
+  oDate:"オーダー日付", oSeq:"オーダーSeq", recv:"かんばん受信日時", code0:"処理コード0",
+  route:"仕入先発ルート", bin:"仕入先発便＃", rDate:"仕入先発ルート日付", dep:"仕入先発日時",
+  r1:"中継地１拠点コード", r1arr:"中継地１着日時", r2:"中継地２拠点コード", r3:"中継地３拠点コード", mros:"MROS"
+};
+const WEEK = ["日","月","火","水","木","金","土"];
+
+/* ---------- 保存（このPCのブラウザ内のみ） ---------- */
+function load(k, d){ try{ const v = localStorage.getItem("tsumitsuke."+k); return v ? JSON.parse(v) : d; }catch(e){ return d; } }
+function save(k, v){ try{ localStorage.setItem("tsumitsuke."+k, JSON.stringify(v)); }catch(e){} }
+let relayMap = Object.assign({}, DEFAULT_RELAY, load("relay", {}));
+let kyohoMap = Object.assign({}, DEFAULT_KYOHO_BIN, load("kyoho", {}));
+
+/* =========================================================
+   Excel(xlsx/xlsm)読込み：外部ライブラリなし・オフラインで動作
+   ========================================================= */
+async function unzip(buf){
+  const dv = new DataView(buf), u8 = new Uint8Array(buf);
+  let eocd = -1;
+  for (let i = buf.byteLength - 22; i >= Math.max(0, buf.byteLength - 70000); i--){
+    if (dv.getUint32(i, true) === 0x06054b50){ eocd = i; break; }
+  }
+  if (eocd < 0) throw new Error("Excelファイル(xlsx)として読めません");
+  const n = dv.getUint16(eocd + 10, true);
+  let p = dv.getUint32(eocd + 16, true);
+  const files = {};
+  const td = new TextDecoder("utf-8");
+  for (let i = 0; i < n; i++){
+    if (dv.getUint32(p, true) !== 0x02014b50) break;
+    const method = dv.getUint16(p + 10, true), csize = dv.getUint32(p + 20, true);
+    const nl = dv.getUint16(p + 28, true), el = dv.getUint16(p + 30, true), cl = dv.getUint16(p + 32, true);
+    const off = dv.getUint32(p + 42, true);
+    const name = td.decode(u8.subarray(p + 46, p + 46 + nl));
+    files[name] = { method, csize, off };
+    p += 46 + nl + el + cl;
+  }
+  return {
+    names: Object.keys(files),
+    async text(name){
+      const f = files[name]; if (!f) return null;
+      const lnl = dv.getUint16(f.off + 26, true), lel = dv.getUint16(f.off + 28, true);
+      const data = u8.subarray(f.off + 30 + lnl + lel, f.off + 30 + lnl + lel + f.csize);
+      if (f.method === 0) return td.decode(data);
+      const ds = new DecompressionStream("deflate-raw");
+      const out = await new Response(new Blob([data]).stream().pipeThrough(ds)).arrayBuffer();
+      return td.decode(out);
+    }
+  };
+}
+function colIdx(ref){ let n = 0; for (const ch of ref){ const c = ch.charCodeAt(0); if (c < 65 || c > 90) break; n = n * 26 + (c - 64); } return n - 1; }
+async function readXlsx(buf){
+  const z = await unzip(buf);
+  const xml = s => new DOMParser().parseFromString(s, "application/xml");
+  const T = (el, tag) => el.getElementsByTagNameNS("*", tag);
+  // 共有文字列（ふりがな rPh は除外）
+  const ss = [];
+  const sst = await z.text("xl/sharedStrings.xml");
+  if (sst){
+    for (const si of T(xml(sst), "si")){
+      let s = "";
+      for (const ch of si.children){
+        if (ch.localName === "t") s += ch.textContent;
+        else if (ch.localName === "r"){ const t = T(ch, "t")[0]; if (t) s += t.textContent; }
+      }
+      ss.push(s);
+    }
+  }
+  // 1枚目のシートを特定
+  let sheetPath = "xl/worksheets/sheet1.xml";
+  try{
+    const wb = xml(await z.text("xl/workbook.xml"));
+    const first = T(wb, "sheet")[0];
+    const rid = first.getAttribute("r:id") || first.getAttributeNS("http://schemas.openxmlformats.org/officeDocument/2006/relationships", "id");
+    const rels = xml(await z.text("xl/_rels/workbook.xml.rels"));
+    for (const r of T(rels, "Relationship")) if (r.getAttribute("Id") === rid){
+      let t = r.getAttribute("Target"); t = t.replace(/^\/?xl\//, "").replace(/^\//, "");
+      sheetPath = "xl/" + t;
+    }
+  }catch(e){}
+  const sx = await z.text(sheetPath);
+  if (!sx) throw new Error("シートが見つかりません");
+  const rows = [];
+  for (const r of T(xml(sx), "row")){
+    const ri = parseInt(r.getAttribute("r"), 10) - 1;
+    const arr = [];
+    for (const c of r.children){
+      if (c.localName !== "c") continue;
+      const ci = colIdx(c.getAttribute("r") || "");
+      const t = c.getAttribute("t");
+      let v = "";
+      if (t === "inlineStr"){ const is = T(c, "t"); for (const x of is) v += x.textContent; }
+      else { const ve = T(c, "v")[0]; v = ve ? ve.textContent : ""; if (t === "s") v = ss[+v] ?? ""; }
+      arr[ci] = v;
+    }
+    rows[isNaN(ri) ? rows.length : ri] = arr;
+  }
+  return Array.from(rows, r => r || []);
+}
+function readCsv(text){
+  const out = []; let row = [], cur = "", q = false;
+  for (let i = 0; i < text.length; i++){
+    const ch = text[i];
+    if (q){ if (ch === '"'){ if (text[i+1] === '"'){ cur += '"'; i++; } else q = false; } else cur += ch; }
+    else if (ch === '"') q = true;
+    else if (ch === ","){ row.push(cur); cur = ""; }
+    else if (ch === "\n"){ row.push(cur.replace(/\r$/, "")); out.push(row); row = []; cur = ""; }
+    else cur += ch;
+  }
+  if (cur || row.length){ row.push(cur); out.push(row); }
+  return out;
+}
+
+/* =========================================================
+   早見表 → オーダー一覧
+   ========================================================= */
+let ORDERS = [], FILE_NAME = "", STATE = { day:null };
+const S = v => (v == null ? "" : String(v).trim());
+
+function parseOrders(rows){
+  const head = (rows[0] || []).map(S);
+  const idx = {};
+  const missing = [];
+  for (const [k, name] of Object.entries(COL)){
+    const i = head.indexOf(name);           // 同名列が2組あるため最初の列を使う
+    if (i < 0 && k !== "mros") missing.push(name);
+    idx[k] = i;
+  }
+  if (missing.length) throw new Error("早見表の見出しが見つかりません： " + missing.join("、") + "\n（タイムライン早見表のファイルか確認してください）");
+  const list = [];
+  for (let r = 1; r < rows.length; r++){
+    const row = rows[r]; if (!row || !row.length) continue;
+    const g = k => idx[k] >= 0 ? S(row[idx[k]]) : "";
+    if (!g("dst") && !g("oDate")) continue;
+    list.push({
+      rowNo: r + 1,
+      base:g("base"), sup:g("sup"), supK:g("supK"), supS:g("supS"),
+      dst:g("dst"), dstK:g("dstK"), uke:g("uke"), dstName:g("dstName"),
+      oDate:g("oDate"), oSeq:g("oSeq"), recv:g("recv"), code0:g("code0").toUpperCase(),
+      route:g("route"), bin:g("bin"), rDate:g("rDate"), dep:g("dep"),
+      r1:g("r1"), r1arr:g("r1arr"), r2:g("r2"), r3:g("r3"), mros:g("mros")
+    });
+  }
+  // 「正常化(NORMAL)」＝ スライド/停止/CUTなどから通常に戻った最初のオーダー（緑）
+  const byKey = new Map();
+  for (const o of list){ o.key = [o.dst,o.dstK,o.uke,o.sup,o.supK,o.supS].join("|"); (byKey.get(o.key) || byKey.set(o.key, []).get(o.key)).push(o); }
+  for (const arr of byKey.values()){
+    arr.sort((a,b) => (a.oDate + a.oSeq).localeCompare(b.oDate + b.oSeq));
+    let prev = null;
+    for (const o of arr){ o.normalStart = (o.code0 === "NORMAL" && prev !== "NORMAL"); prev = o.code0; }
+  }
+  return list;
+}
+
+/* ---------- 表示用の小道具 ---------- */
+const hhmm = s => /^\d{12}$/.test(s) ? s.slice(8,10) + ":" + s.slice(10,12) : null;
+const ordLabel = o => o.oDate.slice(4,6) + "/" + o.oDate.slice(6,8) + "_" + o.oSeq;
+const dayLabel = d => { const dt = new Date(+d.slice(0,4), +d.slice(4,6)-1, +d.slice(6,8)); return d.slice(4,6) + "/" + d.slice(6,8) + "(" + WEEK[dt.getDay()] + ")"; };
+const dow = d => new Date(+d.slice(0,4), +d.slice(4,6)-1, +d.slice(6,8)).getDay();
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const relayName = c => c ? (relayMap[c] || c) : "";
+const cmpKey = (a,b) => a < b ? -1 : a > b ? 1 : 0;
+function nowStr(){ const d = new Date(), p = n => String(n).padStart(2,"0"); return `${d.getFullYear()}/${p(d.getMonth()+1)}/${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`; }
+
+/* =========================================================
+   1日分の積み付け表を組み立てる
+   ========================================================= */
+function buildDay(route, day, bins){
+  const ords = ORDERS.filter(o => o.route === route && o.rDate === day && o.code0 !== "CUT");
+  // 便ごとの 受信（最も遅い受信）／出発／到着（中継地1への最も早い到着）
+  const head = bins.map(b => {
+    const x = ords.filter(o => o.bin === b);
+    const rc = x.map(o => o.recv).filter(v => /^\d{12}$/.test(v)).sort();
+    const dp = x.map(o => o.dep).filter(v => /^\d{12}$/.test(v)).sort();
+    const ar = x.map(o => o.r1arr).filter(v => /^\d{12}$/.test(v)).sort();
+    return { bin:b, n:x.length, recv: rc.length ? hhmm(rc[rc.length-1]) : "--", dep: dp.length ? hhmm(dp[0]) : "--", arr: ar.length ? hhmm(ar[0]) : "--" };
+  });
+  // 行（納入先・工区・受入・仕入先・工区・出荷場）ごとにまとめる
+  const groups = new Map();
+  for (const o of ords){
+    if (!groups.has(o.key)) groups.set(o.key, { o0:o, cells:{} });
+    const g = groups.get(o.key);
+    (g.cells[o.bin] = g.cells[o.bin] || []).push(o);
+  }
+  const rows = [...groups.values()].sort((a,b) => {
+    const A = a.o0, B = b.o0;
+    return cmpKey(A.dst,B.dst) || cmpKey(A.dstK,B.dstK) || cmpKey(A.uke,B.uke) || cmpKey(A.sup,B.sup) || cmpKey(A.supK,B.supK) || cmpKey(A.supS,B.supS);
+  });
+  for (const g of rows){
+    let mx = 0, depth = 1;
+    for (const b in g.cells){
+      g.cells[b].sort((a,c) => (a.oDate + a.oSeq).localeCompare(c.oDate + c.oSeq));
+      depth = Math.max(depth, g.cells[b].length);
+      for (const o of g.cells[b]) mx = Math.max(mx, parseInt(o.oSeq, 10) || 0);
+    }
+    g.times = mx;        // オーダー回数（日）＝その日に載るオーダーの最大Seq
+    g.depth = depth;
+  }
+  return { route, day, bins, head, rows, count: ords.length };
+}
+
+function renderSheet(d, kyohoBin){
+  const B = d.bins;
+  const evenCls = b => (parseInt(b,10) % 2 === 0 ? "even" : "");
+  let h = `<section class="sheet" data-day="${d.day}">`;
+  h += `<div class="shead">
+    <div>
+      <div class="ttl">積み付け表</div>
+      <table class="bin"><tr><td>調物便名：</td><td class="v">${esc(d.route)}</td></tr>
+      <tr><td>協豊便名：</td><td class="v">${esc(kyohoBin)}</td></tr></table>
+    </div>
+    <div style="display:flex;gap:28px;align-items:flex-start">
+      <div class="date">${dayLabel(d.day)}</div>
+      <table class="legend">
+        <tr><td colspan="4">＜凡例＞</td></tr>
+        <tr><td class="sw" style="background:var(--c-normal)">9/25_01</td><td>＝正常化(NORMAL)</td>
+            <td class="sw" style="background:var(--c-stop);text-decoration:line-through">9/25_01</td><td>＝納入停止(STOP)</td></tr>
+        <tr><td class="sw" style="background:var(--c-slide)">9/25_01</td><td>＝スライド中(SLIDE)</td>
+            <td class="sw">9/25_01</td><td>＝0件発注(ZERO)</td></tr>
+      </table>
+    </div>
+    <div class="corp">${esc(nowStr())}<br>${esc(document.getElementById("corp1").value)}<br>${esc(document.getElementById("corp2").value)}</div>
+  </div>`;
+  h += `<table class="tt"><thead>
+    <tr><th class="grp" colspan="8">From-To情報</th><th class="grp" colspan="${B.length+1}">積み付け情報</th><th class="grp" colspan="3">中継地情報</th></tr>
+    <tr><th colspan="4" rowspan="2">納入先(To)</th><th colspan="3" rowspan="2">仕入先(From)</th><th rowspan="4">オーダー<br>回数<br>（日）</th>
+        <th>便数</th>${B.map(b => `<th class="${evenCls(b)}">${esc(b)}</th>`).join("")}
+        <th rowspan="4">中継地1</th><th rowspan="4">中継地2</th><th rowspan="4">中継地3</th></tr>
+    <tr><th>受信時間</th>${d.head.map(x => `<th class="${evenCls(x.bin)}">${x.recv}</th>`).join("")}</tr>
+    <tr><th rowspan="2">名称</th><th rowspan="2">納入先</th><th rowspan="2">工区</th><th rowspan="2">受入</th>
+        <th rowspan="2">仕入先</th><th rowspan="2">工区</th><th rowspan="2">出荷場</th>
+        <th>出発時間</th>${d.head.map(x => `<th class="${evenCls(x.bin)}">${x.dep}</th>`).join("")}</tr>
+    <tr><th>到着時間</th>${d.head.map(x => `<th class="${evenCls(x.bin)}">${x.arr}</th>`).join("")}</tr>
+  </thead><tbody>`;
+  if (!d.rows.length){
+    h += `<tr><td colspan="${12 + B.length}" style="padding:14px">この日に積み付けるオーダーはありません</td></tr>`;
+  }
+  for (const g of d.rows){
+    const o = g.o0;
+    for (let i = 0; i < g.depth; i++){
+      const first = i === 0;
+      h += `<tr class="${first ? "top" : ""}">`;
+      if (first){
+        const rs = g.depth > 1 ? ` rowspan="${g.depth}"` : "";
+        const base = o.base.replace(/^協豊/, "");
+        h += `<td${rs} class="nm">${esc(o.dstName)}</td><td${rs}>${esc(o.dst)}</td><td${rs}>${esc(o.dstK)}</td><td${rs}>${esc(o.uke)}</td>
+              <td${rs}>${esc(o.sup)}</td><td${rs}>${esc(o.supK)}</td><td${rs}>${esc(o.supS)}</td><td${rs}>${g.times}</td><td${rs}>${esc(base)}</td>`;
+      }
+      for (const b of B){
+        const x = (g.cells[b] || [])[i];
+        let cls = ["ord", evenCls(b)];
+        if (!first) cls.push("sub");
+        let txt = "", tip = "";
+        if (x){
+          txt = ordLabel(x);
+          if (x.code0 === "SLIDE") cls.push("o-SLIDE");
+          else if (x.code0 === "STOP") cls.push("o-STOP");
+          else if (x.code0 === "NORMAL" && x.normalStart) cls.push("o-NORMAL1");
+          tip = `オーダー ${txt}\n処理コード：${x.code0 || "（なし）"}\nかんばん受信：${x.recv}\n仕入先発：${x.dep}\nMROS：${x.mros}\n早見表 ${x.rowNo}行目`;
+        }
+        h += `<td class="${cls.filter(Boolean).join(" ")}"${tip ? ` title="${esc(tip)}"` : ""}>${esc(txt)}</td>`;
+      }
+      if (first){
+        const rs = g.depth > 1 ? ` rowspan="${g.depth}"` : "";
+        const rc = c => `<td${rs} class="${c && !relayMap[c] ? "unk" : ""}">${esc(relayName(c))}</td>`;
+        h += rc(o.r1) + rc(o.r2) + rc(o.r3);
+      }
+      h += `</tr>`;
+    }
+  }
+  h += `</tbody></table>`;
+  h += `<div class="comments">＜コメント＞<br>${COMMENTS.map(c => esc(c) || "&nbsp;").join("<br>")}</div>`;
+  h += `</section>`;
+  return h;
+}
+
+/* =========================================================
+   画面の組み立て
+   ========================================================= */
+const $ = id => document.getElementById(id);
+function routes(){ return [...new Set(ORDERS.map(o => o.route).filter(Boolean))].sort(); }
+function daysOf(route){ return [...new Set(ORDERS.filter(o => o.route === route && o.rDate).map(o => o.rDate))].sort(); }
+function binsOf(route){
+  const b = [...new Set(ORDERS.filter(o => o.route === route && o.bin).map(o => o.bin))].sort();
+  return b.length ? b : ["01"];
+}
+
+function setupAfterLoad(){
+  const rs = routes();
+  $("route").innerHTML = rs.map(r => `<option>${esc(r)}</option>`).join("");
+  if (rs.includes("TST2F10")) $("route").value = "TST2F10";
+  onRouteChange();
+  ["settings","andon","viewCtl"].forEach(id => $(id).classList.remove("hidden"));
+}
+function onRouteChange(){
+  const r = $("route").value;
+  $("kyohoBin").value = kyohoMap[r] || "";
+  const ds = daysOf(r);
+  const opt = ds.map(d => `<option value="${d}">${d.slice(0,4)}/${dayLabel(d)}</option>`).join("");
+  $("dFrom").innerHTML = opt; $("dTo").innerHTML = opt;
+  if (ds.length){ $("dFrom").value = ds[0]; $("dTo").value = ds[ds.length-1]; }
+  // 初期表示は「今日」以降で最も近い日
+  const today = (() => { const d = new Date(), p = n => String(n).padStart(2,"0"); return `${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}`; })();
+  STATE.day = ds.find(d => d >= today) || ds[ds.length-1] || null;
+  refresh();
+}
+function visibleDays(){
+  const r = $("route").value, f = $("dFrom").value, t = $("dTo").value;
+  return daysOf(r).filter(d => d >= f && d <= t);
+}
+
+function refresh(){
+  const r = $("route").value;
+  const bins = binsOf(r);
+  const days = visibleDays();
+  if (!days.includes(STATE.day)) STATE.day = days[0] || null;
+  renderAndon(r);
+  // 日付タブ（便別件数で山谷＝平準化の状況を見える化）
+  $("tabs").innerHTML = days.map(d => {
+    const n = ORDERS.filter(o => o.route === r && o.rDate === d && o.code0 !== "CUT").length;
+    return `<button data-d="${d}" class="${d === STATE.day ? "on" : ""} ${dow(d) === 6 ? "sat" : ""}">${dayLabel(d)}<span class="n">${n}オーダー</span></button>`;
+  }).join("");
+  [...$("tabs").children].forEach(b => b.onclick = () => { STATE.day = b.dataset.d; refresh(); });
+  // 表（印刷用に表示期間すべてを作り、画面では選択日だけ見せる）
+  const kb = $("kyohoBin").value;
+  let html = "";
+  for (const d of days){
+    const data = buildDay(r, d, bins);
+    html += renderSheet(data, kb);
+    if (d === STATE.day) $("binsum").textContent = "便別オーダー数： " + data.head.map(x => `${x.bin}便 ${x.n}`).join(" ／ ") + `　（計 ${data.count}）`;
+  }
+  $("sheets").innerHTML = html || `<div class="card">表示する日付がありません</div>`;
+  showOnly(STATE.day);
+}
+function showOnly(day){
+  for (const s of document.querySelectorAll(".sheet")) s.classList.toggle("hidden", day !== null && s.dataset.day !== day);
+}
+
+/* ---------- アンドン（異常・注意の知らせ） ---------- */
+function renderAndon(r){
+  const items = [];
+  const all = ORDERS.filter(o => o.route === r);
+  // 便に割り当てられていないオーダー（ルート空欄）＝積み付け表に載らない → 赤
+  const noRoute = ORDERS.filter(o => !o.route);
+  if (noRoute.length){
+    items.push(`<div class="item ng"><b>【要確認】便（仕入先発ルート）が空欄のオーダーが ${noRoute.length} 件あります。</b>積み付け表には載りません。
+      <ul>${noRoute.slice(0,20).map(o => `<li>${esc(o.dstName)} ${esc(o.dst)}-${esc(o.dstK)}-${esc(o.uke)} 仕入先${esc(o.sup)}　オーダー ${ordLabel(o)}（早見表 ${o.rowNo}行目）</li>`).join("")}${noRoute.length > 20 ? "<li>…</li>" : ""}</ul></div>`);
+  }
+  // 名称未登録の中継地コード → 黄
+  const unk = [...new Set(all.flatMap(o => [o.r1,o.r2,o.r3]).filter(c => c && !relayMap[c]))];
+  if (unk.length) items.push(`<div class="item warn"><b>中継地の名称が未登録です：</b>${unk.map(esc).join("、")}　→ 上の「中継地コード → 名称」で登録してください（表では赤字でコード表示）</div>`);
+  const stop = all.filter(o => o.code0 === "STOP").length, slide = all.filter(o => o.code0 === "SLIDE").length, cut = all.filter(o => o.code0 === "CUT").length;
+  if (stop) items.push(`<div class="item warn">納入停止(STOP)のオーダー：${stop} 件（灰色・取消線で表示）</div>`);
+  if (slide) items.push(`<div class="item warn">スライド中(SLIDE)のオーダー：${slide} 件（黄色で表示）</div>`);
+  if (cut) items.push(`<div class="item info">CUT のオーダー ${cut} 件は、ルールどおり積み付け表に記載していません。</div>`);
+  if (!noRoute.length && !unk.length) items.unshift(`<div class="item ok">読込みOK：${esc(r)} のオーダー ${all.length} 件（${daysOf(r).length} 日分）</div>`);
+  $("andon").innerHTML = items.join("");
+}
+
+/* ---------- ファイル読込み ---------- */
+async function handleFile(f){
+  try{
+    $("srcName").textContent = "読込み中… " + f.name;
+    const buf = await f.arrayBuffer();
+    let rows;
+    if (/\.csv$/i.test(f.name)){
+      let t = new TextDecoder("utf-8").decode(buf);
+      if (t.includes("�")) t = new TextDecoder("shift_jis").decode(buf);
+      rows = readCsv(t);
+    } else rows = await readXlsx(buf);
+    ORDERS = parseOrders(rows);
+    if (!ORDERS.length) throw new Error("オーダーが1件も見つかりません");
+    FILE_NAME = f.name;
+    $("srcName").textContent = "読込みファイル： " + f.name;
+    renderRelayTbl();
+    setupAfterLoad();
+  }catch(e){
+    $("srcName").textContent = "読込みエラー";
+    $("andon").classList.remove("hidden");
+    $("andon").innerHTML = `<div class="item ng"><b>読み込めませんでした。</b><br>${esc(e.message).replace(/\n/g,"<br>")}</div>`;
+  }
+}
+function renderRelayTbl(){
+  const codes = new Set(Object.keys(relayMap));
+  ORDERS.forEach(o => [o.r1,o.r2,o.r3].forEach(c => c && codes.add(c)));
+  $("relayTbl").querySelector("tbody").innerHTML = [...codes].sort().map(c =>
+    `<tr><td>${esc(c)}</td><td><input data-c="${esc(c)}" value="${esc(relayMap[c] || "")}" placeholder="名称を入力"></td></tr>`).join("");
+  $("relayTbl").querySelectorAll("input").forEach(i => i.onchange = () => {
+    const v = i.value.trim(); if (v) relayMap[i.dataset.c] = v; else delete relayMap[i.dataset.c];
+    save("relay", relayMap); refresh();
+  });
+}
+
+/* ---------- イベント ---------- */
+const drop = $("drop");
+drop.onclick = () => $("file").click();
+$("file").onchange = e => e.target.files[0] && handleFile(e.target.files[0]);
+drop.ondragover = e => { e.preventDefault(); drop.classList.add("over"); };
+drop.ondragleave = () => drop.classList.remove("over");
+drop.ondrop = e => { e.preventDefault(); drop.classList.remove("over"); e.dataTransfer.files[0] && handleFile(e.dataTransfer.files[0]); };
+$("route").onchange = onRouteChange;
+$("dFrom").onchange = $("dTo").onchange = refresh;
+$("kyohoBin").onchange = () => { kyohoMap[$("route").value] = $("kyohoBin").value; save("kyoho", kyohoMap); refresh(); };
+$("corp1").onchange = $("corp2").onchange = refresh;
+/* ---------- 印刷：1日分をA4横1枚に自動で収める ---------- */
+const PAGE_W = 730, PAGE_H = 1050;   // A4縦（余白8mm）の印刷可能範囲(px)の目安
+const MAX_ROW_H = 60;                   // 1行の高さの上限(px)。手書き消込用に用紙いっぱいまで広げる
+let printAll = false;
+function fitForPrint(){
+  if (printAll) showOnly(null);
+  document.body.classList.add("printing");
+  for (const s of document.querySelectorAll(".sheet")){
+    if (s.classList.contains("hidden")) continue;
+    s.style.zoom = 1;
+    const trs = [...s.querySelectorAll("table.tt tbody tr")];
+    trs.forEach(tr => tr.style.height = "");
+    const z = Math.min(1, PAGE_W / s.scrollWidth);              // 横幅を用紙に合わせる
+    const bodyH = trs.reduce((a, tr) => a + tr.offsetHeight, 0);
+    const other = s.scrollHeight - bodyH;                        // 見出し・コメントなどの高さ
+    const per = Math.min(MAX_ROW_H, Math.floor((PAGE_H / z - other) / Math.max(1, trs.length)) - 1);
+    if (trs.length && per > trs[0].offsetHeight){
+      let h = per;
+      trs.forEach(tr => tr.style.height = h + "px");
+      // 実際の高さを測って、用紙の残りを行に配り直す（2回まで微調整）
+      for (let k = 0; k < 2; k++){
+        const rest = PAGE_H / z - s.scrollHeight;
+        const add = Math.floor(rest / trs.length);
+        if (add === 0) break;
+        h = Math.min(MAX_ROW_H, h + add);
+        trs.forEach(tr => tr.style.height = h + "px");
+      }
+    }
+    const z2 = Math.min(z, PAGE_H / s.scrollHeight);             // はみ出す日は縮小して1枚に収める
+    s.style.zoom = z2.toFixed(3);
+  }
+}
+function unfitAfterPrint(){
+  document.body.classList.remove("printing");
+  for (const s of document.querySelectorAll(".sheet")){ s.style.zoom = ""; s.querySelectorAll("table.tt tbody tr").forEach(tr => tr.style.height = ""); }
+  printAll = false;
+  showOnly(STATE.day);
+}
+window.addEventListener("beforeprint", fitForPrint);   // Ctrl+P で印刷しても同じ体裁になる
+window.addEventListener("afterprint", unfitAfterPrint);
+$("btnPrintDay").onclick = () => { printAll = false; window.print(); };
+$("btnPrintAll").onclick = () => { printAll = true; window.print(); };
+</script>
+</body>
+</html>

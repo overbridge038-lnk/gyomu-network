@@ -9,7 +9,7 @@
      「新しい版があります」と表示されます
    ========================================================= */
 
-var SITE_VER = '2026-11-17';
+var SITE_VER = '2026-11-17b';
 
 /* GitHub Pages の場所（各ツールのリポジトリはここの下にある） */
 var BASE = 'https://overbridge038-lnk.github.io/';
@@ -33,7 +33,7 @@ var MAP_WALLS = [];
 var AREAS = [
   { id: 'office', icon: '🏢', name: '事務所',
     names: { id: 'Kantor', tl: 'Opisina', en: 'Office' },
-    x: 40, y: 50, w: 280, h: 130, tools: ['uriage'] },
+    x: 40, y: 50, w: 280, h: 130, tools: ['uriage', 'kanri-sheet', 'shukka-more-auto'] },
 
   { id: 'ukeire', icon: '📥', name: '受入・素材',
     names: { id: 'Penerimaan', tl: 'Receiving', en: 'Receiving' },
@@ -62,7 +62,7 @@ var AREAS = [
   { id: 'shukka', icon: '🚚', name: '出荷場',
     names: { id: 'Pengiriman', tl: 'Shipping', en: 'Shipping' },
     x: 850, y: 210, w: 120, h: 320,
-    tools: ['point', 'gohin', 'gohin-fts', 'sekisai', 'zaiko-count', 'shukka-more', 'hayami', 'sango', 'furidashi'] }
+    tools: ['point', 'gohin', 'gohin-fts', 'sekisai', 'zaiko-count', 'shukka-more', 'hayami', 'sango', 'furidashi', 'tsumitsuke', 'shogo-matome', 'rinkan-yama'] }
 ];
 
 /* ---------------------------------------------------------
@@ -125,19 +125,19 @@ var TOOLS = [
 
   { id: 'shukka-more', icon: '🚚', name: '出荷漏れチェック',
     desc: '受注と出荷実績を照合して漏れを見つける',
-    file: 'tools/shukka-more-check.html', ver: '2026-11-11' },
+    file: 'tools/shukka-more-check.html', ver: '2026-11-17' },
 
-  { id: 'hayami', icon: '📊', name: '早見表',
+  { id: 'hayami', icon: '📊', name: '早見表（eかんばん・EDI受注数の統合）',
     desc: 'eかんばん・EDIの受注数をひとつに',
-    file: 'tools/hayamihyo.html', ver: '2026-11-11' },
+    file: 'tools/hayamihyo.html', ver: '2026-10-29' },
 
   { id: 'sekisai', icon: '🚛', name: '積載効率プランナー',
     desc: '便別の積載を算出してExcel出力',
     file: 'tools/sekisai-planner.html', ver: '2026-11-11' },
 
   { id: 'sango', icon: '🏭', name: '三五在庫管理',
-    desc: '内示・受注から振出しと素材発注を算出',
-    file: 'tools/sango-zaiko.html', ver: '2026-11-04' },
+    desc: '在庫管理表・内示PDF・受注CSVから在庫と素材発注を算出',
+    file: 'tools/sango-zaiko.html', ver: '2026-11-03.2' },
 
   { id: 'furidashi', icon: '🧾', name: '購入かんばん振出しチェック',
     desc: '振出し表と読取データを照合',
@@ -163,5 +163,25 @@ var TOOLS = [
 
   { id: 'naiji', icon: '📅', name: '出荷内示原紙',
     desc: '出荷データから月度表を作る',
-    file: 'tools/shukka-naiji.html', ver: '2026-10-14' }
+    file: 'tools/shukka-naiji.html', ver: '2026-10-14' },
+
+  { id: 'tsumitsuke', icon: '🧱', name: '積み付け表 作成ツール',
+    desc: 'タイムライン早見表から便ごとの積み付け表を作って印刷',
+    file: 'tools/tsumitsuke.html', ver: '2026-11-17' },
+
+  { id: 'shogo-matome', icon: '🧮', name: '照合結果まとめ',
+    desc: '誤品照合・ハンディの照合ファイルをまとめて未処置NGを見つける',
+    file: 'tools/shogo-matome.html', ver: '2026-11-17' },
+
+  { id: 'shukka-more-auto', icon: '⏰', name: '出荷漏れ自動照合',
+    desc: '受注データと照合記録を決めた時刻に自動で照合して残す',
+    file: 'tools/shukka-more-auto.html', ver: '2026-11-06' },
+
+  { id: 'rinkan-yama', icon: '📚', name: '臨かん かんばん山積み',
+    desc: '臨かんだけを品番・日付ごとにかんばん枚数で山積みしてExcel出力',
+    file: 'tools/rinkan-yamazumi.html', ver: '2026-11-17' },
+
+  { id: 'kanri-sheet', icon: '🗒️', name: '管理シート作成ツール（協豊・FTS広田・三五）',
+    desc: '内示から週ごとの管理シートと塗装管理表を作る',
+    file: 'tools/kanri-sheet.html', ver: '2026-11-17' }
 ];
