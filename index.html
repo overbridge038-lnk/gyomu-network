@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>出荷業務ツール集</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#070b14">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<script src="tools.js"></script>
+<style>
+  :root{
+    --bg:#070b14; --bg2:#0c1324; --glass:rgba(255,255,255,.045); --glass2:rgba(255,255,255,.08);
+    --edge:rgba(255,255,255,.10); --ink:#e8eefc; --sub:#8b98b8; --mute:#5a6684;
+    --cyan:#22d3ee; --violet:#a78bfa; --pink:#f472b6; --lime:#a3e635; --amber:#fbbf24; --red:#fb7185;
+    --grad:linear-gradient(135deg,#22d3ee 0%,#818cf8 55%,#c084fc 100%);
+    --mono:ui-monospace,"SF Mono","Cascadia Mono",Consolas,monospace;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;min-height:100%}
+  body{
+    font-family:"Inter","Noto Sans JP","Hiragino Sans","Yu Gothic UI",Meiryo,system-ui,sans-serif;
+    color:var(--ink);background:var(--bg);line-break:strict;word-break:auto-phrase;overflow-wrap:anywhere;
+    background-image:
+      radial-gradient(900px 500px at 10% -10%,rgba(34,211,238,.16),transparent 60%),
+      radial-gradient(800px 500px at 100% 0%,rgba(192,132,252,.16),transparent 60%),
+      radial-gradient(700px 400px at 50% 120%,rgba(129,140,248,.12),transparent 60%);
+    background-attachment:fixed;
+  }
+  body::before{ /* 方眼 */
+    content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+    background-image:linear-gradient(rgba(255,255,255,.035) 1px,transparent 1px),
+                     linear-gradient(90deg,rgba(255,255,255,.035) 1px,transparent 1px);
+    background-size:32px 32px;
+    mask-image:radial-gradient(ellipse at 50% 30%,#000 40%,transparent 85%);
+  }
+  .wrap{position:relative;z-index:1;max-width:1180px;margin:0 auto;padding:0 18px}
+
+  /* ---------- ヘッダー ---------- */
+  header{position:sticky;top:0;z-index:20;backdrop-filter:blur(16px) saturate(140%);
+         -webkit-backdrop-filter:blur(16px) saturate(140%);
+         background:rgba(7,11,20,.72);border-bottom:1px solid var(--edge)}
+  .hd{display:flex;align-items:center;gap:14px;padding:14px 0;flex-wrap:wrap}
+  .logo{width:40px;height:40px;border-radius:12px;background:var(--grad);display:grid;place-items:center;
+        font-weight:800;color:#0b1020;font-size:18px;box-shadow:0 0 24px rgba(129,140,248,.45)}
+  .ttl h1{margin:0;font-size:20px;font-weight:800;letter-spacing:.02em}
+  .ttl .en{font-family:var(--mono);font-size:11px;color:var(--sub);letter-spacing:.18em;text-transform:uppercase}
+  .chip{font-family:var(--mono);font-size:12px;padding:4px 10px;border-radius:99px;border:1px solid var(--edge);
+        background:var(--glass);color:var(--sub);white-space:nowrap}
+  .net{display:flex;align-items:center;gap:8px}
+  .dot{width:8px;height:8px;border-radius:50%;background:var(--mute);position:relative}
+  .dot.on{background:var(--lime);box-shadow:0 0 10px var(--lime)}
+  .dot.on::after{content:"";position:absolute;inset:-4px;border-radius:50%;border:1px solid var(--lime);
+                 animation:ping 1.8s ease-out infinite}
+  .dot.off{background:var(--red);box-shadow:0 0 10px var(--red)}
+  @keyframes ping{from{transform:scale(.6);opacity:1}to{transform:scale(1.8);opacity:0}}
+  .sp{flex:1}
+  .seg{display:flex;padding:3px;border-radius:12px;background:var(--glass);border:1px solid var(--edge)}
+  .seg button{border:0;background:transparent;color:var(--sub);padding:8px 12px;border-radius:9px;
+              font:inherit;font-size:13px;cursor:pointer;white-space:nowrap}
+  .seg button.sel{background:var(--glass2);color:var(--ink);box-shadow:inset 0 0 0 1px rgba(255,255,255,.12)}
+  .seg.view button.sel{background:var(--grad);color:#0b1020;font-weight:700;box-shadow:none}
+
+  /* ---------- あんどん（新しい版） ---------- */
+  #andon{display:none;align-items:center;gap:14px;flex-wrap:wrap;margin:0 0 14px;padding:12px 16px;
+         border-radius:14px;border:1px solid rgba(251,191,36,.45);
+         background:linear-gradient(90deg,rgba(251,191,36,.18),rgba(251,191,36,.06));
+         box-shadow:0 0 30px rgba(251,191,36,.18);font-weight:700;color:#fde68a}
+  #andon.show{display:flex}
+  #andon .ic{width:10px;height:10px;border-radius:50%;background:var(--amber);box-shadow:0 0 12px var(--amber);
+             animation:blink 1s steps(2) infinite}
+  @keyframes blink{50%{opacity:.25}}
+  #andon button{margin-left:auto;border:0;border-radius:10px;padding:10px 20px;font:inherit;font-weight:800;
+                background:var(--amber);color:#1a1300;cursor:pointer}
+
+  main{padding:18px 0 8px}
+
+  /* ---------- マップ ---------- */
+  .mapbox{position:relative;border-radius:22px;border:1px solid var(--edge);overflow:hidden;
+          background:linear-gradient(180deg,rgba(12,19,36,.85),rgba(7,11,20,.85));
+          box-shadow:0 20px 60px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.05)}
+  .maphead{display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--edge);flex-wrap:wrap}
+  .maphead b{font-size:14px}
+  .maphead .k{font-family:var(--mono);font-size:11px;color:var(--sub);letter-spacing:.14em}
+  .legend{display:flex;gap:16px;margin-left:auto;font-size:12px;color:var(--sub);flex-wrap:wrap}
+  .legend i{display:inline-block;width:26px;height:0;vertical-align:middle;margin-right:6px;border-top:2px solid var(--cyan)}
+  .legend i.info{border-top:2px dashed var(--violet)}
+  svg.map{display:block;width:100%;height:auto;touch-action:manipulation}
+  .link{fill:none;stroke-width:2.2}
+  .link.mono{stroke:var(--cyan);opacity:.85}
+  .link.info{stroke:var(--violet);stroke-dasharray:6 8;opacity:.8;animation:flow 1.4s linear infinite}
+  @keyframes flow{to{stroke-dashoffset:-28}}
+  .lbl{font-size:12px;fill:#c4b5fd;font-weight:600}
+  .lblbg{fill:rgba(7,11,20,.85);stroke:rgba(167,139,250,.35)}
+  .pulse{fill:#67e8f9;filter:url(#glow)}
+  .wl{fill:none}
+  .wl.wall{stroke:rgba(148,163,209,.35);stroke-width:1.6;fill:rgba(148,163,209,.03)}
+  .wl.pass{stroke:rgba(148,163,209,.45);stroke-width:5;stroke-dasharray:2 5}
+  .wl.line{stroke:rgba(34,211,238,.28);stroke-width:2;stroke-dasharray:1 4;stroke-linecap:round}
+  .wl.equip{stroke:rgba(148,163,209,.25);stroke-width:1;fill:rgba(148,163,209,.05)}
+  .node{cursor:pointer}
+  .node .wm{font-weight:900;fill:rgba(167,180,255,.07);letter-spacing:.06em;pointer-events:none}
+  .node .box{fill:rgba(129,140,248,.06);stroke:url(#edge);stroke-width:1.4;transition:all .2s}
+  .node:hover .box,.node.sel .box{fill:rgba(129,140,248,.14);stroke-width:2.4;filter:url(#glow)}
+  .node .nm{font-size:16px;font-weight:800;fill:var(--ink)}
+  .node .ja{font-size:12px;fill:var(--sub)}
+  .node .cnt{font-family:var(--mono);font-size:11px;fill:#a5f3fc}
+  .node .cntbg{fill:rgba(34,211,238,.10);stroke:rgba(34,211,238,.35)}
+  .node.empty .box{stroke-dasharray:5 6;stroke:rgba(255,255,255,.22)}
+  .node.empty .cnt{fill:var(--mute)}
+  .node .nb{fill:var(--pink);filter:url(#glow)}
+
+  /* ---------- エリアのパネル ---------- */
+  #scrim{position:fixed;inset:0;background:rgba(0,0,0,.45);opacity:0;pointer-events:none;transition:.25s;z-index:30}
+  #scrim.show{opacity:1;pointer-events:auto}
+  #panel{position:fixed;z-index:31;background:rgba(12,19,36,.92);backdrop-filter:blur(20px);
+         -webkit-backdrop-filter:blur(20px);border:1px solid var(--edge);transition:transform .3s cubic-bezier(.2,.8,.2,1);
+         display:flex;flex-direction:column}
+  @media (min-width:900px){
+    #panel{top:0;right:0;bottom:0;width:400px;transform:translateX(105%);border-radius:22px 0 0 22px}
+  }
+  @media (max-width:899px){
+    #panel{left:0;right:0;bottom:0;max-height:78vh;transform:translateY(105%);border-radius:22px 22px 0 0}
+  }
+  #panel.show{transform:none}
+  .ph{display:flex;align-items:center;gap:12px;padding:18px 18px 12px}
+  .ph .ic{width:46px;height:46px;border-radius:14px;display:grid;place-items:center;font-size:24px;
+          background:var(--glass2);border:1px solid var(--edge)}
+  .ph h3{margin:0;font-size:20px}
+  .ph .s{font-size:12px;color:var(--sub)}
+  .ph .x{margin-left:auto;width:40px;height:40px;border-radius:12px;border:1px solid var(--edge);
+         background:var(--glass);color:var(--ink);font-size:20px;cursor:pointer}
+  .pb{padding:4px 18px 22px;overflow:auto;display:flex;flex-direction:column;gap:10px;min-height:0}
+  .pb a.card{flex-shrink:0}
+  .flowrow{display:flex;gap:6px;flex-wrap:wrap;padding:0 18px 8px}
+  .flowrow .chip{font-size:11px}
+
+  /* ---------- ツールカード ---------- */
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
+  a.card{position:relative;display:flex;gap:14px;align-items:flex-start;padding:16px;border-radius:18px;
+         text-decoration:none;color:inherit;background:var(--glass);border:1px solid var(--edge);
+         transition:transform .15s,border-color .2s,background .2s;overflow:hidden}
+  a.card::before{content:"";position:absolute;inset:0;border-radius:inherit;padding:1px;background:var(--grad);
+         -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+         -webkit-mask-composite:xor;mask-composite:exclude;opacity:0;transition:opacity .2s}
+  a.card:hover{background:var(--glass2)}
+  a.card:hover::before{opacity:1}
+  a.card:active{transform:scale(.98)}
+  .cic{width:44px;height:44px;flex-shrink:0;border-radius:13px;display:grid;place-items:center;font-size:22px;
+       background:linear-gradient(135deg,rgba(34,211,238,.16),rgba(192,132,252,.16));border:1px solid var(--edge)}
+  .cnm{font-size:16px;font-weight:700;text-wrap:balance}
+  .csub{font-size:12px;color:var(--sub);margin-top:2px;text-wrap:balance}
+  .cds{font-size:12.5px;color:var(--sub);margin-top:4px;text-wrap:pretty}
+  .cmeta{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}
+  .tag{font-family:var(--mono);font-size:11px;padding:3px 8px;border-radius:99px;border:1px solid var(--edge);color:var(--sub)}
+  .tag.ok{color:#bef264;border-color:rgba(163,230,53,.35);background:rgba(163,230,53,.08)}
+  .tag.ng{color:#fdba74;border-color:rgba(251,146,60,.35);background:rgba(251,146,60,.08)}
+  .badge{position:absolute;top:10px;right:10px;font-family:var(--mono);font-size:11px;font-weight:700;
+         padding:3px 9px;border-radius:99px;color:#fff;background:linear-gradient(90deg,#f472b6,#a78bfa);
+         box-shadow:0 0 14px rgba(244,114,182,.5)}
+  .empty-msg{padding:22px;border-radius:16px;border:1px dashed rgba(255,255,255,.18);color:var(--sub);
+             text-align:center;font-size:14px}
+
+  /* ---------- 一覧 ---------- */
+  .sec{margin:6px 0 22px}
+  .sec h2{display:flex;align-items:center;gap:10px;font-size:15px;margin:0 2px 12px}
+  .sec h2 .bar{width:4px;height:18px;border-radius:2px;background:var(--grad)}
+  .sec h2 .k{font-family:var(--mono);font-size:11px;color:var(--mute);letter-spacing:.14em;font-weight:500}
+
+  /* ---------- フッター ---------- */
+  .foot{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin:18px 0 30px;padding:14px 16px;
+        border-radius:16px;border:1px solid var(--edge);background:var(--glass)}
+  .meter{flex:1;min-width:160px;height:6px;border-radius:99px;background:rgba(255,255,255,.08);overflow:hidden}
+  .meter div{height:100%;background:var(--grad);border-radius:99px;transition:width .4s}
+  .foot .t{font-family:var(--mono);font-size:12px;color:var(--sub)}
+  .btn{border:1px solid var(--edge);background:var(--glass2);color:var(--ink);padding:9px 16px;border-radius:11px;
+       font:inherit;font-size:13px;cursor:pointer}
+  .btn:hover{border-color:rgba(129,140,248,.6)}
+
+  /* ---------- 長押しで移動・コピー ---------- */
+  a.card{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
+  a.card.press{animation:press .5s linear forwards}
+  @keyframes press{to{transform:scale(.96);box-shadow:0 0 0 2px rgba(34,211,238,.7),0 0 26px rgba(34,211,238,.45)}}
+  #sheetBg{position:fixed;inset:0;z-index:40;background:rgba(0,0,0,.55);display:none;align-items:center;justify-content:center;padding:16px}
+  #sheetBg.show{display:flex}
+  #sheet{width:min(560px,100%);max-height:88vh;overflow:auto;border-radius:22px;border:1px solid var(--edge);
+         background:rgba(12,19,36,.96);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+         box-shadow:0 30px 80px rgba(0,0,0,.6);padding:18px}
+  .sh-h{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+  .sh-h .cic{width:48px;height:48px;font-size:24px}
+  .sh-h b{font-size:18px}
+  .sh-h .s{font-size:12px;color:var(--sub)}
+  .sh-seg{display:flex;padding:4px;border-radius:14px;background:var(--glass);border:1px solid var(--edge);margin-bottom:12px}
+  .sh-seg button{flex:1;border:0;background:transparent;color:var(--sub);padding:12px;border-radius:10px;font:inherit;font-size:15px;font-weight:700;cursor:pointer}
+  .sh-seg button.sel{background:var(--grad);color:#0b1020}
+  .sh-note{font-size:12.5px;color:var(--sub);margin:0 2px 10px}
+  .sh-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+  .sh-grid button{display:flex;align-items:center;gap:10px;padding:14px;border-radius:14px;border:1px solid var(--edge);
+         background:var(--glass);color:var(--ink);font:inherit;font-size:15px;font-weight:700;cursor:pointer;text-align:left}
+  .sh-grid button:hover{border-color:rgba(129,140,248,.6);background:var(--glass2)}
+  .sh-grid button:disabled{opacity:.4;cursor:default}
+  .sh-grid button small{display:block;font-size:11px;font-weight:500;color:var(--sub)}
+  .sh-grid .ai{font-size:22px}
+  .sh-foot{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}
+  .sh-foot .rm{border-color:rgba(251,113,133,.45);color:#fda4af}
+  .sh-foot .sp{flex:1}
+  #custom{display:none;align-items:center;gap:12px;flex-wrap:wrap;margin:0 0 14px;padding:12px 16px;border-radius:14px;
+          border:1px solid rgba(34,211,238,.4);background:linear-gradient(90deg,rgba(34,211,238,.14),rgba(34,211,238,.04));color:#a5f3fc;font-size:14px}
+  #custom.show{display:flex}
+  #custom .sp{flex:1}
+  #toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%) translateY(30px);opacity:0;z-index:50;
+         padding:12px 18px;border-radius:14px;background:rgba(12,19,36,.96);border:1px solid rgba(34,211,238,.45);
+         color:var(--ink);font-size:14px;box-shadow:0 10px 40px rgba(0,0,0,.5);transition:.25s;pointer-events:none}
+  #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+  @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap hd">
+    <div class="logo">出</div>
+    <div class="ttl"><h1 id="title"></h1><div class="en">Shipping Ops Hub</div></div>
+    <span class="chip" id="siteVer"></span>
+    <span class="chip net"><span class="dot" id="netDot"></span><span id="netTxt"></span></span>
+    <span class="sp"></span>
+    <div class="seg view" id="views"></div>
+    <div class="seg" id="langs"></div>
+  </div>
+</header>
+
+<div class="wrap">
+  <main>
+    <div id="andon"><span class="ic"></span><span id="andonTxt"></span><button id="andonBtn"></button></div>
+    <div id="custom"></div>
+    <div id="view"></div>
+  </main>
+  <div class="foot">
+    <span class="t" id="offline"></span>
+    <div class="meter"><div id="meter" style="width:0"></div></div>
+    <button class="btn" id="checkBtn"></button>
+  </div>
+</div>
+
+<div id="scrim"></div>
+<aside id="panel" aria-hidden="true"></aside>
+<div id="sheetBg"><div id="sheet" role="dialog"></div></div>
+<div id="toast"></div>
+
+<script>
+/* ================= 表示ことば（4言語） ================= */
+var T = {
+  ja:{verChk:'ver確認', lpHint:'ツールを長押しで移動・コピー', move:'移動', copy:'コピー', removeHere:'この工程から外す', placed:'配置済み', cancel:'やめる', here:'今の工程', moveNote:'移す先の工程を選んでください', copyNote:'ツールを置く工程を選んでください（元の工程にも残ります）', addNote:'置く工程を選んでください', movedT:'へ移動しました', copiedT:'にも置きました', removedT:'から外しました', customNote:'この端末だけ並びを変えています。全タブレットに広げるときは書き出して GitHub へ。', exportBtn:'tools.js を書き出す', resetBtn:'標準に戻す', exportedT:'tools.js を書き出しました', resetT:'標準の並びに戻しました', title:'出荷業務ツール集', map:'マップ', list:'一覧', mapTtl:'物と情報の流れ図', mapSub:'エリアを押すとツールが開きます',
+      mono:'物の流れ', info:'情報の流れ', tools:'ツール', none:'準備中',
+      emptyArea:'このエリアのツールは準備中です', other:'その他',
+      on:'オンライン', off:'オフライン', newVer:'新しい版があります', update:'更新する',
+      updBadge:'更新', saved:'保存済み', unsaved:'未保存', ready:'オフライン準備',
+      check:'最新か確認', checking:'確認中…', latest:'最新です', needNet:'Wi-Fiにつないでから確認してください',
+      from:'← ', to:'→ '},
+  id:{verChk:'Cek versi', lpHint:'Tekan lama alat untuk pindah/salin', move:'Pindah', copy:'Salin', removeHere:'Hapus dari area ini', placed:'Sudah ada', cancel:'Batal', here:'Area ini', moveNote:'Pilih area tujuan', copyNote:'Pilih area tambahan (tetap ada di area asal)', addNote:'Pilih area', movedT:' — dipindah', copiedT:' — disalin', removedT:' — dihapus', customNote:'Susunan hanya diubah di perangkat ini.', exportBtn:'Ekspor tools.js', resetBtn:'Kembali ke standar', exportedT:'tools.js diekspor', resetT:'Kembali ke standar', title:'Kumpulan Alat Pengiriman', map:'Peta', list:'Daftar', mapTtl:'Aliran Barang & Informasi', mapSub:'Tekan area untuk membuka alat',
+      mono:'Aliran barang', info:'Aliran informasi', tools:'alat', none:'Segera',
+      emptyArea:'Alat untuk area ini sedang disiapkan', other:'Lainnya',
+      on:'Online', off:'Offline', newVer:'Ada versi baru', update:'Perbarui',
+      updBadge:'Baru', saved:'Tersimpan', unsaved:'Belum tersimpan', ready:'Siap offline',
+      check:'Cek versi terbaru', checking:'Mengecek…', latest:'Sudah terbaru', needNet:'Sambungkan Wi-Fi dulu',
+      from:'← ', to:'→ '},
+  tl:{verChk:'Tsek bersyon', lpHint:'Pindutin nang matagal para ilipat/kopyahin', move:'Ilipat', copy:'Kopyahin', removeHere:'Alisin sa area na ito', placed:'Nandito na', cancel:'Kanselahin', here:'Area na ito', moveNote:'Piliin ang lilipatang area', copyNote:'Piliin ang dagdag na area (mananatili sa dati)', addNote:'Piliin ang area', movedT:' — nailipat', copiedT:' — nakopya', removedT:' — naalis', customNote:'Sa device na ito lang binago ang ayos.', exportBtn:'I-export ang tools.js', resetBtn:'Ibalik sa standard', exportedT:'Na-export ang tools.js', resetT:'Naibalik sa standard', title:'Mga Tool sa Pagpapadala', map:'Mapa', list:'Listahan', mapTtl:'Daloy ng Piyesa at Impormasyon', mapSub:'Pindutin ang area para buksan ang tool',
+      mono:'Daloy ng piyesa', info:'Daloy ng impormasyon', tools:'tool', none:'Darating',
+      emptyArea:'Inihahanda pa ang tool para sa area na ito', other:'Iba pa',
+      on:'Online', off:'Offline', newVer:'May bagong bersyon', update:'I-update',
+      updBadge:'Bago', saved:'Naka-save', unsaved:'Hindi naka-save', ready:'Handa offline',
+      check:'Tingnan kung bago', checking:'Tinitingnan…', latest:'Pinakabago na', needNet:'Kumonekta muna sa Wi-Fi',
+      from:'← ', to:'→ '},
+  en:{verChk:'Version check', lpHint:'Long-press a tool to move or copy', move:'Move', copy:'Copy', removeHere:'Remove from this area', placed:'Already here', cancel:'Cancel', here:'This area', moveNote:'Choose the area to move to', copyNote:'Choose another area (it stays in the original too)', addNote:'Choose an area', movedT:' — moved', copiedT:' — copied', removedT:' — removed', customNote:'Layout changed on this device only.', exportBtn:'Export tools.js', resetBtn:'Reset to standard', exportedT:'tools.js exported', resetT:'Reset to standard', title:'Shipping Tools', map:'Map', list:'List', mapTtl:'Material & Information Flow', mapSub:'Tap an area to open its tools',
+      mono:'Material flow', info:'Information flow', tools:'tools', none:'Soon',
+      emptyArea:'Tools for this area are coming soon', other:'Other',
+      on:'Online', off:'Offline', newVer:'A new version is available', update:'Update',
+      updBadge:'New', saved:'Saved', unsaved:'Not saved', ready:'Offline ready',
+      check:'Check for update', checking:'Checking…', latest:'Up to date', needNet:'Connect to Wi-Fi first',
+      from:'← ', to:'→ '}
+};
+var LANGS = [['ja','日本語'],['id','ID'],['tl','TL'],['en','EN']];
+
+/* ================= 端末ごとの記録 ================= */
+function load(k,d){ try{ var v=localStorage.getItem(k); return v?JSON.parse(v):d; }catch(e){ return d; } }
+function save(k,v){ try{ localStorage.setItem(k,JSON.stringify(v)); }catch(e){} }
+
+var lang = load('lang','ja'), view = load('view','map');
+/* 標準の並び（tools.js）を控えておき、この端末で変えた並びを上にかぶせる */
+var STD = {}; AREAS.forEach(function(a){ STD[a.id] = (a.tools||[]).slice(); });
+var layout = load('layoutOverride', null);
+if(layout){ AREAS.forEach(function(a){ if(layout[a.id]) a.tools = layout[a.id].filter(function(id){ return TOOLS.some(function(t){ return t.id===id; }); }); }); }
+var seen = load('seenVer', null);
+if(!seen){ seen={}; TOOLS.forEach(function(t){ seen[t.id]=t.ver; }); save('seenVer',seen); }
+var savedSet = {}, swReg = null, newSiteVer = '', openArea = null;
+
+var TOOL = {}; TOOLS.forEach(function(t){ TOOL[t.id]=t; });
+var AREA = {}; AREAS.forEach(function(a){ AREA[a.id]=a; });
+
+function md(v){ var p=v.split('-'); return (+p[1])+'/'+(+p[2]); }
+function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+function nm(o){ return (lang!=='ja' && o.names && o.names[lang]) ? o.names[lang] : o.name; }
+/* 別リポジトリのツールは、Wi-Fiにつながったときにツール本体の画面から ver を読み取る */
+var liveVer = load('liveVer', {}), verCheckedAt = load('verCheckedAt', 0);
+function curVer(t){ return liveVer[t.id] || t.ver; }
+function isNew(t){ var v=curVer(t), o=seen[t.id]; return !o || (v!==o && v>o); }
+function areaTools(a){ return (a.tools||[]).map(function(id){ return TOOL[id]; }).filter(Boolean); }
+
+/* ================= ツールカード ================= */
+function card(x, areaId){
+  var t=T[lang], other = nm(x)!==x.name;
+  var st = savedSet[x.id]===undefined ? '' :
+    '<span class="tag '+(savedSet[x.id]?'ok">● '+t.saved:'ng">○ '+t.unsaved)+'</span>';
+  return '<a class="card" href="'+esc(x.file)+'" data-id="'+x.id+'" data-area="'+(areaId||'')+'" draggable="false">'+
+    (isNew(x)?'<span class="badge">'+t.updBadge+' '+md(curVer(x))+'</span>':'')+
+    '<div class="cic">'+(x.icon||'🛠️')+'</div><div>'+
+    '<div class="cnm">'+esc(nm(x))+'</div>'+
+    (other?'<div class="csub">'+esc(x.name)+'</div>':'<div class="cds">'+esc(x.desc)+'</div>')+
+    '<div class="cmeta"><span class="tag">v'+curVer(x)+'</span>'+st+'</div></div></a>';
+}
+
+/* ================= 工場マップ（連関図） ================= */
+function tw(str,fs){ var w=0; for(var i=0;i<str.length;i++) w+= /[\u3000-\u9fff\uff00-\uffef]/.test(str[i])?fs:fs*0.62; return w; }
+function nameSvg(a, other){ // 幅に入らない名前は2行に分ける（1〜2文字だけ送らない）
+  var n=nm(a), avail=a.w-52, out='', y=30;
+  if(tw(n,16)>avail){
+    var cut=(a.br && lang==='ja')?a.br:(n.indexOf(' ')>0?n.indexOf(' '):Math.ceil(n.length/2));
+    out+='<text class="nm" x="42" y="30">'+esc(n.slice(0,cut).trim())+'</text>'+
+         '<text class="nm" x="42" y="49">'+esc(n.slice(cut).trim())+'</text>'; y=49;
+  } else out+='<text class="nm" x="42" y="30">'+esc(n)+'</text>';
+  if(other) out+='<text class="ja" x="42" y="'+(y+17)+'">'+esc(a.name)+'</text>';
+  return out;
+}
+function center(a){ return {x:a.x+a.w/2, y:a.y+a.h/2}; }
+function edge(a,p,pad){ // 四角の中心から p に向かう線が、四角のふちと交わる点
+  var c=center(a), dx=p.x-c.x, dy=p.y-c.y;
+  var s=Math.min(dx?(a.w/2+pad)/Math.abs(dx):1e9, dy?(a.h/2+pad)/Math.abs(dy):1e9);
+  return {x:c.x+dx*s, y:c.y+dy*s};
+}
+function renderMap(){
+  var t=T[lang], s='';
+  s+='<svg class="map" viewBox="'+(typeof MAP_VIEW!=='undefined'?MAP_VIEW:'0 0 1000 600')+'" xmlns="http://www.w3.org/2000/svg"><defs>'+
+     '<linearGradient id="edge" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#22d3ee"/><stop offset=".55" stop-color="#818cf8"/><stop offset="1" stop-color="#c084fc"/></linearGradient>'+
+     '<filter id="glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>'+
+     '<marker id="am" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#22d3ee"/></marker>'+
+     '<marker id="ai" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#a78bfa"/></marker>'+
+     '<pattern id="g" width="25" height="25" patternUnits="userSpaceOnUse"><path d="M25 0H0V25" fill="none" stroke="rgba(255,255,255,.05)"/></pattern>'+
+     '</defs><rect width="1000" height="600" fill="url(#g)"/>';
+  if(typeof MAP_WALLS!=='undefined') MAP_WALLS.forEach(function(w){ s+='<path class="wl '+w.type+'" d="'+w.d+'"/>'; });
+  if(MAP_IMAGE) s+='<image href="'+esc(MAP_IMAGE)+'" x="0" y="0" width="1000" height="600" preserveAspectRatio="xMidYMid meet" opacity=".4"/>';
+
+  // つながりの線
+  var labels='';
+  LINKS.forEach(function(L,i){
+    var A=AREA[L.from], B=AREA[L.to]; if(!A||!B) return;
+    var ca=center(A), cb=center(B), info=L.type==='info', d;
+    var mx=(ca.x+cb.x)/2, my=(ca.y+cb.y)/2, dx=cb.x-ca.x, dy=cb.y-ca.y, len=Math.sqrt(dx*dx+dy*dy)||1;
+    var k=(L.bend!=null?L.bend:(info?0.4:0))*len*0.5, cx=mx-dy/len*k, cy=my+dx/len*k;
+    var p0=edge(A,{x:cx,y:cy},6), p1=edge(B,{x:cx,y:cy},10);
+    if(Math.hypot(p1.x-p0.x,p1.y-p0.y)<40){ // となり合うエリアは、矢印が見えるよう内側から出す
+      p0=edge(A,{x:cx,y:cy},-34); p1=edge(B,{x:cx,y:cy},6);
+      if(!info){ cx=(p0.x+p1.x)/2; cy=(p0.y+p1.y)/2; }
+      d=''; L._short=true;
+    }
+    d='M'+p0.x.toFixed(1)+','+p0.y.toFixed(1)+' Q'+cx.toFixed(1)+','+cy.toFixed(1)+' '+p1.x.toFixed(1)+','+p1.y.toFixed(1);
+    s+='<path id="lk'+i+'" class="link '+(info?'info':'mono')+'" d="'+d+'" marker-end="url(#'+(info?'ai':'am')+')"/>';
+    if(!info) s+='<circle r="4" class="pulse"><animateMotion dur="2.6s" repeatCount="indefinite" begin="'+(i*0.4)+'s"><mpath href="#lk'+i+'"/></animateMotion></circle>';
+    if(L.label){
+      var lx=.25*p0.x+.5*cx+.25*p1.x, ly=.25*p0.y+.5*cy+.25*p1.y-(L._short?20:0), w=tw(L.label,12)+20;
+      labels+='<g><rect class="lblbg" x="'+(lx-w/2)+'" y="'+(ly-11)+'" width="'+w+'" height="22" rx="11"/>'+
+              '<text class="lbl" x="'+lx+'" y="'+(ly+4)+'" text-anchor="middle">'+esc(L.label)+'</text></g>';
+    }
+  });
+
+  // エリアのボタン
+  AREAS.forEach(function(a){
+    var list=areaTools(a), n=list.length, upd=list.some(isNew), other=nm(a)!==a.name;
+    s+='<g class="node'+(n?'':' empty')+(openArea===a.id?' sel':'')+'" data-a="'+a.id+'" transform="translate('+a.x+','+a.y+')" role="button" tabindex="0">'+
+       '<rect class="box" width="'+a.w+'" height="'+a.h+'" rx="14"/>';
+    if(a.w>200 && a.h>150){ // 大きいエリアは中央に大きく名前を透かす
+      var fs=Math.min(a.w/(tw(nm(a),1)+1), a.h/3, 64);
+      s+='<text class="wm" x="'+a.w/2+'" y="'+(a.h/2+fs/3)+'" text-anchor="middle" font-size="'+fs.toFixed(0)+'">'+esc(nm(a))+'</text>';
+    }
+    s+='<text x="12" y="31" font-size="20">'+a.icon+'</text>'+
+       nameSvg(a, other);
+    var cl=n+' '+t.tools, cw=tw(cl,11)+18, cy2=a.h-28, cx2=a.w-cw-12;
+    s+='<rect class="cntbg" x="'+cx2+'" y="'+cy2+'" width="'+cw+'" height="20" rx="10"/>'+
+       '<text class="cnt" x="'+(cx2+8)+'" y="'+(cy2+14)+'">'+esc(cl)+'</text>';
+    if(upd) s+='<circle class="nb" cx="'+(a.w-14)+'" cy="14" r="6"/>';
+    s+='</g>';
+  });
+  s+=labels+'</svg>';
+
+  return '<div class="mapbox"><div class="maphead"><span class="k">FLOW MAP</span><b>'+t.mapTtl+'</b>'+
+    '<span style="font-size:12px;color:var(--sub)">'+t.mapSub+' ・ '+t.lpHint+'</span>'+
+    '<div class="legend"><span><i></i>'+t.mono+'</span><span><i class="info"></i>'+t.info+'</span></div></div>'+s+'</div>';
+}
+
+/* ================= 一覧 ================= */
+function renderList(){
+  var t=T[lang], used={}, h='';
+  AREAS.forEach(function(a){
+    var list=areaTools(a); if(!list.length) return;
+    list.forEach(function(x){ used[x.id]=1; });
+    h+='<section class="sec"><h2><span class="bar"></span>'+a.icon+' '+esc(nm(a))+
+       '<span class="k">'+a.id.toUpperCase()+'</span></h2><div class="grid">'+list.map(function(x){ return card(x,a.id); }).join('')+'</div></section>';
+  });
+  var rest=TOOLS.filter(function(x){ return !used[x.id]; });
+  if(rest.length) h+='<section class="sec"><h2><span class="bar"></span>'+t.other+'</h2><div class="grid">'+rest.map(function(x){ return card(x,''); }).join('')+'</div></section>';
+  return h;
+}
+
+/* ================= エリアのパネル ================= */
+function renderPanel(){
+  var p=document.getElementById('panel'), a=AREA[openArea], t=T[lang];
+  if(!a){ p.classList.remove('show'); document.getElementById('scrim').classList.remove('show'); p.setAttribute('aria-hidden','true'); return; }
+  var list=areaTools(a), other=nm(a)!==a.name;
+  var ins=LINKS.filter(function(L){ return L.to===a.id && AREA[L.from]; }).map(function(L){ return '<span class="chip">'+t.from+esc(nm(AREA[L.from]))+(L.label?' · '+esc(L.label):'')+'</span>'; });
+  var outs=LINKS.filter(function(L){ return L.from===a.id && AREA[L.to]; }).map(function(L){ return '<span class="chip">'+t.to+esc(nm(AREA[L.to]))+(L.label?' · '+esc(L.label):'')+'</span>'; });
+  p.innerHTML='<div class="ph"><div class="ic">'+a.icon+'</div><div><h3>'+esc(nm(a))+'</h3>'+
+    '<div class="s">'+(other?esc(a.name)+' · ':'')+list.length+' '+t.tools+'</div></div>'+
+    '<button class="x" id="closeP" aria-label="close">×</button></div>'+
+    '<div class="flowrow">'+ins.concat(outs).join('')+'</div>'+
+    '<div class="pb">'+(list.length?list.map(function(x){ return card(x,a.id); }).join(''):'<div class="empty-msg">'+t.emptyArea+'</div>')+'</div>';
+  p.classList.add('show'); p.setAttribute('aria-hidden','false');
+  document.getElementById('scrim').classList.add('show');
+}
+function setArea(id){
+  openArea=id||null;
+  try{ history.replaceState(null,'',openArea?'#area='+openArea:location.pathname+location.search); }catch(e){}
+  render();
+}
+
+/* ================= 画面全体 ================= */
+function render(){
+  var t=T[lang];
+  document.title=t.title;
+  document.getElementById('title').textContent=t.title;
+  document.getElementById('siteVer').textContent='ver '+SITE_VER;
+  document.getElementById('checkBtn').textContent=t.check;
+  document.getElementById('andonTxt').textContent=t.newVer+(newSiteVer?'（ver '+newSiteVer+'）':'');
+  document.getElementById('andonBtn').textContent=t.update;
+  document.getElementById('langs').innerHTML=LANGS.map(function(l){
+    return '<button data-l="'+l[0]+'" class="'+(l[0]===lang?'sel':'')+'">'+l[1]+'</button>'; }).join('');
+  document.getElementById('views').innerHTML=['map','list'].map(function(v){
+    return '<button data-v="'+v+'" class="'+(v===view?'sel':'')+'">'+(v==='map'?'◈ ':'☰ ')+t[v]+'</button>'; }).join('');
+  document.getElementById('view').innerHTML = view==='map' ? renderMap() : renderList();
+  renderPanel(); renderNet(); renderOffline(); renderCustom();
+}
+function renderNet(){
+  var on=navigator.onLine;
+  document.getElementById('netDot').className='dot '+(on?'on':'off');
+  document.getElementById('netTxt').textContent=on?T[lang].on:T[lang].off;
+}
+function renderOffline(){
+  var keys=Object.keys(savedSet), n=keys.filter(function(k){ return savedSet[k]; }).length;
+  var vc=verCheckedAt?' ・ '+T[lang].verChk+' '+new Date(verCheckedAt).toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit'}):'';
+  document.getElementById('offline').textContent=(keys.length?T[lang].ready+' '+n+'/'+TOOLS.length:'')+vc;
+  document.getElementById('meter').style.width=keys.length?(n/TOOLS.length*100)+'%':'0';
+}
+
+/* ================= 長押しで移動・コピー ================= */
+var lp = { timer:null, el:null, x:0, y:0, fired:false };
+function lpCancel(){ clearTimeout(lp.timer); if(lp.el) lp.el.classList.remove('press'); lp.el=null; }
+document.addEventListener('pointerdown',function(e){
+  var el=e.target.closest('a.card'); if(!el || (e.pointerType==='mouse' && e.button!==0)) return;
+  lp.fired=false; lp.el=el; lp.x=e.clientX; lp.y=e.clientY; el.classList.add('press');
+  lp.timer=setTimeout(function(){
+    lp.fired=true; el.classList.remove('press');
+    if(navigator.vibrate) try{ navigator.vibrate(30); }catch(_){}
+    openSheet(el.getAttribute('data-id'), el.getAttribute('data-area'));
+  },550);
+});
+document.addEventListener('pointermove',function(e){ if(lp.el && Math.hypot(e.clientX-lp.x,e.clientY-lp.y)>10) lpCancel(); });
+document.addEventListener('pointerup',lpCancel);
+document.addEventListener('pointercancel',lpCancel);
+document.addEventListener('contextmenu',function(e){ // PCは右クリックでも開く
+  var el=e.target.closest('a.card'); if(!el) return;
+  e.preventDefault(); lpCancel(); if(!lp.fired) openSheet(el.getAttribute('data-id'), el.getAttribute('data-area')); lp.fired=false;
+});
+
+var sh = { id:null, from:'', mode:'move' };
+function hasTool(a,id){ return (a.tools||[]).indexOf(id)>=0; }
+function openSheet(id, from){
+  sh.id=id; sh.from=from||''; sh.mode=sh.from?'move':'copy'; renderSheet();
+  document.getElementById('sheetBg').classList.add('show');
+}
+function closeSheet(){ document.getElementById('sheetBg').classList.remove('show'); sh.id=null; }
+function renderSheet(){
+  var t=T[lang], x=TOOL[sh.id]; if(!x) return;
+  var from=AREA[sh.from], h='';
+  h+='<div class="sh-h"><div class="cic">'+(x.icon||'🛠️')+'</div><div><b>'+esc(nm(x))+'</b>'+
+     '<div class="s">'+(from?t.here+'：'+from.icon+' '+esc(nm(from)):'')+'</div></div></div>';
+  if(from) h+='<div class="sh-seg"><button data-mode="move" class="'+(sh.mode==='move'?'sel':'')+'">↗ '+t.move+'</button>'+
+              '<button data-mode="copy" class="'+(sh.mode==='copy'?'sel':'')+'">⧉ '+t.copy+'</button></div>';
+  h+='<div class="sh-note">'+(from?(sh.mode==='move'?t.moveNote:t.copyNote):t.addNote)+'</div><div class="sh-grid">';
+  AREAS.forEach(function(a){
+    var dis=hasTool(a,sh.id);
+    h+='<button data-to="'+a.id+'"'+(dis?' disabled':'')+'><span class="ai">'+a.icon+'</span><span>'+esc(nm(a))+
+       (dis?'<small>'+(a.id===sh.from?t.here:t.placed)+'</small>':'')+'</span></button>';
+  });
+  h+='</div><div class="sh-foot">'+(from?'<button class="btn rm" data-rm="1">'+t.removeHere+'</button>':'')+
+     '<span class="sp"></span><button class="btn" data-close="1">'+t.cancel+'</button></div>';
+  document.getElementById('sheet').innerHTML=h;
+}
+document.getElementById('sheetBg').addEventListener('click',function(e){
+  var t=T[lang], el, x=TOOL[sh.id];
+  if(e.target.id==='sheetBg' || e.target.closest('[data-close]')){ closeSheet(); return; }
+  if((el=e.target.closest('[data-mode]'))){ sh.mode=el.getAttribute('data-mode'); renderSheet(); return; }
+  if(e.target.closest('[data-rm]')){
+    var f=AREA[sh.from]; f.tools=f.tools.filter(function(i){ return i!==sh.id; });
+    saveLayout(); closeSheet(); toast(nm(x)+' ← '+nm(f)+t.removedT); render(); return;
+  }
+  if((el=e.target.closest('[data-to]')) && !el.disabled){
+    var to=AREA[el.getAttribute('data-to')];
+    to.tools=(to.tools||[]).concat([sh.id]);
+    if(sh.from && sh.mode==='move'){ var fr=AREA[sh.from]; fr.tools=fr.tools.filter(function(i){ return i!==sh.id; }); }
+    saveLayout(); closeSheet();
+    toast(nm(x)+' → '+nm(to)+(sh.from && sh.mode==='move'?t.movedT:t.copiedT)); render();
+  }
+});
+
+function saveLayout(){
+  var cur={}, same=true;
+  AREAS.forEach(function(a){ cur[a.id]=(a.tools||[]).slice(); if(cur[a.id].join()!==(STD[a.id]||[]).join()) same=false; });
+  layout = same ? null : cur;
+  try{ if(layout) localStorage.setItem('layoutOverride',JSON.stringify(layout)); else localStorage.removeItem('layoutOverride'); }catch(e){}
+}
+function renderCustom(){
+  var c=document.getElementById('custom'), t=T[lang];
+  if(!layout){ c.classList.remove('show'); return; }
+  c.innerHTML='<span>✎ '+t.customNote+'</span><span class="sp"></span>'+
+    '<button class="btn" id="exportBtn">⤓ '+t.exportBtn+'</button><button class="btn" id="resetBtn">'+t.resetBtn+'</button>';
+  c.classList.add('show');
+}
+document.getElementById('custom').addEventListener('click',function(e){
+  var t=T[lang];
+  if(e.target.closest('#resetBtn')){
+    AREAS.forEach(function(a){ a.tools=(STD[a.id]||[]).slice(); }); saveLayout(); toast(t.resetT); render(); return;
+  }
+  if(e.target.closest('#exportBtn')) exportTools();
+});
+/* 今の並びを tools.js に書き込んで保存（GitHubへ上げると全タブレットの標準になる） */
+function exportTools(){
+  var t=T[lang];
+  fetch('tools.js',{cache:'no-store'}).catch(function(){ return fetch('tools.js'); })
+  .then(function(r){ return r.text(); }).then(function(src){
+    var head=src.indexOf('var AREAS'), tail=src.indexOf('var LINKS');
+    if(head<0||tail<0) return;
+    var block=src.slice(head,tail);
+    AREAS.forEach(function(a){
+      var re=new RegExp("(id:\\s*'"+a.id+"'[\\s\\S]*?tools:\\s*)\\[[^\\]]*\\]");
+      block=block.replace(re,'$1['+a.tools.map(function(i){ return "'"+i+"'"; }).join(', ')+']');
+    });
+    var d=new Date(), today=d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2);
+    src=(src.slice(0,head)+block+src.slice(tail)).replace(/var SITE_VER = '[^']*'/,"var SITE_VER = '"+today+"'");
+    var a=document.createElement('a');
+    a.href=URL.createObjectURL(new Blob([src],{type:'text/javascript'})); a.download='tools.js';
+    document.body.appendChild(a); a.click(); setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); },500);
+    toast(t.exportedT);
+  }).catch(function(){});
+}
+var toastTimer;
+function toast(msg){
+  var el=document.getElementById('toast'); el.textContent=msg; el.classList.add('show');
+  clearTimeout(toastTimer); toastTimer=setTimeout(function(){ el.classList.remove('show'); },2600);
+}
+
+/* ================= 操作 ================= */
+document.addEventListener('click',function(e){
+  var el;
+  if(lp.fired && e.target.closest('a.card')){ e.preventDefault(); lp.fired=false; return; }
+  if((el=e.target.closest('[data-l]'))){ lang=el.getAttribute('data-l'); save('lang',lang); render(); return; }
+  if((el=e.target.closest('[data-v]'))){ view=el.getAttribute('data-v'); save('view',view); render(); return; }
+  if((el=e.target.closest('.node'))){ setArea(el.getAttribute('data-a')); return; }
+  if(e.target.id==='closeP'||e.target.id==='scrim'){ setArea(null); return; }
+  if((el=e.target.closest('a.card'))){ var x=TOOL[el.getAttribute('data-id')]; if(x){ seen[x.id]=curVer(x); save('seenVer',seen); } }
+});
+document.addEventListener('keydown',function(e){
+  if(e.key==='Escape' && openArea) setArea(null);
+  if((e.key==='Enter'||e.key===' ') && e.target.classList && e.target.classList.contains('node')){ e.preventDefault(); setArea(e.target.getAttribute('data-a')); }
+});
+window.addEventListener('online',function(){ renderNet(); if(swReg) swReg.update(); refreshVers(); });
+window.addEventListener('offline',renderNet);
+
+/* ================= 各ツールの ver を読み取る ================= */
+/* 画面の「ver 2026-11-16」「ver.2026.11.16-1」「ver 2026/11/03」などを YYYY-MM-DD(+枝番) にそろえる */
+function normVer(txt){
+  var m=String(txt).match(/ver[\s.:]*(20\d{2})[-.\/](\d{1,2})[-.\/](\d{1,2})([a-z]|-\d+| \d{1,2}:\d{2})?/i);
+  if(!m) return '';
+  return m[1]+'-'+('0'+m[2]).slice(-2)+'-'+('0'+m[3]).slice(-2)+(m[4]||'');
+}
+var verBusy=false;
+function refreshVers(){
+  if(verBusy || !navigator.onLine) return; verBusy=true;
+  var list=TOOLS.filter(function(x){ return /^https?:/.test(x.verUrl||x.file); });
+  Promise.all(list.map(function(x){
+    return fetch(x.verUrl||x.file,{cache:'no-store',headers:{Range:'bytes=0-65535'}})
+      .then(function(r){ if(!r.ok && r.status!==206) throw 0; return r.text(); })
+      .then(function(txt){
+        var v=normVer(txt); if(!v) return;
+        if(!liveVer[x.id] && seen[x.id]===x.ver) seen[x.id]=v;   // はじめて読み取ったときは「更新」にしない
+        liveVer[x.id]=v;
+      }).catch(function(){});
+  })).then(function(){
+    verBusy=false; verCheckedAt=Date.now();
+    save('liveVer',liveVer); save('seenVer',seen); save('verCheckedAt',verCheckedAt); render();
+  });
+}
+
+/* ================= 保存済みチェック ================= */
+function checkSaved(){
+  if(!('caches' in window)) return;
+  Promise.all(TOOLS.map(function(x){
+    var keys=[x.file]; if(/\/$/.test(x.file)) keys.push(x.file+'index.html');
+    return Promise.all(keys.map(function(k){ return caches.match(k,{ignoreSearch:true}).catch(function(){ return null; }); }))
+      .then(function(r){ savedSet[x.id]=r.some(Boolean); });
+  })).then(render);
+}
+
+/* ================= あんどん（新しい版のお知らせ） ================= */
+function showAndon(){
+  fetch('tools.js',{cache:'no-store'}).then(function(r){ return r.text(); }).then(function(s){
+    var m=s.match(/SITE_VER\s*=\s*'([^']+)'/); if(m) newSiteVer=m[1];
+  }).catch(function(){}).then(function(){ render(); document.getElementById('andon').classList.add('show'); });
+}
+document.getElementById('andonBtn').addEventListener('click',function(){
+  if(swReg && swReg.waiting) swReg.waiting.postMessage('SKIP_WAITING'); else location.reload();
+});
+document.getElementById('checkBtn').addEventListener('click',function(){
+  var b=this, t=T[lang];
+  if(!navigator.onLine){ b.textContent=t.needNet; setTimeout(render,2500); return; }
+  if(!swReg){ location.reload(); return; }
+  b.textContent=t.checking; refreshVers();
+  swReg.update().then(function(){
+    setTimeout(function(){ if(!(swReg.waiting||swReg.installing)){ b.textContent=t.latest; setTimeout(render,2000); } },1500);
+  }).catch(function(){ render(); });
+});
+
+/* ================= オフライン保存のしくみ ================= */
+if('serviceWorker' in navigator){
+  var reloading=false;
+  navigator.serviceWorker.addEventListener('controllerchange',function(){ if(reloading) return; reloading=true; location.reload(); });
+  navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).then(function(reg){
+    swReg=reg;
+    if(reg.waiting && navigator.serviceWorker.controller) showAndon();
+    reg.addEventListener('updatefound',function(){
+      var nw=reg.installing;
+      nw.addEventListener('statechange',function(){
+        if(nw.state==='installed'){ if(navigator.serviceWorker.controller) showAndon(); else checkSaved(); }
+      });
+    });
+    setInterval(function(){ if(navigator.onLine) reg.update(); },30*60*1000);
+    navigator.serviceWorker.ready.then(checkSaved);
+    setInterval(refreshVers, 30*60*1000);
+  }).catch(function(){});
+}
+
+/* #area=shukka のように開くと、そのエリアのパネルが最初から開く（タブレットごとの定位置） */
+var h=location.hash.match(/area=([\w-]+)/); if(h && AREA[h[1]]) openArea=h[1];
+render();
+refreshVers();
+</script>
+</body>
+</html>

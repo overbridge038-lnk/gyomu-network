@@ -1,0 +1,167 @@
+/* =========================================================
+   出荷業務ツール集 ― 設定（ここだけ直せばOK）
+   ---------------------------------------------------------
+   ツールを直したら：
+     1. そのツールの ver を今日の日付にする
+     2. SITE_VER も今日の日付にする
+     3. GitHub に push する
+   → タブレットは次にWi-Fiにつながったとき
+     「新しい版があります」と表示されます
+   ========================================================= */
+
+var SITE_VER = '2026-11-17';
+
+/* GitHub Pages の場所（各ツールのリポジトリはここの下にある） */
+var BASE = 'https://overbridge038-lnk.github.io/';
+
+/* 工場マップの画像（使わないときは空欄）
+   ※ 寸法入りの図面はPublicリポジトリに載せないため、
+     ふだんは下の MAP_WALLS（寸法なしの外形線）で描きます */
+var MAP_IMAGE = '';
+
+/* マップの表示範囲（左, 上, 幅, 高さ） */
+var MAP_VIEW = '0 0 1000 600';
+
+/* 建物の外形線（物と情報の流れ図では使わない） */
+var MAP_WALLS = [];
+
+/* ---------------------------------------------------------
+   エリア（物と情報の流れ図のボタン）
+   x, y, w, h : 位置と大きさ（横1000 × 縦600 の方眼で指定）
+   tools      : このエリアで使うツールの id（下の TOOLS と合わせる）
+   --------------------------------------------------------- */
+var AREAS = [
+  { id: 'office', icon: '🏢', name: '事務所',
+    names: { id: 'Kantor', tl: 'Opisina', en: 'Office' },
+    x: 40, y: 50, w: 280, h: 130, tools: ['uriage'] },
+
+  { id: 'ukeire', icon: '📥', name: '受入・素材',
+    names: { id: 'Penerimaan', tl: 'Receiving', en: 'Receiving' },
+    x: 40, y: 400, w: 170, h: 130, tools: [] },
+
+  { id: 'kake', icon: '🪝', name: '掛け',
+    names: { id: 'Gantung', tl: 'Hanging', en: 'Hanging' },
+    x: 250, y: 400, w: 170, h: 130, tools: ['kakeoki', 'seisan'] },
+
+  { id: 'dasshi', icon: '🧼', name: '脱脂工程',
+    names: { id: 'Degreasing', tl: 'Degreasing', en: 'Degreasing' },
+    x: 460, y: 220, w: 170, h: 130, tools: ['dasshi'] },
+
+  { id: 'tosou', icon: '🎨', name: '塗装',
+    names: { id: 'Pengecatan', tl: 'Painting', en: 'Painting' },
+    x: 460, y: 400, w: 170, h: 130, tools: ['zaiko-count'] },
+
+  { id: 'kensa', icon: '🔬', name: '検査',
+    names: { id: 'Inspeksi', tl: 'Inspection', en: 'Inspection' },
+    x: 670, y: 400, w: 150, h: 130, tools: ['point', 'seisan'] },
+
+  { id: 'store', icon: '🗄️', name: 'ストア',
+    names: { id: 'Gudang', tl: 'Store', en: 'Store' },
+    x: 670, y: 210, w: 150, h: 130, tools: [] },
+
+  { id: 'shukka', icon: '🚚', name: '出荷場',
+    names: { id: 'Pengiriman', tl: 'Shipping', en: 'Shipping' },
+    x: 850, y: 210, w: 120, h: 320,
+    tools: ['point', 'gohin', 'gohin-fts', 'sekisai', 'zaiko-count', 'shukka-more', 'hayami', 'sango', 'furidashi'] }
+];
+
+/* ---------------------------------------------------------
+   つながり（物と情報の流れ）
+   type: 'mono'（物の流れ・実線） / 'info'（情報の流れ・点線）
+   bend: 曲がり具合（0でまっすぐ。マイナスで反対側に曲がる）
+   --------------------------------------------------------- */
+var LINKS = [
+  { from: 'ukeire', to: 'kake',   type: 'mono' },
+  { from: 'kake',   to: 'tosou',  type: 'mono' },
+  { from: 'tosou',  to: 'kensa',  type: 'mono' },
+  { from: 'kensa',  to: 'store',  type: 'mono' },
+  { from: 'store',  to: 'shukka', type: 'mono' },
+  { from: 'dasshi', to: 'shukka', type: 'mono', bend: 0.25 },
+  { from: 'office', to: 'shukka', type: 'info', label: '受注・指示', bend: -0.45 },
+  { from: 'office', to: 'ukeire', type: 'info', label: '発注・振出し', bend: 0.5 },
+  { from: 'office', to: 'tosou',  type: 'info', label: '塗装数', bend: 0.2 },
+  { from: 'shukka', to: 'office', type: 'info', label: '出荷実績', bend: 0.55 }
+];
+
+/* ---------------------------------------------------------
+   ツール
+   file  : 開く場所。GitHubの別リポジトリは BASE + 'リポジトリ名/'、
+           このリポジトリの中は 'tools/〇〇.html'
+   verUrl: ver を読み取るページ（file と違うときだけ）
+   ver   : ツールの版（日付）。別リポジトリのツールは、Wi-Fiにつながると
+           ツール本体の画面から ver を自動で読み取って表示する（ここは予備）
+   names : 他言語名（なければ日本語を表示）
+   --------------------------------------------------------- */
+var TOOLS = [
+  { id: 'point', icon: '🔍', name: 'ポイント照合システム',
+    desc: 'かんばんQRとポイント表で誤品チェック',
+    names: { id: 'Cek Titik', tl: 'Point Check', en: 'Point Check' },
+    file: BASE + 'point-shogo/', ver: '2026-11-12' },
+
+  { id: 'shiji-qr', icon: '📋', name: '出荷指示書QR照合',
+    desc: '便ごとの指示書QRとかんばんを照合',
+    names: { id: 'Cek QR Instruksi', tl: 'QR Check ng Instruction', en: 'Shipping Order QR Check' },
+    file: 'tools/shiji-qr.html', ver: '2026-10-22' },
+
+  { id: 'gohin', icon: '✅', name: '誤品照合',
+    desc: 'かんばんと現品の取り違えを防ぐ',
+    names: { id: 'Cek Salah Barang', tl: 'Check ng Maling Piyesa', en: 'Wrong Part Check' },
+    file: BASE + 'gohin/', ver: '2026-11-16' },
+
+  { id: 'kanban-count', icon: '🔢', name: 'かんばんカウンター',
+    desc: '背番号ごとにかんばん枚数を数える',
+    names: { id: 'Hitung Kanban', tl: 'Bilang ng Kanban', en: 'Kanban Counter' },
+    file: 'tools/kanban-counter.html', ver: '2026-11-12' },
+
+  { id: 'zaiko-count', icon: '📦', name: '在庫カウント',
+    desc: 'パレット・ストアの在庫数を入力',
+    names: { id: 'Hitung Stok', tl: 'Bilang ng Stock', en: 'Stock Count' },
+    file: 'tools/zaiko-count.html', ver: '2026-11-05' },
+
+  { id: 'gohin-fts', icon: '🛡️', name: '誤品照合システム（FTS）',
+    desc: 'FTS向けの誤品照合',
+    names: { id: 'Cek Salah Barang (FTS)', tl: 'Wrong Part Check (FTS)', en: 'Wrong Part Check (FTS)' },
+    file: BASE + 'gihin2-FTS/', ver: '2026-11-12' },
+
+  { id: 'shukka-more', icon: '🚚', name: '出荷漏れチェック',
+    desc: '受注と出荷実績を照合して漏れを見つける',
+    file: 'tools/shukka-more-check.html', ver: '2026-11-11' },
+
+  { id: 'hayami', icon: '📊', name: '早見表',
+    desc: 'eかんばん・EDIの受注数をひとつに',
+    file: 'tools/hayamihyo.html', ver: '2026-11-11' },
+
+  { id: 'sekisai', icon: '🚛', name: '積載効率プランナー',
+    desc: '便別の積載を算出してExcel出力',
+    file: 'tools/sekisai-planner.html', ver: '2026-11-11' },
+
+  { id: 'sango', icon: '🏭', name: '三五在庫管理',
+    desc: '内示・受注から振出しと素材発注を算出',
+    file: 'tools/sango-zaiko.html', ver: '2026-11-04' },
+
+  { id: 'furidashi', icon: '🧾', name: '購入かんばん振出しチェック',
+    desc: '振出し表と読取データを照合',
+    file: 'tools/furidashi-check.html', ver: '2026-11-03' },
+
+  { id: 'kakeoki', icon: '🗂️', name: '掛け置き管理ツール',
+    desc: '内示取込・リミット表作成',
+    file: BASE + 'naiji-kanri-tools/', ver: '2026-11-17' },
+
+  { id: 'seisan', icon: '⏱️', name: '生産管理しくみ',
+    desc: '段取り・掛け・検査の進み具合とタイムリミット表',
+    file: BASE + 'seisankanri-kakeoki-/', ver: '2026-11-17c' },
+
+  { id: 'dasshi', icon: '🧪', name: '脱脂内示データ抽出',
+    desc: '内示CSVと脱脂ひな形を照合してExcel出力',
+    file: BASE + 'dasshi-naiji-HONDA-/',
+    verUrl: BASE + 'dasshi-naiji-HONDA-/%E8%84%B1%E8%84%82%E5%86%85%E7%A4%BA%E3%83%87%E3%83%BC%E3%82%BF%E6%8A%BD%E5%87%BA.html',
+    ver: '2026-11-17' },
+
+  { id: 'uriage', icon: '💴', name: '売上・仕入照合',
+    desc: '売上伝票と仕入明細を照合してOK/NG判定',
+    file: 'tools/uriage-shiire.html', ver: '2026-11-11' },
+
+  { id: 'naiji', icon: '📅', name: '出荷内示原紙',
+    desc: '出荷データから月度表を作る',
+    file: 'tools/shukka-naiji.html', ver: '2026-10-14' }
+];
