@@ -1,0 +1,473 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>売上仕入明細照合</title>
+<style>
+:root{
+  --bg:#f4f5f2;--panel:#ffffff;--ink:#1d2321;--muted:#66706b;--line:#d9ddd8;--soft:#eef0ec;
+  --ok:#1f7a4d;--ok-bg:#e3f3ea;--ng:#c0392b;--ng-bg:#fbe7e4;--warn:#9a6a00;--warn-bg:#fdf3d8;
+  --accent:#1e4f7a;--accent-bg:#e6eef6;--drop:#f9faf8;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#141716;--panel:#1d2120;--ink:#e6e9e7;--muted:#9aa39e;--line:#323836;--soft:#252a28;
+  --ok:#5fcf93;--ok-bg:#163525;--ng:#ff7d6e;--ng-bg:#3d1c18;--warn:#f0c14b;--warn-bg:#3a3014;
+  --accent:#8db8e0;--accent-bg:#1c2a38;--drop:#191d1c;}}
+:root[data-theme="dark"]{
+  --bg:#141716;--panel:#1d2120;--ink:#e6e9e7;--muted:#9aa39e;--line:#323836;--soft:#252a28;
+  --ok:#5fcf93;--ok-bg:#163525;--ng:#ff7d6e;--ng-bg:#3d1c18;--warn:#f0c14b;--warn-bg:#3a3014;
+  --accent:#8db8e0;--accent-bg:#1c2a38;--drop:#191d1c;}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Yu Gothic UI","Meiryo","Hiragino Sans",system-ui,sans-serif;font-size:14px;line-height:1.5}
+header{padding:18px 24px 10px;display:flex;align-items:baseline;gap:16px;flex-wrap:wrap}
+h1{font-size:20px;margin:0;letter-spacing:.04em}
+header .sub{color:var(--muted);font-size:13px}
+main{padding:0 24px 40px;max-width:1400px;margin:0 auto}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media (max-width:860px){.grid2{grid-template-columns:1fr}main,header{padding-left:16px;padding-right:16px}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+.card h2{font-size:14px;margin:0 0 8px;display:flex;gap:8px;align-items:center}
+.tag{font-size:11px;padding:1px 8px;border-radius:99px;background:var(--accent-bg);color:var(--accent);font-weight:600}
+.drop{border:2px dashed var(--line);border-radius:8px;background:var(--drop);padding:18px;text-align:center;cursor:pointer;transition:.15s}
+.drop.over{border-color:var(--accent);background:var(--accent-bg)}
+.drop .big{font-size:15px;font-weight:600}
+.drop .fn{margin-top:4px;color:var(--accent);font-weight:600;word-break:break-all}
+.drop small{color:var(--muted)}
+.map{display:grid;grid-template-columns:auto 1fr;gap:6px 10px;margin-top:12px;align-items:center}
+.map label{color:var(--muted);font-size:12.5px;white-space:nowrap}
+select,input[type=number],input[type=search]{font:inherit;padding:5px 8px;border:1px solid var(--line);border-radius:6px;background:var(--panel);color:var(--ink);min-width:0;width:100%}
+.opts{display:flex;flex-wrap:wrap;gap:10px 22px;align-items:center;margin-top:16px}
+.opts label{display:flex;gap:6px;align-items:center}
+.opts input[type=number]{width:80px}
+button{font:inherit;border:1px solid var(--line);background:var(--panel);color:var(--ink);padding:7px 14px;border-radius:7px;cursor:pointer}
+button.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) button.primary{color:#0f1a24}}
+button:disabled{opacity:.45;cursor:default}
+.tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:16px}
+@media (max-width:860px){.tiles{grid-template-columns:repeat(2,1fr)}}
+.tile{border-radius:10px;padding:12px 14px;border:1px solid var(--line);background:var(--panel);cursor:pointer}
+.tile .n{font-size:28px;font-weight:700;line-height:1.1}
+.tile .l{font-size:12.5px;color:var(--muted)}
+.tile.ok .n{color:var(--ok)}.tile.ng .n{color:var(--ng)}.tile.warn .n{color:var(--warn)}
+.tile.sel{outline:2px solid var(--accent)}
+.verdict{margin-top:16px;padding:14px 18px;border-radius:10px;font-size:18px;font-weight:700;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.verdict.ok{background:var(--ok-bg);color:var(--ok)}.verdict.ng{background:var(--ng-bg);color:var(--ng)}.verdict.warn{background:var(--warn-bg);color:var(--warn)}
+.verdict .tot{font-size:13px;font-weight:500;color:var(--ink)}
+.bar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:16px 0 8px}
+.bar input[type=search]{width:240px}
+.tblwrap{overflow:auto;border:1px solid var(--line);border-radius:10px;background:var(--panel);max-height:70vh}
+table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}
+th,td{padding:6px 10px;border-bottom:1px solid var(--line);white-space:nowrap;text-align:right}
+th{position:sticky;top:0;background:var(--soft);font-size:12px;color:var(--muted);font-weight:600;z-index:1}
+td.l,th.l{text-align:left}
+tr.row{cursor:pointer}tr.row:hover td{background:var(--soft)}
+.b{display:inline-block;min-width:54px;text-align:center;padding:1px 8px;border-radius:5px;font-weight:700;font-size:12.5px}
+.b.ok{background:var(--ok-bg);color:var(--ok)}.b.ng{background:var(--ng-bg);color:var(--ng)}.b.warn{background:var(--warn-bg);color:var(--warn)}
+.d{color:var(--ng);font-weight:600}.z{color:var(--muted)}
+td.reason{text-align:left;white-space:normal;min-width:180px}
+tr.detail td{background:var(--soft);text-align:left;white-space:normal}
+.dt{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:860px){.dt{grid-template-columns:1fr}}
+.dt table{background:var(--panel);border:1px solid var(--line);border-radius:6px}
+.dt h4{margin:2px 0 6px;font-size:12.5px}
+.hide{display:none}
+.msg{margin-top:8px;color:var(--muted);font-size:12.5px}
+.err{color:var(--ng)}
+footer{color:var(--muted);font-size:12px;margin-top:18px}
+@media print{header .sub,.card,.bar,footer,.opts{display:none}.tblwrap{max-height:none;overflow:visible}body{background:#fff}}
+</style>
+</head>
+<body>
+<header>
+  <h1>売上・仕入明細 照合<span style="font-size:12px;font-weight:400;margin-left:10px;padding:1px 8px;border:1px solid currentColor;border-radius:4px;opacity:.75;white-space:nowrap">ver 2026-11-17</span></h1>
+  <span class="sub">2つのExcelをドラッグ＆ドロップ → 品番×単価ごとに数量・金額を突き合わせて OK／NG を判定します（オフライン動作）</span>
+</header>
+<main>
+  <div class="grid2">
+    <section class="card" id="sideM">
+      <h2><span class="tag">マスター</span>五和（売上伝票）</h2>
+      <div class="drop" data-side="M"><div class="big">ここにファイルをドロップ</div><small>またはクリックして選択（.xls / .xlsx / .csv）</small><div class="fn"></div></div>
+      <div class="map hide"></div>
+      <div class="msg"></div>
+    </section>
+    <section class="card" id="sideT">
+      <h2><span class="tag">照合先</span>仕入明細 1002700</h2>
+      <div class="drop" data-side="T"><div class="big">ここにファイルをドロップ</div><small>またはクリックして選択（.xls / .xlsx / .csv）</small><div class="fn"></div></div>
+      <div class="map hide"></div>
+      <div class="msg"></div>
+    </section>
+  </div>
+  <input type="file" id="picker" accept=".xls,.xlsx,.xlsm,.csv" class="hide">
+
+  <div class="opts">
+    <label><input type="checkbox" id="optNorm" checked> 品番の全角/半角・ハイフン・空白を無視</label>
+    <label><input type="checkbox" id="optSonota" checked> 品番が「その他」の行は［備考］の品番で照合</label>
+    <label>端数差として扱う金額差 ±<input type="number" id="optTol" value="10" min="0" step="1">円</label>
+    <button class="primary" id="run" disabled>照合する</button>
+  </div>
+
+  <div id="result" class="hide">
+    <div class="verdict" id="verdict"></div>
+    <div class="tiles">
+      <div class="tile" data-f="all"><div class="n" id="cAll">0</div><div class="l">照合した品番×単価</div></div>
+      <div class="tile ok" data-f="OK"><div class="n" id="cOK">0</div><div class="l">OK（完全一致）</div></div>
+      <div class="tile warn" data-f="端数差"><div class="n" id="cW">0</div><div class="l">端数差（数量・単価一致、金額だけ数円差）</div></div>
+      <div class="tile ng" data-f="NG"><div class="n" id="cNG">0</div><div class="l">NG（要確認）</div></div>
+    </div>
+    <div class="bar">
+      <input type="search" id="q" placeholder="品番で絞り込み">
+      <button id="csv">結果をCSV保存</button>
+      <button id="csvNg">NGだけCSV保存</button>
+      <button onclick="print()">印刷</button>
+      <span class="msg" style="margin:0">行をクリックすると元データの明細を表示します</span>
+    </div>
+    <div class="tblwrap"><table id="tbl"><thead><tr>
+      <th class="l">判定</th><th class="l">品番</th><th>単価（五和）</th><th>単価（仕入）</th>
+      <th>数量（五和）</th><th>数量（仕入）</th><th>数量差</th>
+      <th>金額（五和）</th><th>金額（仕入）</th><th>金額差</th><th>行数 五和/仕入</th><th class="l">内容</th>
+    </tr></thead><tbody></tbody></table></div>
+  </div>
+  <footer>データはこのパソコンの中だけで処理され、外部には送信されません。</footer>
+</main>
+
+<script id="core">
+/* ===== Excel読み込み（外部ライブラリなし） ===== */
+const XL = (() => {
+  const td8 = new TextDecoder('utf-8');
+  function unesc(s){return s.replace(/&(#x[0-9a-fA-F]+|#\d+|amp|lt|gt|quot|apos);/g,(m,e)=>e==='amp'?'&':e==='lt'?'<':e==='gt'?'>':e==='quot'?'"':e==='apos'?"'":e[1]==='x'?String.fromCodePoint(parseInt(e.slice(2),16)):String.fromCodePoint(parseInt(e.slice(1),10))).replace(/_x([0-9A-Fa-f]{4})_/g,(m,h)=>String.fromCharCode(parseInt(h,16)));}
+  function attrs(s){const o={};s.replace(/([\w:]+)="([^"]*)"/g,(m,k,v)=>{o[k]=unesc(v);});return o;}
+  async function inflate(u8){
+    const ds=new DecompressionStream('deflate-raw');
+    const buf=await new Response(new Blob([u8]).stream().pipeThrough(ds)).arrayBuffer();
+    return new Uint8Array(buf);
+  }
+  async function unzip(ab){
+    const u8=new Uint8Array(ab),dv=new DataView(ab),files={};
+    let e=-1;for(let i=u8.length-22;i>=Math.max(0,u8.length-70000);i--){if(dv.getUint32(i,true)===0x06054b50){e=i;break;}}
+    if(e<0)throw new Error('ZIP形式として読めません');
+    const n=dv.getUint16(e+10,true);let p=dv.getUint32(e+16,true);
+    for(let k=0;k<n;k++){
+      const method=dv.getUint16(p+10,true),cs=dv.getUint32(p+20,true),nl=dv.getUint16(p+28,true),xl=dv.getUint16(p+30,true),cl=dv.getUint16(p+32,true),lo=dv.getUint32(p+42,true);
+      const name=td8.decode(u8.subarray(p+46,p+46+nl));
+      files[name]={method,cs,lo};p+=46+nl+xl+cl;
+    }
+    return async name=>{
+      const f=files[name];if(!f)return null;
+      const ln=dv.getUint16(f.lo+26,true),le=dv.getUint16(f.lo+28,true),st=f.lo+30+ln+le;
+      const raw=u8.subarray(st,st+f.cs);
+      return td8.decode(f.method===0?raw:await inflate(raw));
+    };
+  }
+  function colIdx(ref){let c=0;for(let i=0;i<ref.length;i++){const ch=ref.charCodeAt(i);if(ch<65)break;c=c*26+(ch-64);}return c-1;}
+  async function readXlsx(ab){
+    const get=await unzip(ab);
+    const wb=await get('xl/workbook.xml');if(!wb)throw new Error('xlsxの中身が見つかりません');
+    const rels=(await get('xl/_rels/workbook.xml.rels'))||'';const rmap={};
+    rels.replace(/<Relationship\b([^>]*)\/?>/g,(m,a)=>{const o=attrs(a);rmap[o.Id]=o.Target;});
+    const sst=[];const ss=await get('xl/sharedStrings.xml');
+    if(ss){const re=/<si>([\s\S]*?)<\/si>|<si\/>/g;let m;while((m=re.exec(ss))){const body=(m[1]||'').replace(/<rPh\b[\s\S]*?<\/rPh>/g,'');let t='';body.replace(/<t\b[^>]*>([\s\S]*?)<\/t>/g,(x,v)=>{t+=v;});sst.push(unesc(t));}}
+    const sheets=[];
+    const sre=/<sheet\b([^>]*)\/?>/g;let m;
+    while((m=sre.exec(wb))){const o=attrs(m[1]);let tg=rmap[o['r:id']]||'';tg=tg.startsWith('/')?tg.slice(1):'xl/'+tg.replace(/^\.\//,'');sheets.push({name:o.name,path:tg});}
+    const out=[];
+    for(const s of sheets){
+      const xml=await get(s.path);if(!xml)continue;
+      const rows=[];const cre=/<c\b([^>]*?)(?:\/>|>([\s\S]*?)<\/c>)/g;let c;
+      while((c=cre.exec(xml))){
+        const a=attrs(c[1]);if(!a.r)continue;const body=c[2]||'';
+        const rr=parseInt(a.r.replace(/^[A-Z]+/,''),10)-1,cc=colIdx(a.r);
+        let v=null;const vm=/<v>([\s\S]*?)<\/v>/.exec(body);
+        if(a.t==='s'){if(vm)v=sst[parseInt(vm[1],10)];}
+        else if(a.t==='inlineStr'){let t='';body.replace(/<t\b[^>]*>([\s\S]*?)<\/t>/g,(x,y)=>{t+=y;});v=unesc(t);}
+        else if(a.t==='str'||a.t==='e'){if(vm)v=unesc(vm[1]);}
+        else if(a.t==='b'){if(vm)v=vm[1]==='1';}
+        else if(vm){v=Number(vm[1]);}
+        if(v===null||v===undefined||v==='')continue;
+        (rows[rr]||(rows[rr]=[]))[cc]=v;
+      }
+      out.push({name:s.name,rows:densify(rows)});
+    }
+    return out;
+  }
+  function densify(rows){const r=[];for(let i=0;i<rows.length;i++){const x=rows[i]||[];const y=new Array(x.length);for(let j=0;j<x.length;j++)y[j]=x[j]===undefined?null:x[j];r.push(y);}return r;}
+
+  /* ---- .xls (BIFF8 / OLE) ---- */
+  function cfbStream(ab,names){
+    const dv=new DataView(ab),u8=new Uint8Array(ab);
+    if(dv.getUint32(0,true)!==0xE011CFD0)throw new Error('xls形式として読めません');
+    const ssz=1<<dv.getUint16(0x1E,true),msz=1<<dv.getUint16(0x20,true);
+    const nFat=dv.getUint32(0x2C,true),dirStart=dv.getUint32(0x30,true),cutoff=dv.getUint32(0x38,true),mfStart=dv.getUint32(0x3C,true),difStart=dv.getUint32(0x44,true);
+    const off=id=>(id+1)*ssz;
+    const fatSecs=[];for(let i=0;i<109&&fatSecs.length<nFat;i++){const v=dv.getUint32(0x4C+i*4,true);if(v<0xFFFFFFFA)fatSecs.push(v);}
+    let d=difStart,guard=0;while(d<0xFFFFFFFA&&fatSecs.length<nFat&&guard++<100000){const per=ssz/4-1;for(let i=0;i<per&&fatSecs.length<nFat;i++){const v=dv.getUint32(off(d)+i*4,true);if(v<0xFFFFFFFA)fatSecs.push(v);}d=dv.getUint32(off(d)+per*4,true);}
+    const fat=new Uint32Array(fatSecs.length*ssz/4);let k=0;for(const s of fatSecs){for(let i=0;i<ssz/4;i++)fat[k++]=dv.getUint32(off(s)+i*4,true);}
+    const chain=(start,table)=>{const r=[];let s=start,g=0;while(s<0xFFFFFFFA&&g++<10000000){r.push(s);s=table[s];}return r;};
+    const readBig=(start,size)=>{const ch=chain(start,fat);const o=new Uint8Array(ch.length*ssz);ch.forEach((s,i)=>o.set(u8.subarray(off(s),off(s)+ssz),i*ssz));return size==null?o:o.subarray(0,size);};
+    const dir=readBig(dirStart);const ddv=new DataView(dir.buffer,dir.byteOffset,dir.byteLength);
+    const ents=[];for(let p=0;p+128<=dir.length;p+=128){const nl=ddv.getUint16(p+0x40,true);let name='';for(let i=0;i<Math.max(0,nl-2);i+=2)name+=String.fromCharCode(ddv.getUint16(p+i,true));ents.push({name,type:dir[p+0x42],start:ddv.getUint32(p+0x74,true),size:ddv.getUint32(p+0x78,true)});}
+    const e=ents.find(x=>names.includes(x.name)&&x.type===2);if(!e)throw new Error('xlsのブックが見つかりません');
+    if(e.size>=cutoff)return readBig(e.start,e.size);
+    const root=ents[0];const mini=readBig(root.start,root.size);
+    const mfb=readBig(mfStart);const mdv=new DataView(mfb.buffer,mfb.byteOffset,mfb.byteLength);const mfat=new Uint32Array(mfb.length/4);for(let i=0;i<mfat.length;i++)mfat[i]=mdv.getUint32(i*4,true);
+    const ch=chain(e.start,mfat);const o=new Uint8Array(ch.length*msz);ch.forEach((s,i)=>o.set(mini.subarray(s*msz,s*msz+msz),i*msz));return o.subarray(0,e.size);
+  }
+  const latin=new TextDecoder('latin1');
+  function readXls(ab){
+    const st=cfbStream(ab,['Workbook','Book']);const dv=new DataView(st.buffer,st.byteOffset,st.byteLength);
+    const recs=[];// [type,offset,len]
+    for(let p=0;p+4<=st.length;){const t=dv.getUint16(p,true),l=dv.getUint16(p+2,true);recs.push([t,p+4,l]);p+=4+l;}
+    const sheets=[],sst=[];let i=0;
+    // globals
+    for(;i<recs.length;i++){
+      const [t,o,l]=recs[i];
+      if(t===0x0085){const pos=dv.getUint32(o,true),type=st[o+5],cch=st[o+6],fl=st[o+7];let name;if(fl&1){name='';for(let j=0;j<cch;j++)name+=String.fromCharCode(dv.getUint16(o+8+j*2,true));}else name=latin.decode(st.subarray(o+8,o+8+cch));sheets.push({name,pos,type});}
+      else if(t===0x00FC){const segs=[[o,l]];let j=i+1;while(j<recs.length&&recs[j][0]===0x003C){segs.push([recs[j][1],recs[j][2]]);j++;}parseSST(st,dv,segs,sst);i=j-1;}
+      else if(t===0x000A)break;
+    }
+    const byPos=new Map();recs.forEach((r,ix)=>byPos.set(r[1]-4,ix));
+    const out=[];
+    for(const sh of sheets){
+      if(sh.type!==0)continue;let ix=byPos.get(sh.pos);if(ix==null)continue;
+      const rows=[];const put=(r,c,v)=>{(rows[r]||(rows[r]=[]))[c]=v;};let pendF=null;
+      for(ix=ix+1;ix<recs.length;ix++){
+        const [t,o,l]=recs[ix];if(t===0x000A)break;
+        const r=dv.getUint16(o,true),c=dv.getUint16(o+2,true);
+        switch(t){
+          case 0x00FD:put(r,c,sst[dv.getUint32(o+6,true)]);break;
+          case 0x0203:put(r,c,dv.getFloat64(o+6,true));break;
+          case 0x027E:put(r,c,rk(dv.getUint32(o+6,true)));break;
+          case 0x00BD:{const n=(l-6)/6;for(let j=0;j<n;j++)put(r,c+j,rk(dv.getUint32(o+4+j*6+2,true)));break;}
+          case 0x0204:case 0x00D6:put(r,c,xlStr(st,dv,o+6,true));break;
+          case 0x0006:{if(dv.getUint16(o+12,true)===0xFFFF){const ty=st[o+6];if(ty===0)pendF=[r,c];else if(ty===1)put(r,c,!!st[o+8]);}else put(r,c,dv.getFloat64(o+6,true));break;}
+          case 0x0207:if(pendF){put(pendF[0],pendF[1],xlStr(st,dv,o,true));pendF=null;}break;
+          case 0x0205:if(!st[o+7])put(r,c,!!st[o+6]);break;
+        }
+      }
+      out.push({name:sh.name,rows:densify(rows)});
+    }
+    return out;
+  }
+  function rk(v){let n;if(v&2)n=v>>2;else{const b=new DataView(new ArrayBuffer(8));b.setUint32(4,v&0xFFFFFFFC,true);b.setUint32(0,0,true);n=b.getFloat64(0,true);}return v&1?n/100:n;}
+  function xlStr(st,dv,o){const cch=dv.getUint16(o,true),fl=st[o+2];let p=o+3;if(fl&8)p+=2;if(fl&4)p+=4;if(fl&1){let s='';for(let j=0;j<cch;j++)s+=String.fromCharCode(dv.getUint16(p+j*2,true));return s;}return latin.decode(st.subarray(p,p+cch));}
+  function parseSST(st,dv,segs,out){
+    let si=0,p=segs[0][0],end=segs[0][0]+segs[0][1];
+    const next=()=>{si++;if(si>=segs.length)return false;p=segs[si][0];end=p+segs[si][1];return true;};
+    const u8=()=>{while(p>=end){if(!next())throw new Error('SST');}return st[p++];};
+    const u16=()=>u8()|(u8()<<8),u32=()=>(u16()+u16()*65536);
+    const skip=n=>{while(n>0){while(p>=end)if(!next())return;const k=Math.min(n,end-p);p+=k;n-=k;}};
+    u32();const uniq=u32();
+    for(let s=0;s<uniq;s++){
+      if(si>=segs.length)break;
+      let cch=u16(),fl=u8(),runs=0,ext=0;if(fl&8)runs=u16();if(fl&4)ext=u32();
+      let hi=fl&1,str='';
+      while(cch>0){
+        if(p>=end){if(!next())break;hi=st[p++]&1;}
+        const avail=hi?Math.floor((end-p)/2):end-p,k=Math.min(cch,avail);
+        if(hi){for(let j=0;j<k;j++)str+=String.fromCharCode(dv.getUint16(p+j*2,true));p+=k*2;}
+        else{str+=latin.decode(st.subarray(p,p+k));p+=k;}
+        cch-=k;
+      }
+      skip(runs*4+ext);out.push(str);
+    }
+  }
+  function readCsv(ab){
+    const u8=new Uint8Array(ab);let text;
+    try{text=new TextDecoder('utf-8',{fatal:true}).decode(u8);}catch(e){text=new TextDecoder('shift_jis').decode(u8);}
+    text=text.replace(/^﻿/,'');const rows=[];let row=[],f='',q=false;
+    for(let i=0;i<text.length;i++){const ch=text[i];
+      if(q){if(ch==='"'){if(text[i+1]==='"'){f+='"';i++;}else q=false;}else f+=ch;}
+      else if(ch==='"')q=true;else if(ch===','){row.push(f);f='';}
+      else if(ch==='\n'||ch==='\r'){if(ch==='\r'&&text[i+1]==='\n')i++;row.push(f);rows.push(row);row=[];f='';}
+      else f+=ch;}
+    if(f!==''||row.length){row.push(f);rows.push(row);}
+    return [{name:'CSV',rows:rows.map(r=>r.map(v=>v===''?null:v))}];
+  }
+  async function read(file){
+    const ab=await file.arrayBuffer();const u=new Uint8Array(ab,0,4);
+    if(u[0]===0x50&&u[1]===0x4B)return readXlsx(ab);
+    if(u[0]===0xD0&&u[1]===0xCF)return readXls(ab);
+    return readCsv(ab);
+  }
+  return {read,readXlsx,readXls,readCsv};
+})();
+
+/* ===== 照合ロジック ===== */
+const MATCH = (() => {
+  const num=v=>{if(v==null||v==='')return 0;if(typeof v==='number')return v;const n=Number(String(v).replace(/[,，\s円¥￥]/g,'').normalize('NFKC'));return isFinite(n)?n:0;};
+  const r6=n=>Math.round(n*1e6)/1e6;
+  const fmtKey=v=>{if(v==null)return '';if(typeof v==='number')return String(Math.round(v*1e6)/1e6);return String(v).trim();};
+  function norm(s,on){s=fmtKey(s);if(!on)return s;return s.normalize('NFKC').toUpperCase().replace(/[\s\-‐－−ー―]/g,'');}
+  // side: {rows, hdr, map:{key,alt,qty,price,amt}}
+  function collect(side,opt){
+    const g=new Map();const m=side.map;
+    for(let i=side.hdr+1;i<side.rows.length;i++){
+      const r=side.rows[i];if(!r||r.every(v=>v==null||v===''))continue;
+      let raw=fmtKey(r[m.key]);
+      if(opt.sonota&&m.alt>=0&&raw.replace(/\s/g,'')==='その他'&&fmtKey(r[m.alt]))raw=fmtKey(r[m.alt]);
+      const k=norm(raw,opt.norm);
+      const price=r6(num(r[m.price]));
+      const id=k+'\u0001'+price;
+      let e=g.get(id);if(!e){e={key:k,disp:raw,price,qty:0,amt:0,rows:[]};g.set(id,e);}
+      e.qty=r6(e.qty+num(r[m.qty]));e.amt=r6(e.amt+num(r[m.amt]));e.rows.push(i);
+    }
+    return g;
+  }
+  function run(M,T,opt){
+    const gm=collect(M,opt),gt=collect(T,opt);
+    const keysM=new Map(),keysT=new Map();
+    for(const e of gm.values())(keysM.get(e.key)||keysM.set(e.key,[]).get(e.key)).push(e);
+    for(const e of gt.values())(keysT.get(e.key)||keysT.set(e.key,[]).get(e.key)).push(e);
+    const out=[];const ids=new Set([...gm.keys(),...gt.keys()]);
+    for(const id of ids){
+      const a=gm.get(id),b=gt.get(id);const key=(a||b).key;
+      const res={key,disp:(a||b).disp,priceM:a?a.price:null,priceT:b?b.price:null,qtyM:a?a.qty:0,qtyT:b?b.qty:0,amtM:a?a.amt:0,amtT:b?b.amt:0,rowsM:a?a.rows:[],rowsT:b?b.rows:[]};
+      res.dq=r6(res.qtyM-res.qtyT);res.da=r6(res.amtM-res.amtT);
+      if(!key){res.st='NG';res.why='品番が空欄の行（費用・調整行など）';}
+      else if(a&&b){
+        if(res.dq!==0){res.st='NG';res.why='数量が一致しません';}
+        else if(res.da===0){res.st='OK';res.why='';}
+        else if(Math.abs(res.da)<=opt.tol){res.st='端数差';res.why='数量・単価は一致。金額に端数差（行ごとの円未満処理の違い）';}
+        else{res.st='NG';res.why='金額が一致しません';}
+      }else{
+        const other=a?keysT.get(key):keysM.get(key);
+        res.st='NG';
+        if(other){res.why=(a?'仕入明細':'五和')+'では単価が違います（'+other.map(o=>o.price).join(' / ')+'）';}
+        else res.why=a?'仕入明細にこの品番がありません':'五和にこの品番がありません';
+      }
+      out.push(res);
+    }
+    const ord={NG:0,'端数差':1,OK:2};
+    out.sort((x,y)=>ord[x.st]-ord[y.st]||x.key.localeCompare(y.key)||(x.priceM??x.priceT)-(y.priceM??y.priceT));
+    return out;
+  }
+  return {run,num};
+})();
+</script>
+
+<script>
+/* ===== 画面 ===== */
+const S={M:null,T:null};
+const FIELDS=[['key','品番（照合キー）'],['alt','「その他」時の品番列'],['qty','数量'],['price','単価'],['amt','金額']];
+const GUESS={
+  M:{key:['製品名','品番','品目コード','部品番号'],alt:['備考'],qty:['数量'],price:['売上単価','単価'],amt:['売上金額','金額(税抜)','金額']},
+  T:{key:['品目コード','品番','製品名','部品番号'],alt:[],qty:['数量'],price:['単価','売上単価','仕入単価'],amt:['金額(税抜)','金額','売上金額','仕入金額']}
+};
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+let pickSide=null;
+document.querySelectorAll('.drop').forEach(d=>{
+  const side=d.dataset.side;
+  d.addEventListener('click',()=>{pickSide=side;$('#picker').value='';$('#picker').click();});
+  d.addEventListener('dragover',e=>{e.preventDefault();d.classList.add('over');});
+  d.addEventListener('dragleave',()=>d.classList.remove('over'));
+  d.addEventListener('drop',e=>{e.preventDefault();d.classList.remove('over');const f=e.dataTransfer.files[0];if(f)load(side,f);});
+});
+$('#picker').addEventListener('change',e=>{const f=e.target.files[0];if(f&&pickSide)load(pickSide,f);});
+// ページ全体へのドロップでブラウザがファイルを開かないように
+['dragover','drop'].forEach(ev=>window.addEventListener(ev,e=>{if(!e.target.closest('.drop'))e.preventDefault();}));
+
+function sec(side){return side==='M'?$('#sideM'):$('#sideT');}
+async function load(side,file){
+  const s=sec(side);s.querySelector('.fn').textContent=file.name;s.querySelector('.msg').innerHTML='読み込み中…';
+  try{
+    const books=await XL.read(file);
+    if(!books.length)throw new Error('シートが見つかりません');
+    let si=books.findIndex(b=>/[(（]\s*[2２]\s*[)）]|②/.test(b.name));if(si<0)si=0;
+    S[side]={file:file.name,books,si};
+    setSheet(side,si);
+  }catch(err){S[side]=null;s.querySelector('.msg').innerHTML='<span class="err">読み込めませんでした：'+esc(err.message)+'</span>';s.querySelector('.map').classList.add('hide');}
+  $('#run').disabled=!(S.M&&S.T);
+  if(S.M&&S.T)runMatch();
+}
+function findHdr(rows,side){
+  const words=Object.values(GUESS[side]).flat();let best=0,bs=-1;
+  for(let i=0;i<Math.min(30,rows.length);i++){const r=rows[i]||[];const sc=r.filter(v=>v!=null&&words.includes(String(v).trim())).length;if(sc>bs){bs=sc;best=i;}}
+  return best;
+}
+function setSheet(side,si){
+  const st=S[side];st.si=si;const rows=st.books[si].rows;st.rows=rows;st.hdr=findHdr(rows,side);
+  const hdr=(rows[st.hdr]||[]).map(v=>v==null?'':String(v).trim());st.headers=hdr;
+  const map={};
+  for(const [f] of FIELDS){map[f]=-1;for(const w of GUESS[side][f]){const ix=hdr.indexOf(w);if(ix>=0){map[f]=ix;break;}}}
+  try{const saved=JSON.parse(localStorage.getItem('shogo-map-'+side)||'null');if(saved&&saved.sig===hdr.join('|'))Object.assign(map,saved.map);}catch(e){}
+  st.map=map;renderMap(side);
+}
+function renderMap(side){
+  const st=S[side],s=sec(side),box=s.querySelector('.map');box.classList.remove('hide');
+  const colOpts=sel=>['<option value="-1">（使わない）</option>'].concat(st.headers.map((h,i)=>`<option value="${i}"${i===sel?' selected':''}>${esc(h||('列'+(i+1)))}</option>`)).join('');
+  let h=`<label>シート</label><select data-k="sheet">${st.books.map((b,i)=>`<option value="${i}"${i===st.si?' selected':''}>${esc(b.name)}</option>`).join('')}</select>`;
+  for(const [f,lab] of FIELDS){if(f==='alt'&&side==='T'&&st.map.alt<0)continue;h+=`<label>${lab}</label><select data-k="${f}">${colOpts(st.map[f])}</select>`;}
+  box.innerHTML=h;
+  const dataRows=st.rows.length-st.hdr-1;
+  const miss=['key','qty','price','amt'].filter(f=>st.map[f]<0).map(f=>FIELDS.find(x=>x[0]===f)[1]);
+  s.querySelector('.msg').innerHTML=miss.length?`<span class="err">列を選んでください：${miss.join('、')}</span>`:`${dataRows.toLocaleString()} 行を読み込みました（見出し：${st.hdr+1}行目）`;
+  box.querySelectorAll('select').forEach(el=>el.addEventListener('change',()=>{
+    const k=el.dataset.k;if(k==='sheet'){setSheet(side,+el.value);}else{st.map[k]=+el.value;try{localStorage.setItem('shogo-map-'+side,JSON.stringify({sig:st.headers.join('|'),map:st.map}));}catch(e){}renderMap(side);}
+    if(S.M&&S.T)runMatch();
+  }));
+}
+$('#run').addEventListener('click',runMatch);
+['#optNorm','#optSonota','#optTol'].forEach(id=>$(id).addEventListener('change',()=>{if(S.M&&S.T)runMatch();}));
+
+let RES=[],FILTER='all';
+function ready(st){return st&&['key','qty','price','amt'].every(f=>st.map[f]>=0);}
+function runMatch(){
+  if(!ready(S.M)||!ready(S.T)){$('#result').classList.add('hide');return;}
+  RES=MATCH.run(S.M,S.T,{norm:$('#optNorm').checked,sonota:$('#optSonota').checked,tol:Math.max(0,+$('#optTol').value||0)});
+  const c={OK:0,'端数差':0,NG:0};RES.forEach(r=>c[r.st]++);
+  $('#cAll').textContent=RES.length;$('#cOK').textContent=c.OK;$('#cW').textContent=c['端数差'];$('#cNG').textContent=c.NG;
+  const sum=(k)=>RES.reduce((a,r)=>a+r[k],0);
+  const tq=[sum('qtyM'),sum('qtyT')],ta=[sum('amtM'),sum('amtT')];
+  const v=$('#verdict');v.className='verdict '+(c.NG?'ng':c['端数差']?'warn':'ok');
+  v.innerHTML=(c.NG?`NG　${c.NG} 件の不一致があります`:c['端数差']?'OK（端数差のみ）':'OK　すべて一致しました')+
+    `<span class="tot">合計数量　五和 ${fmt(tq[0])} ／ 仕入 ${fmt(tq[1])}（差 ${fmt(tq[0]-tq[1])}）　合計金額　五和 ${fmt(ta[0])}円 ／ 仕入 ${fmt(ta[1])}円（差 ${fmt(ta[0]-ta[1])}円）</span>`;
+  $('#result').classList.remove('hide');
+  if(FILTER!=='all'&&!c[FILTER])FILTER='all';
+  draw();
+}
+const fmt=n=>n==null?'':(Math.round(n*1e4)/1e4).toLocaleString('ja-JP',{maximumFractionDigits:4});
+const dif=n=>n===0?'<span class="z">0</span>':`<span class="d">${n>0?'+':''}${fmt(n)}</span>`;
+const badge=st=>`<span class="b ${st==='OK'?'ok':st==='NG'?'ng':'warn'}">${st}</span>`;
+document.querySelectorAll('.tile').forEach(t=>t.addEventListener('click',()=>{FILTER=t.dataset.f;draw();}));
+$('#q').addEventListener('input',draw);
+function rowsShown(){const q=$('#q').value.normalize('NFKC').toUpperCase().replace(/[\s\-]/g,'');return RES.filter(r=>(FILTER==='all'||r.st===FILTER)&&(!q||r.key.includes(q)||String(r.disp).toUpperCase().includes(q)));}
+function draw(){
+  document.querySelectorAll('.tile').forEach(t=>t.classList.toggle('sel',t.dataset.f===FILTER));
+  const list=rowsShown();
+  $('#tbl tbody').innerHTML=list.map((r,i)=>`<tr class="row" data-i="${RES.indexOf(r)}"><td class="l">${badge(r.st)}</td><td class="l">${esc(r.disp||'（空欄）')}</td>
+    <td>${fmt(r.priceM)}</td><td>${fmt(r.priceT)}</td><td>${fmt(r.qtyM)}</td><td>${fmt(r.qtyT)}</td><td>${dif(r.dq)}</td>
+    <td>${fmt(r.amtM)}</td><td>${fmt(r.amtT)}</td><td>${dif(r.da)}</td><td>${r.rowsM.length} / ${r.rowsT.length}</td><td class="reason">${esc(r.why)}</td></tr>`).join('')||'<tr><td colspan="12" class="l z">該当なし</td></tr>';
+  document.querySelectorAll('tr.row').forEach(tr=>tr.addEventListener('click',()=>toggle(tr)));
+}
+function toggle(tr){
+  const nx=tr.nextElementSibling;if(nx&&nx.classList.contains('detail')){nx.remove();return;}
+  const r=RES[+tr.dataset.i];const d=document.createElement('tr');d.className='detail';
+  d.innerHTML=`<td colspan="12"><div class="dt">${detail('五和',S.M,r.rowsM)}${detail('仕入明細',S.T,r.rowsT)}</div></td>`;tr.after(d);
+}
+function detail(title,st,rows){
+  if(!rows.length)return `<div><h4>${title}：該当行なし</h4></div>`;
+  const used=new Set(Object.values(st.map));
+  const extra=st.headers.map((h,i)=>i).filter(i=>!used.has(i)&&st.headers[i]).slice(0,3);
+  const cols=[...extra,st.map.qty,st.map.price,st.map.amt];
+  const cell=(v,i)=>{const h=st.headers[i]||'';if(typeof v==='number'&&/日/.test(h)&&v>20000&&v<80000){const dt=new Date(Math.round((v-25569)*864e5));return dt.toISOString().slice(0,10).replace(/-/g,'/');}return typeof v==='number'?fmt(v):esc(v);};
+  return `<div><h4>${title}（${rows.length}行）</h4><table><tr><th>行</th>${cols.map(i=>`<th${extra.includes(i)?' class="l"':''}>${esc(st.headers[i])}</th>`).join('')}</tr>${rows.slice(0,300).map(ri=>`<tr><td>${ri+1}</td>${cols.map(i=>`<td${extra.includes(i)?' class="l"':''}>${cell(st.rows[ri][i],i)}</td>`).join('')}</tr>`).join('')}</table>${rows.length>300?'<div class="msg">先頭300行のみ表示</div>':''}</div>`;
+}
+function csv(onlyNg){
+  const hd=['判定','品番','単価(五和)','単価(仕入)','数量(五和)','数量(仕入)','数量差','金額(五和)','金額(仕入)','金額差','行数(五和)','行数(仕入)','内容'];
+  const q=v=>{v=v==null?'':String(v);return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v;};
+  const lines=[hd.join(',')].concat(RES.filter(r=>!onlyNg||r.st!=='OK').map(r=>[r.st,r.disp,r.priceM,r.priceT,r.qtyM,r.qtyT,r.dq,r.amtM,r.amtT,r.da,r.rowsM.length,r.rowsT.length,r.why].map(q).join(',')));
+  const blob=new Blob(['﻿'+lines.join('\r\n')],{type:'text/csv'});
+  const d=new Date();const ts=`${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}_${String(d.getHours()).padStart(2,'0')}${String(d.getMinutes()).padStart(2,'0')}`;
+  const filename=`照合結果${onlyNg?'_NGと端数差':''}_${ts}.csv`;
+  if(DL){DL.save({filename,data:blob}).catch(e=>{if(e&&e.code!=='declined')alertMsg('CSVを保存できませんでした（'+(e.code||'')+'）');});return;}
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=filename;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},500);
+}
+function alertMsg(t){const m=document.querySelector('.bar .msg');if(m)m.textContent=t;}
+// claude.ai 上で開いたときは保存機能（downloads）を使い、パソコンでファイルとして開いたときは通常のダウンロード
+let DL=null;
+try{if(window.claude&&typeof window.claude.use==='function'){window.claude.use('downloads').then(x=>{DL=x;}).catch(()=>{});}}catch(e){}
+$('#csv').addEventListener('click',()=>csv(false));$('#csvNg').addEventListener('click',()=>csv(true));
+</script>
+</body>
+</html>

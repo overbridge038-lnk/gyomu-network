@@ -1,0 +1,1261 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>積載効率プランナー</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&family=BIZ+UDGothic:wght@700&family=Zen+Kaku+Gothic+New:wght@700;900&display=swap">
+<style>
+/* Layout: 運行管理ボード — 上に状態（アンドン・KPI・便の流れ）、下に便ごとのトラック積付カードを時系列に並べる */
+:root{
+  --bg:#e9edf1; --surface:#ffffff; --surface2:#f4f6f8; --ink:#16202b; --muted:#5a6775; --line:#cdd5dd;
+  --accent:#e8a317; --accent-ink:#2e2100; --cab:#16202b; --cab-ink:#f3f5f7;
+  --ok:#1d8048; --ok-bg:#dff3e7; --ng:#c42b2b; --ng-bg:#fbe1e1; --warn:#a86a00; --warn-bg:#fdf0d2;
+  --p1:#1f6fb2; --p2:#0e8a84; --p3:#5b4fcf; --b1:#d4621c; --b2:#ad3767;
+  --empty:#f0f3f6;
+  --f-display:"Zen Kaku Gothic New","Hiragino Kaku Gothic ProN","Meiryo",sans-serif;
+  --f-body:"BIZ UDPGothic","Meiryo UI","Meiryo","Hiragino Sans",sans-serif;
+  --f-num:"BIZ UDGothic","Consolas","Meiryo",monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f141a; --surface:#18202a; --surface2:#1f2933; --ink:#e5eaf0; --muted:#94a2b1; --line:#2d3946;
+  --accent:#f2b630; --accent-ink:#241900; --cab:#06090d; --cab-ink:#e5eaf0;
+  --ok:#43c07a; --ok-bg:#12301f; --ng:#ff6b6b; --ng-bg:#3a1717; --warn:#f2b630; --warn-bg:#352a0e;
+  --p1:#3b8fd6; --p2:#1fb0a8; --p3:#7d72ea; --b1:#ef7d36; --b2:#d1558a; --empty:#222c37; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f141a; --surface:#18202a; --surface2:#1f2933; --ink:#e5eaf0; --muted:#94a2b1; --line:#2d3946;
+  --accent:#f2b630; --accent-ink:#241900; --cab:#06090d; --cab-ink:#e5eaf0;
+  --ok:#43c07a; --ok-bg:#12301f; --ng:#ff6b6b; --ng-bg:#3a1717; --warn:#f2b630; --warn-bg:#352a0e;
+  --p1:#3b8fd6; --p2:#1fb0a8; --p3:#7d72ea; --b1:#ef7d36; --b2:#d1558a; --empty:#222c37; color-scheme:dark}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.55;margin:0}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--cab)}
+.wrap{max-width:1180px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.num{font-family:var(--f-num);font-variant-numeric:tabular-nums}
+
+/* header */
+.top{background:var(--cab);color:var(--cab-ink);position:sticky;top:env(safe-area-inset-top,0px);z-index:9}
+.top .wrap{display:flex;align-items:center;gap:12px 16px;flex-wrap:wrap;padding-block:10px}
+.brand{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;min-width:0}
+.brand h1{font-family:var(--f-display);font-weight:900;font-size:1.35rem;margin:0;letter-spacing:.02em}
+.ver{font-family:var(--f-num);font-size:.78rem;background:var(--accent);color:var(--accent-ink);padding:2px 8px;border-radius:3px}
+.top .sp{flex:1}
+.top select{background:transparent;border:1px solid #ffffff44;color:var(--cab-ink);border-radius:6px;padding:6px 8px}
+.top select option{color:#111}
+.hazard{height:6px;background:repeating-linear-gradient(-45deg,var(--accent) 0 12px,var(--cab) 12px 24px)}
+
+/* steps */
+.steps{display:flex;gap:6px;flex-wrap:wrap;margin:14px 0 4px;padding:0;list-style:none;counter-reset:s}
+.steps li{counter-increment:s;font-size:.85rem;color:var(--muted);display:flex;align-items:center;gap:6px;background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:4px 12px 4px 4px}
+.steps li::before{content:counter(s);display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;background:var(--ink);color:var(--surface);font-family:var(--f-num);font-size:.78rem}
+.steps li.on{color:var(--ink);border-color:var(--ink)}
+.steps li.done::before{background:var(--ok)}
+
+/* toolbar */
+.bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:12px 0}
+.btn{border:2px solid var(--ink);background:var(--surface);border-radius:8px;padding:10px 16px;font-weight:700;min-height:48px;display:inline-flex;align-items:center;gap:8px}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.ng{background:var(--ng);border-color:var(--ng);color:#fff}
+.btn.ghost{border-color:var(--line);font-weight:400}
+.btn.sm{min-height:40px;padding:6px 12px;font-size:.88rem}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.meta{font-size:.82rem;color:var(--muted)}
+.daysel{display:flex;align-items:center;gap:8px;font-weight:700}
+.daysel{flex-wrap:wrap}
+.daysel .rng{display:inline-flex;align-items:center;gap:6px;flex-wrap:wrap}
+.verline{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.verchip{font-family:var(--f-num);font-size:.78rem;border:1px solid var(--line);background:var(--surface);border-radius:4px;padding:2px 8px;color:var(--ink)}
+.hist{margin:0;padding-left:18px;font-size:.85rem;color:var(--muted)}
+.hist b{color:var(--ink);font-family:var(--f-num)}
+.daysel select{border:2px solid var(--ink);border-radius:8px;padding:8px 10px;background:var(--surface);min-height:48px;font-family:var(--f-num)}
+
+/* andon */
+.andon{display:flex;gap:12px;align-items:center;flex-wrap:wrap;border-radius:10px;padding:14px 16px;font-weight:700;font-size:1.05rem;border:2px solid}
+.andon .lamp{width:18px;height:18px;border-radius:50%;flex:none}
+.andon.ok{background:var(--ok-bg);border-color:var(--ok);color:var(--ok)} .andon.ok .lamp{background:var(--ok);box-shadow:0 0 0 4px var(--ok-bg),0 0 12px var(--ok)}
+.andon.ng{background:var(--ng-bg);border-color:var(--ng);color:var(--ng)} .andon.ng .lamp{background:var(--ng);animation:blink 1s steps(2) infinite}
+.andon.slide{background:#f3ecfa;border-color:#7b3fb5;color:#5a2a8a} .andon.slide .lamp{background:#7b3fb5}
+.andon.warn{background:var(--warn-bg);border-color:var(--warn);color:var(--warn)} .andon.warn .lamp{background:var(--warn)}
+.andon .msg{flex:1;min-width:200px}
+.andon ul{margin:4px 0 0;padding-left:18px;font-weight:400;font-size:.9rem}
+@keyframes blink{50%{opacity:.25}}
+@media (prefers-reduced-motion:reduce){.andon .lamp{animation:none!important}}
+
+.sample{background:var(--warn-bg);color:var(--warn);border:1px dashed var(--warn);border-radius:8px;padding:8px 12px;font-size:.88rem;margin-top:10px}
+
+/* KPI */
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin:14px 0}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px;min-width:0}
+.kpi .l{font-size:.8rem;color:var(--muted);letter-spacing:.04em}
+.kpi .v{font-family:var(--f-num);font-size:1.9rem;line-height:1.15;font-variant-numeric:tabular-nums}
+.kpi .v small{font-size:.9rem;color:var(--muted)}
+.kpi .s{font-size:.8rem;color:var(--muted)}
+.kpi.hero{background:var(--cab);color:var(--cab-ink);border-color:var(--cab)}
+.kpi.hero .l,.kpi.hero .s,.kpi.hero .v small{color:#c3ccd6}
+.kpi.hero .v b{color:var(--accent)}
+.meter{height:8px;border-radius:4px;background:var(--empty);overflow:hidden;margin-top:6px}
+.meter i{display:block;height:100%;background:var(--ok)}
+
+/* flow strip */
+.flow-h{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap;margin-top:6px}
+.flow-h h2,.sec-h{font-family:var(--f-display);font-size:1.05rem;margin:0}
+.flow{display:flex;gap:6px;overflow-x:auto;padding:10px 2px 6px}
+.fchip{flex:1 0 92px;max-width:150px;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:8px;text-align:left;display:flex;flex-direction:column;gap:4px;position:relative}
+.fchip .t{font-weight:700;font-size:.9rem}
+.fchip .d{font-size:.72rem;color:var(--muted);font-family:var(--f-num)}
+.fchip .bars{display:flex;align-items:flex-end;gap:3px;height:46px}
+.fchip .bars i{flex:1;max-width:18px;background:var(--empty);border-radius:3px 3px 0 0;position:relative;overflow:hidden;height:100%}
+.fchip .bars i b{position:absolute;left:0;right:0;bottom:0;background:var(--ok)}
+.fchip .bars i b.lo{background:var(--warn)}
+.fchip .n{font-family:var(--f-num);font-size:.8rem}
+.fchip .dot{position:absolute;top:8px;right:8px;width:10px;height:10px;border-radius:50%}
+.dot.ok{background:var(--ok)}.dot.ng{background:var(--ng)}.dot.pending{background:var(--line)}.dot.abs{background:var(--warn)}
+.fchip.zero{opacity:.6}
+.fchip.day2{border-style:dashed}
+
+/* legend */
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:.82rem;color:var(--muted);margin:8px 0}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.sw{width:14px;height:14px;border-radius:3px;display:inline-block;flex:none;position:relative;overflow:hidden}
+.sw.pull::after,.cell.pull::after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(135deg,rgba(255,255,255,.55) 0 3px,transparent 3px 7px)}
+.sw.carry,.cell.carry{outline:2px dashed var(--ng);outline-offset:-2px}
+
+/* slot cards */
+.slots{display:flex;flex-direction:column;gap:14px;margin:12px 0 40px}
+.slot{background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden;border-left:8px solid var(--line)}
+.slot.st-ok{border-left-color:var(--ok)} .slot.st-ng{border-left-color:var(--ng)} .slot.st-abs{border-left-color:var(--warn)} .slot.st-pending{border-left-color:var(--accent)}
+.slot-h{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;padding:12px 14px;border-bottom:1px solid var(--line);background:var(--surface2)}
+.slot-name{display:flex;align-items:baseline;gap:8px}
+.slot-name b{font-family:var(--f-display);font-size:1.6rem;font-weight:900;line-height:1}
+.slot-name span{font-family:var(--f-num);color:var(--muted);font-size:.85rem}
+.pill{font-size:.8rem;font-weight:700;border-radius:999px;padding:3px 10px;border:1px solid var(--line);background:var(--surface);white-space:nowrap}
+.pill.ok{background:var(--ok-bg);color:var(--ok);border-color:var(--ok)}
+.pill.ng{background:var(--ng-bg);color:var(--ng);border-color:var(--ng)}
+.pill.abs{background:var(--warn-bg);color:var(--warn);border-color:var(--warn)}
+.pill.pending{color:var(--muted)}
+.slot-h .sp{flex:1}
+.slot-b{display:grid;grid-template-columns:minmax(0,auto) minmax(0,1fr);gap:16px;padding:14px}
+@media (max-width:860px){.slot-b{grid-template-columns:minmax(0,1fr)}}
+.notruck{color:var(--muted);font-size:.9rem;padding:10px;border:1px dashed var(--line);border-radius:8px;align-self:start}
+
+/* truck */
+.trucks{display:flex;flex-direction:column;gap:12px;min-width:0;overflow-x:auto}
+.truck{display:flex;align-items:stretch;gap:0}
+.cab{width:38px;background:var(--cab);color:var(--cab-ink);border-radius:10px 4px 4px 10px;display:flex;flex-direction:column;align-items:center;justify-content:space-between;padding:6px 0;font-family:var(--f-num);font-size:.75rem;flex:none}
+.cab .win{width:20px;height:16px;border-radius:4px 2px 2px 4px;background:#7fa7c6}
+.deck{border:3px solid var(--cab);border-left-width:4px;border-radius:2px 6px 6px 2px;padding:6px;display:flex;flex-direction:column;gap:6px;background:var(--surface2)}
+.side{display:flex;align-items:center;gap:6px}
+.side .lab{writing-mode:vertical-rl;font-size:.7rem;color:var(--muted);letter-spacing:.1em;width:14px}
+.grid{display:grid;grid-template-columns:repeat(var(--cols),30px);gap:2px}
+.cols{display:grid;grid-template-columns:repeat(var(--c,5),30px);gap:2px}
+.col{height:70px;display:flex;flex-direction:column-reverse;gap:2px}
+.col .cell{flex:1;height:auto}
+.col.empty{border:1px dashed var(--line);border-radius:2px;background:var(--empty)}
+.cell{height:22px;border-radius:2px;background:var(--empty);border:1px dashed var(--line);font-family:var(--f-num);font-size:.6rem;color:#fff;display:grid;place-items:center;position:relative;overflow:hidden}
+.cell.f{border:none}
+.side .sum{font-family:var(--f-num);font-size:.75rem;color:var(--muted);min-width:48px}
+.truck-cap{font-size:.75rem;color:var(--muted);margin:2px 0 0 44px;font-family:var(--f-num)}
+
+/* rows table */
+.tbl-wrap{overflow-x:auto;min-width:0}
+table.rows{width:100%;border-collapse:collapse;font-size:.92rem}
+table.rows th{font-size:.75rem;color:var(--muted);font-weight:400;text-align:right;padding:4px 6px;border-bottom:1px solid var(--line);white-space:nowrap}
+table.rows th:first-child,table.rows td:first-child{text-align:left}
+table.rows td{padding:6px;border-bottom:1px solid var(--line);text-align:right;vertical-align:middle;white-space:nowrap}
+table.rows tr.dim td{opacity:.45}
+.pno{display:flex;align-items:center;gap:8px;font-family:var(--f-num);font-size:.85rem}
+.pno small{display:block;font-family:var(--f-body);color:var(--muted);font-size:.72rem}
+.plan{font-family:var(--f-num);font-size:1.2rem;font-weight:700}
+.sub{display:block;font-size:.72rem;color:var(--muted);font-family:var(--f-body)}
+.sub.slide{color:#7b3fb5;font-weight:700}
+.sub.pull{color:var(--p1)} .sub.carry{color:var(--ng)}
+.act{display:inline-flex;align-items:center;gap:4px}
+.act input{width:64px;height:44px;text-align:center;font-family:var(--f-num);font-size:1.2rem;border:2px solid var(--line);border-radius:8px;background:var(--surface)}
+.fs{border:0;padding:0;margin:0;min-width:0;display:contents}
+.fs.tbl-wrap{display:block}
+.lockbtn{border-color:var(--line)}
+.prevbtn{border-color:var(--p1);color:var(--p1)}
+.prevbtn.on{background:var(--p1);color:#fff}
+.j.prev{color:var(--p1)}
+.act button:disabled,.ex-del:disabled,.act input:disabled,.ex-row input:disabled{opacity:.4;cursor:not-allowed}
+.lockbtn.on{background:var(--ink);color:var(--surface);border-color:var(--ink)}
+.slot.locked .act input,.slot.locked .ex-row input{background:var(--surface2);color:var(--ink)}
+.slot.locked .slot-h{background:repeating-linear-gradient(-45deg,var(--surface2) 0 10px,var(--bg) 10px 20px)}
+.slf{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}
+.slf label{display:flex;flex-direction:column;gap:4px;font-size:.82rem;color:var(--muted)}
+.slf select,.slf input{border:1px solid var(--line);border-radius:6px;padding:8px;min-height:44px;background:var(--surface);font-family:var(--f-num)}
+.sl-row{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;border:1px solid #7b3fb5;border-left-width:6px;border-radius:8px;padding:10px 12px;background:var(--surface)}
+.sl-row b{font-family:var(--f-num)}
+#slList{display:flex;flex-direction:column;gap:8px}
+.mst{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:8px}
+.mst-r{display:flex;gap:6px;align-items:center}
+.mst-r input{flex:1;min-width:0;border:1px solid var(--line);border-radius:6px;padding:8px;min-height:40px;font-family:var(--f-num);text-transform:uppercase;background:var(--surface)}
+.mst-r select{border:1px solid var(--line);border-radius:6px;padding:8px;min-height:40px;background:var(--surface)}
+.ctl{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;margin-bottom:8px;font-size:.85rem}
+.ctl-l{color:var(--muted)}
+.ctl-u{color:var(--muted);margin-right:8px}
+.stp{display:inline-flex;align-items:center;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--surface)}
+.stp button{width:40px;height:40px;border:0;background:var(--surface2);font-size:1.1rem;font-weight:700}
+.stp b{min-width:34px;text-align:center;font-family:var(--f-num);font-size:1.1rem}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{height:40px;padding:0 12px;border:0;background:var(--surface)}
+.seg button.on{background:var(--ink);color:var(--surface);font-weight:700}
+.stp button:disabled,.seg button:disabled{opacity:.4}
+.col.resv{background:repeating-linear-gradient(-45deg,var(--surface2) 0 4px,var(--line) 4px 6px);border:1px solid var(--muted);border-radius:2px;display:grid;place-items:center;font-size:.6rem;color:var(--ink);writing-mode:vertical-rl}
+.extra{margin-top:12px;border:1px dashed var(--line);border-radius:8px;padding:10px;display:flex;flex-direction:column;gap:8px;background:var(--surface2)}
+.ex-h{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:baseline;font-size:.88rem}
+.ex-h span{color:var(--muted);font-size:.78rem}
+.ex-row{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.ex-row input{height:44px;border:2px solid var(--line);border-radius:8px;background:var(--surface);font-family:var(--f-num);font-size:1.05rem;padding:0 10px;min-width:0}
+.ex-no{flex:1 1 160px;text-transform:uppercase}
+.ex-qty{width:80px;text-align:center}
+.ex-u{color:var(--muted);font-size:.85rem}
+.ex-del{width:44px;height:44px;border:1px solid var(--line);border-radius:8px;background:var(--surface);font-size:1.2rem}
+.extra .btn{align-self:flex-start}
+.act input.pre{color:var(--muted);border-style:dashed}
+.act input.ok{border-color:var(--ok)} .act input.ng{border-color:var(--ng);background:var(--ng-bg)}
+.act button{width:40px;height:44px;border:1px solid var(--line);border-radius:8px;background:var(--surface2);font-size:1.2rem;font-weight:700}
+.j{font-weight:700;font-size:.85rem}
+.j.ok{color:var(--ok)} .j.ng{color:var(--ng)} .j.pending{color:var(--muted);font-weight:400}
+
+/* panels */
+details.panel{background:var(--surface);border:1px solid var(--line);border-radius:10px;margin:10px 0}
+details.panel>summary{cursor:pointer;padding:12px 14px;font-weight:700;list-style:none;display:flex;align-items:center;gap:8px}
+details.panel>summary::before{content:"▸";transition:transform .15s}
+details.panel[open]>summary::before{transform:rotate(90deg)}
+.panel-b{padding:0 14px 14px;display:flex;flex-direction:column;gap:12px}
+.drop{border:2px dashed var(--muted);border-radius:10px;padding:22px;text-align:center;background:var(--surface2)}
+.drop.over{border-color:var(--accent);background:var(--warn-bg)}
+.map{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}
+.map label{display:flex;flex-direction:column;gap:4px;font-size:.82rem;color:var(--muted)}
+.map select,.set span input{width:33%;min-width:0}
+.set input{border:1px solid var(--line);border-radius:6px;padding:8px;background:var(--surface);min-height:40px}
+.preview{overflow-x:auto;max-height:220px;border:1px solid var(--line);border-radius:6px}
+.preview table{border-collapse:collapse;font-size:.75rem;font-family:var(--f-num)}
+.preview td,.preview th{border:1px solid var(--line);padding:3px 6px;white-space:nowrap}
+.preview th{background:var(--surface2)}
+.preview th.hit{background:var(--accent);color:var(--accent-ink)}
+.set{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px}
+.set label{display:flex;flex-direction:column;gap:4px;font-size:.82rem;color:var(--muted)}
+.rules{font-size:.88rem;color:var(--muted);margin:0;padding-left:18px}
+.rules b{color:var(--ink)}
+.tps{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px;font-size:.85rem}
+.tps div{border:1px solid var(--line);border-radius:8px;padding:8px 10px;background:var(--surface2)}
+.tps b{display:block;font-size:.8rem}
+
+/* modal */
+.dropstrip{border:2px dashed var(--muted);border-radius:10px;padding:10px 14px;font-size:.9rem;color:var(--muted);background:var(--surface);margin-bottom:6px}
+.dropstrip b{color:var(--ink)}
+.dropov{position:fixed;inset:0;z-index:70;background:rgba(232,163,23,.18);display:grid;place-items:center;padding:16px;pointer-events:none}
+.dropov>div{border:4px dashed var(--accent);background:var(--surface);color:var(--ink);border-radius:16px;padding:40px 30px;font-family:var(--f-display);font-weight:900;font-size:1.5rem;text-align:center;max-width:520px;width:100%}
+.modal{position:fixed;inset:0;background:#000a;display:grid;place-items:center;z-index:50;padding:16px}
+.modal .box{background:var(--surface);color:var(--ink);border-radius:12px;padding:20px;max-width:440px;width:100%;display:flex;flex-direction:column;gap:14px}
+.modal .row{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--cab);color:var(--cab-ink);padding:10px 18px;border-radius:999px;z-index:60;font-weight:700;max-width:calc(100% - 32px)}
+footer{color:var(--muted);font-size:.78rem;padding-block:20px 30px;border-top:1px solid var(--line)}
+</style>
+</head>
+<body>
+
+
+<header class="top">
+  <div class="wrap">
+    <div class="brand"><h1 data-i="title">積載効率プランナー</h1><span class="ver" id="ver">ver 2026.11.06-2</span></div>
+    <div class="sp"></div>
+    <select id="lang" aria-label="Language">
+      <option value="ja">日本語</option><option value="id">Bahasa Indonesia</option><option value="tl">Tagalog</option><option value="en">English</option>
+    </select>
+  </div>
+  <div class="hazard"></div>
+</header>
+
+<main class="wrap">
+  <ol class="steps" id="steps">
+    <li data-i="st1">受注CSVを取込む</li><li data-i="st2">便ごとの積付を確認</li><li data-i="st3">実績を入力</li><li data-i="st4">アンマッチは再算出</li><li data-i="st5">Excelで出力</li>
+  </ol>
+
+  <div class="bar">
+    <button class="btn primary" id="bImport" type="button">⬆ <span data-i="import">受注CSVを取込む</span></button>
+    <div class="daysel" id="daysel" hidden>
+      <span data-i="pickday">集荷日</span>
+      <select id="day" aria-label="集荷日（標準）"></select>
+      <span class="rng"><select id="rFrom" aria-label="開始便"></select><span>〜</span><select id="rTo" aria-label="終了便"></select></span>
+    </div>
+    <div class="sp" style="flex:1"></div>
+    <button class="btn ghost" id="bClrAll" type="button">⌫ <span data-i="clrAll">実績を一括クリア</span></button>
+    <button class="btn ng" id="bRecalc" type="button">↻ <span data-i="calcAll">荷物の算出</span></button>
+    <button class="btn" id="bWork" type="button">📋 <span data-i="workOrder">作業指示書</span></button>
+    <button class="btn" id="bExport" type="button">⬇ <span data-i="export">Excel出力</span></button>
+    <button class="btn ghost" id="bDelCsv" type="button">🗑 <span data-i="delcsv">CSVデータを削除</span></button>
+  </div>
+  <input type="file" id="file" accept=".csv,.txt,text/csv" multiple hidden>
+  <div class="dropstrip" id="dropStrip">⬇ <b>受注CSVをこの画面にドラッグ＆ドロップ</b>するだけで取込めます（複数ファイル可・納入指示数÷収容数＝かんばん枚数を自動計算）</div>
+  <div class="verline"><span class="verchip" id="verchip">ver 2026.11.06-2</span><span class="meta" id="meta"></span></div>
+  <div id="sampleNote"></div>
+
+  <details class="panel" id="pSlide">
+    <summary>⇄ <span data-i="slideT">イレギュラー（納入ストップ・スライド）</span></summary>
+    <div class="panel-b">
+      <div class="meta">客先の納入ストップなどで、ある便の荷物を別の便へ動かす時に使います。取り込んだ受注データはそのままで、計算だけを動かします。</div>
+      <div class="slf">
+        <label>品番<select id="slPart"></select></label>
+        <label>元の便<select id="slFrom"></select></label>
+        <label>先の便<select id="slTo"></select></label>
+        <label id="slCustom" hidden>先の日付・便<span style="display:flex;gap:6px"><input type="date" id="slDate"><input type="number" id="slBin" min="1" max="20" placeholder="便" style="width:80px"></span></label>
+        <label>数量（空欄＝全数）<input type="number" id="slQty" min="1" inputmode="numeric" placeholder="全数"></label>
+        <label>メモ<input type="text" id="slMemo" placeholder="例：客先納入ストップ"></label>
+      </div>
+      <div class="bar"><button class="btn primary" type="button" id="bSlideAdd">⇄ スライドを登録</button><span class="meta" id="slMsg"></span></div>
+      <div id="slList"></div>
+    </div>
+  </details>
+  <div id="andon" style="margin-top:12px"></div>
+  <div class="kpis" id="kpis"></div>
+
+  <div class="flow-h" id="flowH"><h2 data-i="flow">便の流れ（4便〜翌3便）</h2><span class="meta" data-i="flowhint">棒＝トラック1台の積載率</span></div>
+  <div class="flow" id="flow"></div>
+  <div class="legend" id="legend"></div>
+
+  <div class="slots" id="slots"></div>
+
+  <details class="panel" id="pImport">
+    <summary>受注CSVの取込設定（列の割り当て）</summary>
+    <div class="panel-b">
+      <div class="drop" id="drop">ここにCSVをドラッグ、または <button class="btn sm" type="button" id="bPick">ファイルを選ぶ</button><div class="meta" style="margin-top:6px">トヨタWG共通EDI 受注CSV／Shift_JIS・UTF-8 どちらも可／複数ファイルをまとめて入れると1つに合算します</div></div>
+      <div id="mapArea" hidden>
+        <div class="map" id="map"></div>
+        <div class="preview" id="preview"></div>
+        <div class="bar"><button class="btn primary" type="button" id="bApply">この割り当てで取込む</button><span class="meta" id="mapMsg"></span></div>
+      </div>
+    </div>
+  </details>
+
+  <details class="panel" id="pSet">
+    <summary>積載ルールと設定</summary>
+    <div class="panel-b">
+      <ul class="rules">
+        <li><b>プロテクター</b>（<span id="rPn"></span>）：<span id="rP"></span>、3品番混載・段積み可</li>
+        <li><b>バッテリーケース</b>（<span id="rBn"></span>）：<span id="rB"></span>、2品番混載・段積み可</li>
+        <li><b>各便トラックは1台</b>（左面5列＋右面5列＝10列）。<b>1列ごとに</b>プロテクター3段積みかバッテリーケース2段積みを選べる（同じ面に混在できる）</li>
+        <li><b>取込直後は受注どおり</b>：全便の実績に受注数をそのまま入れる。1台に入りきらない便は赤で注記</li>
+        <li><b>荷物の算出</b>（上の赤ボタン）：ロックしていない全便を、空け列を引いた列数で組み直し、未納が出ないよう前詰めして実績に入れる</li>
+        <li><b>各便の空け列・移動先</b>：別の荷物を積む便は「空け列」を0〜10列で選び、その便の「再算出」を押すと、その便から後ろを組み直す。入りきらない分は「あふれ分の移動先」で前の便（ロックなし）か後の便を選べる</li>
+        <li><b>積みきれない分は前の便へスライド</b>：未納を出さないよう、1台に入りきらない分は近い前の便の空きへ前倒しする（図では斜線、明細に「前倒し +n（◯便より）」）。前の便に空きがない時だけ後の便へ回し（後回し）、最終便でも積めない分は「翌日持越し」として赤で知らせる</li>
+        <li>かんばん枚数（箱数）＝ 納入指示数 ÷ 収容数（切上げ）で自動計算</li>
+        <li><b>イレギュラー（納入ストップ・スライド）</b>：客先の都合で便が変わった時は、品番・元の便・先の便・数量を登録する。取り込んだ受注はそのままで、計算だけをスライド後の数で行う（紫で表示）</li>
+        <li><b>受注データの確認</b>：かんばんは2週間前から発行されるため、取込んだデータに今日から14日前の納入日分がない時は「〇/〇日分から受注データを反映させてください。」と止めて知らせる</li>
+        <li><b>1日分＝当日<span id="rS">4</span>便〜翌日<span id="rE">3</span>便</b>。5品番以外の行は取り込まない</li>
+        <li><b>前詰めは実績の手入力で</b>：空きがある便で実績を＋すると、図に1箱ずつ増える（受注を超えた分はハッチング）。その分は後の便の予定と実績から自動で差し引く</li>
+        <li><b>前日出荷済み</b>（最初の便だけ）：前日に前出しした時はONにして実績を実際に積んだ数に直す。足りない分は前日出荷済みとして扱い、後の便へ遅れとして回さない</li>
+        <li>実績欄は最初、予定数を表示（点線）。数を変えるか「予定どおり」を押すと確定し、<b>すぐ次の便以降に反映</b>。不足は次の便に「遅れ分」として必ず積み、過剰は後の便から差し引く</li>
+      </ul>
+      <div class="set">
+        <label>1日の開始便（当日◯便から）<input type="number" id="sStart" min="1" max="20" inputmode="numeric"></label>
+        <label>受注データの確認日数（今日から◯日前の納入日分が必要、0＝確認しない）<input type="number" id="sLb" min="0" max="60" inputmode="numeric"></label>
+        <input type="hidden" id="sLook">
+        <label>プロテクター 段×片面の列数×奥行き<span style="display:flex;gap:6px"><input type="number" id="sPt" min="1" max="9" aria-label="段"><input type="number" id="sPc" min="1" max="20" aria-label="列"><input type="number" id="sPd" min="1" max="4" aria-label="奥行き"></span></label>
+        <label>バッテリーケース 段×（列数はプロテクターと共通）×奥行き<span style="display:flex;gap:6px"><input type="number" id="sBt" min="1" max="9" aria-label="段"><input type="number" id="sBc" min="1" max="20" aria-label="列"><input type="number" id="sBd" min="1" max="4" aria-label="奥行き"></span></label>
+      </div>
+      <div><div class="sec-h" style="font-size:.95rem;margin-bottom:6px">品番マスタ（取込む5品番）</div>
+        <div class="mst"><div class="mst-r"><i class="sw" style="background:var(--p1)"></i><input type="text" id="mpn0" aria-label="品番1" autocomplete="off"><select id="mpg0" aria-label="区分1"><option value="P">プロテクター（3段）</option><option value="B">バッテリーケース（2段）</option></select></div><div class="mst-r"><i class="sw" style="background:var(--p2)"></i><input type="text" id="mpn1" aria-label="品番2" autocomplete="off"><select id="mpg1" aria-label="区分2"><option value="P">プロテクター（3段）</option><option value="B">バッテリーケース（2段）</option></select></div><div class="mst-r"><i class="sw" style="background:var(--p3)"></i><input type="text" id="mpn2" aria-label="品番3" autocomplete="off"><select id="mpg2" aria-label="区分3"><option value="P">プロテクター（3段）</option><option value="B">バッテリーケース（2段）</option></select></div><div class="mst-r"><i class="sw" style="background:var(--b1)"></i><input type="text" id="mpn3" aria-label="品番4" autocomplete="off"><select id="mpg3" aria-label="区分4"><option value="P">プロテクター（3段）</option><option value="B">バッテリーケース（2段）</option></select></div><div class="mst-r"><i class="sw" style="background:var(--b2)"></i><input type="text" id="mpn4" aria-label="品番5" autocomplete="off"><select id="mpg4" aria-label="区分5"><option value="P">プロテクター（3段）</option><option value="B">バッテリーケース（2段）</option></select></div></div>
+        <div class="meta" style="margin-top:6px">品番を変えたら「設定を保存して計画を作り直す」を押し、<b>受注CSVを取込み直してください</b>（取込み時に品番で選ぶため）。空欄の行は使いません。</div></div>
+      <div class="bar"><button class="btn" type="button" id="bSaveSet">設定を保存して計画を作り直す</button><button class="btn ghost sm" type="button" id="bClear">保存データを消す</button></div>
+      <div><div class="sec-h" style="font-size:.95rem;margin-bottom:4px">更新履歴</div>
+      <ul class="hist">
+        <li><b>ver 2026.11.06-2</b>　「あふれ分の移動先＝前の便」を選んで実績を減らした時、減らした分が後ろの便へ回ってしまう不具合を修正。前の便（ロックなし）の空きへ近い便から回し、空きがない分だけ後ろへ回す</li>
+        <li><b>ver 2026.11.06</b>　「イレギュラー（納入ストップ・スライド）」を追加。品番・元の便・先の便（別の日の便や保留も可）・数量を登録すると、受注をその便へ動かして積付図・後ろの便・作業指示書・Excelに反映。登録は一覧から取り消せる</li>
+        <li><b>ver 2026.11.05-7</b>　作業指示書（Excel）をA4縦・余白四方1cmで4便がページいっぱいになるよう拡大（行の高さ・文字を大きく、横幅は縮小印刷にならない幅に）</li>
+        <li><b>ver 2026.11.05-6</b>　取込時に全便の実績＝受注数を転記（積みきれない便は赤で注記）。赤ボタンを「荷物の算出」に改名し、押すと前詰めで未納が出ないよう全便を組み直す。各便に「空け列（他の荷物）」と「あふれ分の移動先（前の便／後の便）」を追加し、各便の再算出でその便から後ろを組み直す</li>
+        <li><b>ver 2026.11.05-5</b>　1台に積みきれない分は、未納を出さないよう前の便の空きへスライド（近い便から）するよう変更。前の便に空きがない時だけ後回し</li>
+        <li><b>ver 2026.11.05-4</b>　受注CSVに今日から14日前の納入日分が入っていない時、「〇/〇日分から受注データを反映させてください。」と表示（取込前に確認、取込後も赤ランプで表示）。日数は設定で変更可</li>
+        <li><b>ver 2026.11.05-3</b>　バッテリーケースの品番をG9622-47010からG9611-42010に訂正（バッテリーケース＝G9611-30010・G9611-42010）</li>
+        <li><b>ver 2026.11.05-2</b>　バッテリーケースの品番をG9611-30010・G9622-47010に修正（受注CSVに数量が反映されなかった不具合）。「積載ルールと設定」に品番マスタを追加し、画面で品番と区分を変更できるようにした</li>
+        <li><b>ver 2026.11.05</b>　「作業指示書」ボタンを追加。積付図（プロテクター3段・バッテリー2段をセル結合で表示、受注超えは斜線）と品番ごとの受注・指示数・備考・実績記入欄・✓欄を、A4縦1枚に4便ずつExcelで出力。Excel出力にも「作業指示書」シートを追加</li>
+        <li><b>ver 2026.11.04-11</b>　範囲の最初の便に「前日出荷済み」ボタンを追加（ONの時、その便の不足分は前日出荷済みとして後の便へ遅れを回さない）。上部に「実績を一括クリア」ボタンを追加（ロック中の便は残す）</li>
+        <li><b>ver 2026.11.04-10</b>　各便に「ロック」ボタンを追加。ロック中はその便の実績・＋−・予定どおり・クリア・再算出・イレギュラー欄を操作できない。解除は確認してから</li>
+        <li><b>ver 2026.11.04-9</b>　各便に「イレギュラー積載（5品番以外）」の手入力欄を追加（品番と実績、「品番追加」で複数行）。積付図と計算には入れず、Excelの実績シートと「イレギュラー積載」シートに出力</li>
+        <li><b>ver 2026.11.04-8</b>　積載を「列」単位に変更：片面5列、1列ごとにプロテクター3段かバッテリー2段を選べる（同じ面に混在可）。図もプロテクター列は3マス、バッテリー列は同じ高さを2分割して表示。プロテクターが15箱を超えても表示されない不具合を修正</li>
+        <li><b>ver 2026.11.04-7</b>　積付図は最初、受注データのみで表示（自動の前詰めをやめた）。実績を変えると図の箱がその数だけ増減し、受注を超えて足した分はハッチング。1台に入りきらない時は赤で知らせる</li>
+        <li><b>ver 2026.11.04-6</b>　実績欄に最初から予定数を表示。実績を変えると自動で次の便以降に反映（例：4便で15箱多く積むと5便の予定・実績が15箱減る）。未入力の品番は予定数を実績として扱う</li>
+        <li><b>ver 2026.11.04-5</b>　前の便に空きが出たら、次の便の受注から順に前詰めして積載率100%に近づけるよう変更（空いた面の品目も前詰めで埋まる方を選ぶ）</li>
+        <li><b>ver 2026.11.04-4</b>　各便のカードに「再算出」ボタンを追加。再算出すると、実績との差（不足は遅れ分、過剰は差し引き）を次の便以降の予定に反映。実績を入れた便の積付図は実績の数で表示し、Excelの実績は入力値で出力</li>
+        <li><b>ver 2026.11.04-3</b>　集荷日を「開始便〜終了便」の範囲で選べるようにした／CSVデータ削除ボタンを追加／ver表記を画面上部に追加</li>
+        <li><b>ver 2026.11.04-2</b>　各便トラック1台に変更、積みきれない分は後の便へ後回し／かんばん枚数＝納入指示数÷収容数を自動計算／画面全体へのドラッグ＆ドロップ取込</li>
+        <li><b>ver 2026.11.04</b>　初版（受注CSV取込・積載算出・便別実績入力・再算出・Excel出力・4言語）</li>
+      </ul></div>
+      <div class="tps">
+        <div><b>自働化・アンドン</b>実績が予定と違う便は赤で点滅し、再算出するまで消えません。未出荷残も先頭に出します。</div>
+        <div><b>ポカヨケ</b>5品番以外は取込まない。「予定どおり」ボタン1回で入力でき、打ち間違いを減らします。</div>
+        <div><b>ジャスト・イン・タイム</b>計画は受注どおり。前詰めは現場が積める分だけ人が判断して入れるので、作りすぎを防げます。</div>
+        <div><b>見える化</b>トラックの面ごとに何をどこへ積むかを色で表示。実績を変えると図がすぐ変わり、受注超えは斜線、遅れ分は赤点線、はみ出しは赤字で出します。</div>
+      </div>
+    </div>
+  </details>
+
+  <footer><span id="fver"></span>　データはこの端末のブラウザに保存され、次の受注CSVを取込むまで残ります。</footer>
+</main>
+<div id="modalHost"></div>
+<div class="dropov" id="dropOverlay" hidden><div>⬇<br>ここで離すと受注CSVを取込みます</div></div>
+
+<script>
+(function(){
+'use strict';
+var VER='2026.11.06-2';
+var STORE='sekisai-planner-v1';
+
+/* ===== 品番マスタ（ここを直せば対象品番を変えられます） ===== */
+/* ===== 品番マスタ（初期値）。画面の「積載ルールと設定」→品番マスタで変更できます ===== */
+var DEF_PARTS=[
+  {no:'77606-60270',g:'P'},
+  {no:'77606-60290',g:'P'},
+  {no:'77606-35091',g:'P'},
+  {no:'G9611-30010',g:'B'},
+  {no:'G9611-42010',g:'B'}
+];
+var SLOT_COLOR=['--p1','--p2','--p3','--b1','--b2'],SLOT_HEX=['1F6FB2','0E8A84','5B4FCF','D4621C','AD3767'];
+var PARTS=[];
+function applyMaster(list){
+  PARTS.length=0;
+  (list||DEF_PARTS).forEach(function(x,k){var no=String(x.no||'').trim().toUpperCase();if(!no)return;PARTS.push({no:no,g:x.g==='B'?'B':'P',c:SLOT_COLOR[k],hex:SLOT_HEX[k]});});
+  PARTS.forEach(function(p,i){p.i=i;var a=p.no.split('-');p.short=a.length>1?a.slice(1).join(''):p.no.slice(-5);});
+  /* 図に出す短い番号：他の品番と重ならない最短の末尾（3桁以上） */
+  PARTS.forEach(function(p){var n=3;while(n<p.short.length&&PARTS.some(function(q){return q!==p&&q.short.slice(-n)===p.short.slice(-n);}))n++;p.lab=p.short.slice(-n);});
+}
+applyMaster(DEF_PARTS);
+
+/* ===== 言語 ===== */
+var I18N={
+ ja:{slideT:'イレギュラー（納入ストップ・スライド）',slideL:'スライド',slideA:'イレギュラー：スライド中の受注があります（計算はスライド後の数で行います）',hold:'保留（出荷しない）',allParts:'全品番',allQty:'全数',calcAll:'荷物の算出',other:'他',resvL:'空け列（他の荷物）',cols:'列',dirL:'あふれ分の移動先',dirPrev:'前の便',dirNext:'後の便',workOrder:'作業指示書',preBtn:'前日出荷済み',preDone:'前日出荷済',preHint:'不足分を前日に出荷済みとして扱い、後の便へ遅れとして回さない',clrAll:'実績を一括クリア',lock:'ロック',locked:'ロック中',unlockQ:'ロックを解除しますか？',exTitle:'イレギュラー積載（5品番以外）',exNote:'品番と実績だけ入力。積付図と計算には入りません',exAdd:'品番追加',exPart:'品番',aOver:'実績がトラック1台に入りきりません。数を見直してください',early:'前の便で積込済',rcNeed:'この便の実績をすべて入れると押せます',flowT:'便の流れ',delcsv:'CSVデータを削除',aDefer:'1台に積みきれない便があります。はみ出した分は後の便へ回します',nextBin:'次の便以降',defer:'後回し',toPrev:'前の便へ',kPull:'受注超え（前詰め）',kShort:'翌日持越し',kBaseFill:'受注どおり',kTruckFix:'各便トラック1台×{n}便',aShort:'最終便まで積みきれない箱があります（翌日へ持越し）',title:'積載効率プランナー',st1:'受注CSVを取込む',st2:'便ごとの積付を確認',st3:'実績を入力',st4:'アンマッチは再算出',st5:'Excelで出力',import:'受注CSVを取込む',pickday:'集荷日',recalc:'再算出',export:'Excel出力',flow:'便の流れ（4便〜翌3便）',flowhint:'棒＝トラック1台の積載率',
+  bin:'{n}便',truck:'台',trucks:'トラック',plan:'予定',actual:'実績',order:'受注',judge:'判定',ok:'一致',ng:'不一致',pending:'未確定（予定値）',asPlan:'予定どおり',clear:'クリア',left:'左面',right:'右面',pulled:'前倒し',carry:'遅れ分',fill:'積載率',
+  P:'プロテクター',B:'バッテリーケース',notruck:'この便の荷はすべて前の便に前倒し済み。トラック不要です。',noplan:'この便の受注はありません。',
+  stOk:'実績一致',stNg:'要 再算出',stAbs:'差異を再算出済',stPend:'実績待ち',stNone:'荷なし',
+  aOk:'正常：入力済みの便はすべて予定どおりです',aNg:'{n}便で実績がアンマッチです。「再算出」を押して後ろの便を組み直してください',aExcess:'受注より多く出荷された品番があります',aEmpty:'受注CSVを取込むと、ここに状態が出ます',
+  from:'{b}より',kBoxes:'受注箱数',kTrucks:'必要トラック',kSaved:'削減台数',kFill:'平均積載率',kDone:'実績入力',kBase:'前倒し前',legPull:'前倒し（受注超え）',overT:'積みきれません +{n}箱',legCarry:'遅れ分',legEmpty:'空き'},
+ en:{slideT:'Irregular (delivery stop / slide)',slideL:'Slide',slideA:'Irregular: some orders are slid (calculated with slid quantities)',hold:'Hold (do not ship)',allParts:'All parts',allQty:'All',calcAll:'Calculate loads',other:'Other',resvL:'Reserved columns (other cargo)',cols:'cols',dirL:'Move overflow to',dirPrev:'Earlier trip',dirNext:'Later trip',workOrder:'Work order',preBtn:'Shipped yesterday',preDone:'Shipped yesterday',preHint:'Treat the shortage as shipped the day before; do not carry it to later trips',clrAll:'Clear all actuals',lock:'Lock',locked:'Locked',unlockQ:'Unlock this trip?',exTitle:'Irregular load (other parts)',exNote:'Enter part no. and actual only. Not included in the diagram or calculation',exAdd:'Add part',exPart:'Part no.',aOver:'Actuals exceed one truck. Please check the numbers',early:'Already loaded earlier',rcNeed:'Enter all actuals for this trip first',flowT:'Trip flow',delcsv:'Delete CSV data',aDefer:'Some trips exceed one truck. Overflow moves to later trips',nextBin:'later trip',defer:'Deferred',toPrev:'to earlier trip',kPull:'Boxes pulled ahead',kShort:'Carried to next day',kBaseFill:'As ordered',kTruckFix:'1 truck × {n} trips',aShort:'Boxes remain after the last trip (carried to next day)',title:'Load Efficiency Planner',st1:'Import order CSV',st2:'Check loading per trip',st3:'Enter actuals',st4:'Recalculate if mismatch',st5:'Export to Excel',import:'Import order CSV',pickday:'Pickup day',recalc:'Recalculate',export:'Export Excel',flow:'Trip flow (Trip 4 → next-day Trip 3)',flowhint:'Bar = load rate of one truck',
+  bin:'Trip {n}',truck:'truck(s)',trucks:'Trucks',plan:'Plan',actual:'Actual',order:'Order',judge:'Status',ok:'OK',ng:'Mismatch',pending:'Not confirmed (plan)',asPlan:'As planned',clear:'Clear',left:'Left',right:'Right',pulled:'Pulled ahead',carry:'Carried over',fill:'Load rate',
+  P:'Protector',B:'Battery case',notruck:'All boxes of this trip were pulled ahead. No truck needed.',noplan:'No orders for this trip.',
+  stOk:'Matched',stNg:'Recalculate',stAbs:'Recalculated',stPend:'Waiting',stNone:'No load',
+  aOk:'Normal: every entered trip matches the plan',aNg:'{n} trip(s) do not match. Press "Recalculate" to re-plan later trips',aExcess:'Some parts were shipped more than ordered',aEmpty:'Import an order CSV to see the status here',
+  from:'from {b}',kBoxes:'Ordered boxes',kTrucks:'Trucks needed',kSaved:'Trucks saved',kFill:'Avg. load rate',kDone:'Actuals entered',kBase:'without pull-ahead',legPull:'Pulled ahead (above order)',overT:'Does not fit +{n}',legCarry:'Carried over',legEmpty:'Empty'},
+ id:{slideT:'Tidak rutin (stop kirim / geser)',slideL:'Geser',slideA:'Tidak rutin: ada pesanan yang digeser',hold:'Tahan (tidak dikirim)',allParts:'Semua part',allQty:'Semua',calcAll:'Hitung muatan',other:'Lain',resvL:'Kolom dikosongkan (barang lain)',cols:'kolom',dirL:'Pindahkan kelebihan ke',dirPrev:'Rit sebelumnya',dirNext:'Rit berikutnya',workOrder:'Instruksi kerja',preBtn:'Dikirim kemarin',preDone:'Dikirim kemarin',preHint:'Kekurangan dianggap sudah dikirim kemarin; tidak dibawa ke rit berikutnya',clrAll:'Hapus semua aktual',lock:'Kunci',locked:'Terkunci',unlockQ:'Buka kunci rit ini?',exTitle:'Muatan tidak rutin (part lain)',exNote:'Isi nomor part dan aktual saja. Tidak masuk gambar dan perhitungan',exAdd:'Tambah part',exPart:'No. part',aOver:'Aktual melebihi 1 truk. Periksa jumlahnya',early:'Sudah dimuat di rit sebelumnya',rcNeed:'Isi semua aktual rit ini dulu',flowT:'Alur rit',delcsv:'Hapus data CSV',aDefer:'Ada rit yang melebihi 1 truk. Sisa dipindah ke rit berikutnya',nextBin:'rit berikutnya',defer:'Ditunda',toPrev:'ke rit sebelumnya',kPull:'Kotak dimajukan',kShort:'Dibawa ke besok',kBaseFill:'Sesuai pesanan',kTruckFix:'1 truk × {n} rit',aShort:'Masih ada kotak setelah rit terakhir (dibawa ke besok)',title:'Perencana Efisiensi Muatan',st1:'Impor CSV pesanan',st2:'Cek muatan per rit',st3:'Isi aktual',st4:'Hitung ulang jika beda',st5:'Unduh Excel',import:'Impor CSV pesanan',pickday:'Hari ambil',recalc:'Hitung ulang',export:'Unduh Excel',flow:'Alur rit (Rit 4 → Rit 3 besok)',flowhint:'Batang = tingkat muatan 1 truk',
+  bin:'Rit {n}',truck:'truk',trucks:'Truk',plan:'Rencana',actual:'Aktual',order:'Pesanan',judge:'Status',ok:'Sesuai',ng:'Tidak sesuai',pending:'Belum dikonfirmasi (rencana)',asPlan:'Sesuai rencana',clear:'Hapus',left:'Kiri',right:'Kanan',pulled:'Dimajukan',carry:'Terlambat',fill:'Tingkat muatan',
+  P:'Pelindung',B:'Kotak baterai',notruck:'Semua barang rit ini sudah dimajukan. Tidak perlu truk.',noplan:'Tidak ada pesanan untuk rit ini.',
+  stOk:'Sesuai',stNg:'Hitung ulang',stAbs:'Sudah dihitung ulang',stPend:'Menunggu',stNone:'Tanpa muatan',
+  aOk:'Normal: semua rit yang diisi sesuai rencana',aNg:'{n} rit tidak sesuai. Tekan "Hitung ulang"',aExcess:'Ada part yang dikirim melebihi pesanan',aEmpty:'Impor CSV pesanan untuk melihat status',
+  from:'dari {b}',kBoxes:'Kotak pesanan',kTrucks:'Truk perlu',kSaved:'Truk dihemat',kFill:'Rata-rata muatan',kDone:'Aktual diisi',kBase:'tanpa dimajukan',legPull:'Dimajukan (melebihi pesanan)',overT:'Tidak muat +{n}',legCarry:'Terlambat',legEmpty:'Kosong'},
+ tl:{slideT:'Iregular (hinto ng delivery / slide)',slideL:'Slide',slideA:'Iregular: may order na inilipat',hold:'Hold (huwag ipadala)',allParts:'Lahat ng piyesa',allQty:'Lahat',calcAll:'Kalkulahin ang karga',other:'Iba',resvL:'Nakareserbang kolum (ibang karga)',cols:'kolum',dirL:'Ilipat ang sobra sa',dirPrev:'Naunang biyahe',dirNext:'Susunod na biyahe',workOrder:'Work order',preBtn:'Naipadala kahapon',preDone:'Naipadala kahapon',preHint:'Ituring na naipadala kahapon ang kulang; hindi ililipat sa susunod na biyahe',clrAll:'Burahin lahat ng aktwal',lock:'I-lock',locked:'Naka-lock',unlockQ:'I-unlock ang biyaheng ito?',exTitle:'Iregular na karga (ibang piyesa)',exNote:'Ilagay lang ang part no. at aktwal. Hindi kasama sa larawan at kalkulasyon',exAdd:'Magdagdag ng piyesa',exPart:'Part no.',aOver:'Lampas sa 1 trak ang aktwal. Pakisuri ang bilang',early:'Naikarga na sa naunang biyahe',rcNeed:'Ilagay muna lahat ng aktwal ng biyaheng ito',flowT:'Daloy ng biyahe',delcsv:'Burahin ang CSV data',aDefer:'May biyaheng lampas sa 1 trak. Ililipat ang sobra sa susunod na biyahe',nextBin:'susunod na biyahe',defer:'Ipinagpaliban',toPrev:'sa naunang biyahe',kPull:'Kahong inuna',kShort:'Dadalhin bukas',kBaseFill:'Ayon sa order',kTruckFix:'1 trak × {n} biyahe',aShort:'May natirang kahon pagkatapos ng huling biyahe (dadalhin bukas)',title:'Tagaplano ng Karga',st1:'I-import ang order CSV',st2:'Tingnan ang karga bawat biyahe',st3:'Ilagay ang aktwal',st4:'Kalkulahin muli kung hindi tugma',st5:'I-download ang Excel',import:'I-import ang order CSV',pickday:'Araw ng pickup',recalc:'Kalkulahin muli',export:'I-download ang Excel',flow:'Daloy ng biyahe (Biyahe 4 → Biyahe 3 kinabukasan)',flowhint:'Bar = antas ng karga ng 1 trak',
+  bin:'Biyahe {n}',truck:'trak',trucks:'Trak',plan:'Plano',actual:'Aktwal',order:'Order',judge:'Katayuan',ok:'Tugma',ng:'Hindi tugma',pending:'Hindi pa kumpirmado (plano)',asPlan:'Ayon sa plano',clear:'Burahin',left:'Kaliwa',right:'Kanan',pulled:'Inuna',carry:'Naiwan',fill:'Antas ng karga',
+  P:'Protector',B:'Kaha ng baterya',notruck:'Naiuna na lahat ng kahon ng biyaheng ito. Walang kailangang trak.',noplan:'Walang order sa biyaheng ito.',
+  stOk:'Tugma',stNg:'Kalkulahin muli',stAbs:'Nakalkula na muli',stPend:'Naghihintay',stNone:'Walang karga',
+  aOk:'Normal: tugma sa plano ang lahat ng naipasok na biyahe',aNg:'{n} biyahe ang hindi tugma. Pindutin ang "Kalkulahin muli"',aExcess:'May piyesang naipadala nang higit sa order',aEmpty:'Mag-import ng order CSV para makita ang katayuan',
+  from:'mula {b}',kBoxes:'Kahong naka-order',kTrucks:'Kailangang trak',kSaved:'Natipid na trak',kFill:'Karaniwang karga',kDone:'Naipasok na aktwal',kBase:'kung walang inuna',legPull:'Inuna (lampas sa order)',overT:'Hindi kasya +{n}',legCarry:'Naiwan',legEmpty:'Bakante'}
+};
+var lang='ja';
+function t(k,v){var s=(I18N[lang]&&I18N[lang][k])||I18N.ja[k]||k; if(v)Object.keys(v).forEach(function(x){s=s.replace('{'+x+'}',v[x]);}); return s;}
+
+/* ===== 状態 ===== */
+var DEF_SET={parts:DEF_PARTS,startBin:4,look:3,P:{tiers:3,cols:5,depth:1},B:{tiers:2,cols:5,depth:1}};
+var S=null;
+function blank(){return {settings:JSON.parse(JSON.stringify(DEF_SET)),orders:[],meta:{},day:null,actuals:{},extras:{},locks:{},preShip:{},reserve:{},dir:{},slides:[],plans:{},mapping:null,lang:'ja'};}
+function load(){try{var r=localStorage.getItem(STORE); if(r){var o=JSON.parse(r); if(o&&o.orders)return o;}}catch(e){} return null;}
+function save(){try{localStorage.setItem(STORE,JSON.stringify(S));}catch(e){}}
+function cap(g){return colCapOf(S.settings,g);}
+
+/* ===== 日付 ===== */
+function pad(n){return (n<10?'0':'')+n;}
+function parseDate(v){var s=String(v==null?'':v).trim(); var m=s.match(/(\d{4})\s*[\/\-\.年]?\s*(\d{1,2})\s*[\/\-\.月]?\s*(\d{1,2})/); if(!m)return null; var y=+m[1],mo=+m[2],d=+m[3]; if(mo<1||mo>12||d<1||d>31)return null; return y+'-'+pad(mo)+'-'+pad(d);}
+function addDays(ds,n){var p=ds.split('-');var d=new Date(Date.UTC(+p[0],+p[1]-1,+p[2]+n));return d.getUTCFullYear()+'-'+pad(d.getUTCMonth()+1)+'-'+pad(d.getUTCDate());}
+function md(ds){var p=ds.split('-');var s=(+p[1])+'/'+(+p[2]); if(lang==='ja'){var w='日月火水木金土'[new Date(Date.UTC(+p[0],+p[1]-1,+p[2])).getUTCDay()]; s+='('+w+')';} return s;}
+function shukaDay(date,bin){return bin>=S.settings.startBin?date:addDays(date,-1);}
+function keyOf(date,bin){return date.replace(/-/g,'')+'_'+bin;}
+
+/* ===== 便の並び（1日分） ===== */
+/* ===== イレギュラー（納入ストップ・スライド） =====
+   S.slides＝[{id,part:'品番' or '*'(全品番),from:便キー,to:便キー or 'HOLD'(保留＝出荷しない),qty:null(全数) or 数,memo}]
+   取り込んだ受注（S.orders）はそのまま残し、計算に使う受注だけをスライド後の数にする */
+var SLIDE={in:{},out:{},memo:''};
+function EO(){
+  var sig=JSON.stringify(S.slides||[])+'|'+S.orders.length+'|'+(S.meta&&S.meta.importedAt||'');
+  if(SLIDE.memo===sig&&SLIDE.list)return SLIDE.list;
+  var base=S.orders.map(function(o){return {key:o.key,date:o.date,bin:o.bin,part:o.part,qty:o.qty};});
+  SLIDE.in={};SLIDE.out={};
+  (S.slides||[]).forEach(function(sl){
+    var parts=sl.part==='*'?PARTS.map(function(p){return p.no;}):[sl.part];
+    parts.forEach(function(pn){
+      var src=base.filter(function(o){return o.key===sl.from&&o.part===pn;})[0];if(!src||src.qty<=0)return;
+      var q=sl.qty==null?src.qty:Math.min(sl.qty,src.qty);if(q<=0)return;src.qty-=q;
+      if(!SLIDE.out[sl.from])SLIDE.out[sl.from]={};var so=SLIDE.out[sl.from][pn]||(SLIDE.out[sl.from][pn]=[]);so.push({q:q,to:sl.to,memo:sl.memo});
+      if(sl.to==='HOLD')return;
+      var dst=base.filter(function(o){return o.key===sl.to&&o.part===pn;})[0];
+      if(!dst){var ki=keyInfo(sl.to);dst={key:sl.to,date:ki.date,bin:ki.bin,part:pn,qty:0};base.push(dst);}
+      dst.qty+=q;if(!SLIDE.in[sl.to])SLIDE.in[sl.to]={};var si=SLIDE.in[sl.to][pn]||(SLIDE.in[sl.to][pn]=[]);si.push({q:q,from:sl.from,memo:sl.memo});
+    });
+  });
+  SLIDE.memo=sig;SLIDE.list=base;return base;
+}
+function slotName(k){if(k==='HOLD')return t('hold');var a=keyInfo(k);return md(a.date)+' '+t('bin',{n:a.bin});}
+function daysList(){var m={};EO().forEach(function(o){m[shukaDay(o.date,o.bin)]=1;});return Object.keys(m).sort();}
+/* 範囲ID＝「開始便キー~終了便キー」。便キーは yyyymmdd_便 */
+function sk(date,bin){return date+'#'+pad(bin);}
+function allSlots(){var m={};EO().forEach(function(o){m[o.key]={key:o.key,date:o.date,bin:o.bin};});return Object.keys(m).map(function(k){return m[k];}).sort(function(a,b){return sk(a.date,a.bin)<sk(b.date,b.bin)?-1:1;});}
+function keyInfo(k){var a=k.split('_');var d=a[0];return {date:d.slice(0,4)+'-'+d.slice(4,6)+'-'+d.slice(6,8),bin:+a[1]};}
+function rangeOfDay(day){var ss=allSlots().filter(function(o){return shukaDay(o.date,o.bin)===day;});return ss.length?ss[0].key+'~'+ss[ss.length-1].key:null;}
+function validRange(id){if(!id||id.indexOf('~')<0)return false;var a=id.split('~'),ks=allSlots().map(function(o){return o.key;});return ks.indexOf(a[0])>=0&&ks.indexOf(a[1])>=0;}
+function defaultRange(){var ds=daysList();if(!ds.length)return null;var td=localToday();return rangeOfDay(ds.indexOf(td)>=0?td:ds[0]);}
+function rangeLabel(id){if(!id)return '';var a=id.split('~').map(keyInfo);return md(a[0].date)+' '+t('bin',{n:a[0].bin})+' 〜 '+md(a[1].date)+' '+t('bin',{n:a[1].bin});}
+function slotsOf(day){
+  if(day&&day.indexOf('~')>=0){var r=day.split('~').map(keyInfo),lo=sk(r[0].date,r[0].bin),hi=sk(r[1].date,r[1].bin);if(lo>hi){var x=lo;lo=hi;hi=x;}
+    return allSlots().filter(function(o){var v=sk(o.date,o.bin);return v>=lo&&v<=hi;}).map(function(s,i){s.idx=i;return s;});}
+  var m={};EO().forEach(function(o){if(shukaDay(o.date,o.bin)===day){m[o.key]={key:o.key,date:o.date,bin:o.bin};}});
+  return Object.keys(m).map(function(k){return m[k];}).sort(function(a,b){return a.date<b.date?-1:a.date>b.date?1:a.bin-b.bin;}).map(function(s,i){s.idx=i;return s;});}
+function ordersAt(slots){var r={};slots.forEach(function(s){r[s.key]={};});EO().forEach(function(o){if(r[o.key])r[o.key][o.part]=(r[o.key][o.part]||0)+o.qty;});return r;}
+
+/* ===== 積載計算（中心ロジック） =====
+   ・各便のトラックは1台。左面・右面それぞれ5列＝計10列
+   ・1列ごとに「プロテクター3段積み」か「バッテリーケース2段積み」を選べる（同じ面に混在OK）
+   ・積む順番：①前の便で積みきれず後回しになった分（古い順） → ②その便の受注
+   ・10列に入りきらない分は、未納を出さないよう前の便の空きへスライド（近い便から）。前の便に空きがない時だけ後の便へ回す（後回し）
+   ・自動の前詰めはしない（前詰めは実績の手入力で行う） */
+/* 各便の空け列（他の荷物用）と、あふれ分の移動先（prev＝前の便／next＝後の便） */
+function resv(key){return Math.max(0,Math.min(colsOfS(),(S&&S.reserve&&S.reserve[key])||0));}
+function colsOfS(){return S&&S.settings?colsOf(S.settings):10;}
+function dirOf(key){return (S&&S.dir&&S.dir[key])||'prev';}
+function colCapOf(set,g){var c=set[g];return c.tiers*(c.depth||1);}
+function colsOf(set){return set.P.cols*2;}
+/* 未納を出さない：1台に積みきれない分は、前の便の空きへスライド（近い便から）。前の便に空きがない時だけ後回し */
+function planDay(slots,orders,actuals,confirmed,old,set,noSlide){
+  var cg={P:colCapOf(set,'P'),B:colCapOf(set,'B')},N=colsOf(set),shift={},res,guard=0;
+  while(true){
+    res=planCore(slots,orders,actuals,confirmed,old,set,shift);
+    if(noSlide||++guard>200)break;
+    var moved=false;
+    for(var j=0;j<slots.length&&!moved;j++){
+      var ov=res.ownLeft[slots[j].key];if(!ov||dirOf(slots[j].key)!=='prev')continue;
+      PARTS.forEach(function(p){var q=ov[p.no]||0;if(!q)return;var g=p.g,h=g==='P'?'B':'P';
+        for(var k=j-1;k>=0&&q>0;k--){var sk2=slots[k].key;if(confirmed[sk2])continue;var tt=res.tot[sk2];
+          var room=(N-resv(sk2)-Math.ceil(tt[h]/cg[h]))*cg[g]-tt[g];var x=Math.min(room,q);if(x<=0)continue;
+          if(!shift[j])shift[j]={};if(!shift[j][p.no])shift[j][p.no]={};shift[j][p.no][k]=(shift[j][p.no][k]||0)+x;
+          tt[g]+=x;q-=x;moved=true;}
+      });
+    }
+    if(!moved)break;
+  }
+  return res;
+}
+function planCore(slots,orders,actuals,confirmed,old,set,shift){
+  var cg={P:colCapOf(set,'P'),B:colCapOf(set,'B')},N=colsOf(set);
+  var queue={};PARTS.forEach(function(p){queue[p.no]=[];});
+  slots.forEach(function(s,i){PARTS.forEach(function(p){var q=(orders[s.key]||{})[p.no]||0;
+    var sh=(shift[i]||{})[p.no]||{};Object.keys(sh).forEach(function(k){var x=Math.min(q,sh[k]);if(x>0){queue[p.no].push({due:+k,src:i,qty:x});q-=x;}});
+    if(q>0)queue[p.no].push({due:i,src:i,qty:q});});});
+  PARTS.forEach(function(p){queue[p.no].sort(function(a,b){return a.due-b.due||a.src-b.src;});});
+  var plan={},warn=[],ownLeft={},totAt={},out={};
+  slots.forEach(function(s,i){
+    if(confirmed[s.key]){
+      var o=old&&old[s.key];
+      plan[s.key]={confirmed:true,parts:o?o.parts:{}};
+      PARTS.forEach(function(p){
+        var a=(actuals[s.key]||{})[p.no]; a=a==null?0:a; var q=queue[p.no];
+        while(a>0&&q.length){var it=q[0],x=Math.min(a,it.qty);it.qty-=x;a-=x;if(!it.qty)q.shift();}
+        if(a>0)warn.push({type:'excess',slot:s.key,part:p.no,qty:a});
+      });
+      totAt[s.key]={P:99999,B:99999};
+      return;
+    }
+    var tot={P:0,B:0},take={};
+    var items=[];PARTS.forEach(function(p){queue[p.no].forEach(function(it){if(it.due<=i)items.push({p:p,it:it});});});
+    items.sort(function(a,b){return a.it.due-b.it.due||a.it.src-b.it.src||a.p.i-b.p.i;});
+    items.forEach(function(o){var g=o.p.g,h=g==='P'?'B':'P';
+      var room=(N-resv(s.key)-Math.ceil(tot[h]/cg[h]))*cg[g]-tot[g];var x=Math.min(room,o.it.qty);if(x<=0)return;
+      o.it.qty-=x;tot[g]+=x;if(!take[o.p.no])take[o.p.no]={};take[o.p.no][o.it.src]=(take[o.p.no][o.it.src]||0)+x;});
+    PARTS.forEach(function(p){queue[p.no]=queue[p.no].filter(function(it){return it.qty>0;});});
+    var parts={};
+    PARTS.forEach(function(p){var tk=take[p.no]||{},x={qty:0,own:0,pull:{},carry:{},out:0,defer:0};
+      Object.keys(tk).forEach(function(src){var v=tk[src],si=+src;x.qty+=v;if(si===i)x.own+=v;else if(si>i){x.pull[slots[si].key]=v;var ok=slots[si].key;if(!out[ok])out[ok]={};out[ok][p.no]=(out[ok][p.no]||0)+v;}else x.carry[slots[si].key]=v;});
+      queue[p.no].forEach(function(it){if(it.due<=i){x.defer+=it.qty;if(it.src===i){if(!ownLeft[s.key])ownLeft[s.key]={};ownLeft[s.key][p.no]=(ownLeft[s.key][p.no]||0)+it.qty;}}});
+      parts[p.no]=x;});
+    plan[s.key]={confirmed:false,parts:parts};totAt[s.key]=tot;
+  });
+  slots.forEach(function(s){var pl=plan[s.key];if(!pl||pl.confirmed)return;PARTS.forEach(function(p){if(pl.parts[p.no])pl.parts[p.no].out=(out[s.key]||{})[p.no]||0;});});
+  PARTS.forEach(function(p){queue[p.no].forEach(function(it){if(it.qty>0)warn.push({type:'short',slot:slots[it.due].key,part:p.no,qty:it.qty});});});
+  return {plan:plan,warn:warn,ownLeft:ownLeft,tot:totAt};
+}
+/* 箱を列に並べる：プロテクターの列（3段）を左面の前から、続けてバッテリーの列（2段） */
+function buildTruck(by,set,rv){
+  var cg={P:colCapOf(set,'P'),B:colCapOf(set,'B')},NN=colsOf(set),C=set.P.cols,cols=[],N=NN-(rv||0);
+  ['P','B'].forEach(function(g){for(var k=0;k<by[g].length;k+=cg[g])cols.push({g:g,cells:by[g].slice(k,k+cg[g])});});
+  var over=0;cols.slice(N).forEach(function(c){over+=c.cells.length;});cols=cols.slice(0,N);
+  var fill=0,used=0;cols.forEach(function(c){fill+=c.cells.length/cg[c.g];used+=c.cells.length;});
+  while(cols.length<N)cols.push({g:null,cells:[]});
+  var colsUsed=cols.filter(function(c){return c.g;}).length;
+  while(cols.length<NN)cols.push({g:'R',cells:[]}); // 空け列（他の荷物）は荷台の後ろ側
+  return {sides:[cols.slice(0,C),cols.slice(C,NN)],over:over,fill:N>0?fill/N:0,used:used,colsUsed:colsUsed,N:N,rv:rv||0};
+}
+/* 比較用：受注どおりの場合の結果 */
+function baseline(slots,orders,set){var r=planDay(slots,orders,{},{},null,set,true),ff=0,n=0,def=0;
+  slots.forEach(function(s){var pl=r.plan[s.key],by={P:[],B:[]};PARTS.forEach(function(p){for(var k=0;k<pl.parts[p.no].qty;k++)by[p.g].push({p:p.i,k:'own'});def+=pl.parts[p.no].defer;});ff+=buildTruck(by,set).fill;n++;});
+  return {fill:n?ff/n:0,defer:def,short:r.warn.filter(function(w){return w.type==='short';}).reduce(function(a,w){return a+w.qty;},0)};}
+
+/* ===== 実績の判定 ===== */
+function slotActual(key){return S.actuals[key]||{};}
+/* 実績は最初「予定数」を表示。1つでも入力（または「予定どおり」）した便は確定とみなし、未入力の品番は予定数を実績とする */
+function isConfirmed(key){var a=slotActual(key);return PARTS.some(function(p){return a[p.no]!=null;});}
+function planQty(pl,part){return pl&&pl.parts[part]?pl.parts[part].qty:0;}
+function effAct(key,part,pl){var v=slotActual(key)[part];return v!=null?v:planQty(pl,part);}
+/* 前日出荷済み（範囲の最初の便だけ）：ONの時、その便の不足分は前日に出荷済みとして扱い、後の便へ遅れとして回さない */
+function firstKey(){var ss=S.day?slotsOf(S.day):[];return ss.length?ss[0].key:null;}
+function preOn(key){return !!(S.preShip&&S.preShip[key])&&firstKey()===key;}
+function preAmt(key,part,pl){return preOn(key)?Math.max(0,planQty(pl,part)-effAct(key,part,pl)):0;}
+function slotState(key,dp){
+  var pl=dp.plan[key];var a=slotActual(key);
+  var planned=0;PARTS.forEach(function(p){planned+=(pl&&pl.parts[p.no]?pl.parts[p.no].qty:0);});
+  if(!isConfirmed(key))return planned>0?'pending':'none';
+  var mis=PARTS.some(function(p){return effAct(key,p.no,pl)+preAmt(key,p.no,pl)!==planQty(pl,p.no);});
+  return mis?'abs':'ok';
+}
+
+/* ===== 計画の作成・再算出 ===== */
+/* 最初の計画＝受注どおり（取込時、実績にも受注数をそのまま入れる。積みきれない便は赤で注記） */
+function ensurePlan(day,force){
+  if(!day)return null;
+  var dp=S.plans[day];
+  if(dp&&!force)return dp;
+  var slots=slotsOf(day),orders=ordersAt(slots),plan={};
+  slots.forEach(function(s){var parts={};PARTS.forEach(function(p){var q=(orders[s.key]||{})[p.no]||0;parts[p.no]={qty:q,own:q,pull:{},carry:{},out:0,defer:0};});plan[s.key]={confirmed:false,parts:parts};});
+  dp={plan:plan,warn:[],absorbed:{},recalcAt:null,base:baseline(slots,orders,S.settings)};
+  S.plans[day]=dp;save();return dp;
+}
+/* fromIdx便から後ろ（ロック以外）を組み直し、実績に入れる。
+   ・fromIdxより前の便とロック中の便は、今の実績のまま固定
+   ・各便の空け列を引いた列数で積む。あふれ分は「前の便」設定なら前の便の空きへスライド、「後の便」設定なら後ろへ回す
+   ・allowBack：fromIdxより前（ロックなし）の便の空きにもスライドしてよい（各便の再算出） */
+function replan(fromIdx,allowBack,skipKey){
+  var day=S.day;if(!day)return;var dp=ensurePlan(day),slots=slotsOf(day),orders=ordersAt(slots),set=S.settings;
+  var cg={P:colCapOf(set,'P'),B:colCapOf(set,'B')},N=colsOf(set);
+  for(var it=0;it<60;it++){
+    var conf={},eff={};
+    slots.forEach(function(s){if(s.idx<fromIdx||isLocked(s.key)){conf[s.key]=true;eff[s.key]={};PARTS.forEach(function(p){eff[s.key][p.no]=effAct(s.key,p.no,dp.plan[s.key])+preAmt(s.key,p.no,dp.plan[s.key]);});}});
+    var res=planDay(slots,orders,eff,conf,dp.plan,set);
+    dp.plan=res.plan;dp.warn=res.warn;
+    slots.forEach(function(s){if(conf[s.key])return;if(!S.actuals[s.key])S.actuals[s.key]={};PARTS.forEach(function(p){S.actuals[s.key][p.no]=planQty(res.plan[s.key],p.no);});});
+    if(!allowBack||fromIdx===0)break;
+    var changed=false;
+    slots.forEach(function(s){if(conf[s.key]||dirOf(s.key)!=='prev')return;
+      PARTS.forEach(function(p){var d=(res.ownLeft[s.key]||{})[p.no]||0;if(!d)return;var g=p.g,h=g==='P'?'B':'P';
+        for(var k=fromIdx-1;k>=0&&d>0;k--){var ks=slots[k].key;if(isLocked(ks)||ks===skipKey)continue;
+          var tt={P:0,B:0};PARTS.forEach(function(q){tt[q.g]+=effAct(ks,q.no,dp.plan[ks]);});
+          var room=(N-resv(ks)-Math.ceil(tt[h]/cg[h]))*cg[g]-tt[g],x=Math.min(room,d);if(x<=0)continue;
+          if(!S.actuals[ks])S.actuals[ks]={};S.actuals[ks][p.no]=effAct(ks,p.no,dp.plan[ks])+x;
+          var pk=dp.plan[ks];if(!pk.parts[p.no])pk.parts[p.no]={qty:0,own:0,pull:{},carry:{},out:0,defer:0};var pp=pk.parts[p.no];pp.qty+=x;pp.pull[s.key]=(pp.pull[s.key]||0)+x;d-=x;changed=true;}
+      });});
+    if(!changed)break;
+  }
+  dp.absorbed={};dp.recalcAt=new Date().toISOString();save();render();
+}
+function idxOf(key){var ss=slotsOf(S.day);for(var i=0;i<ss.length;i++)if(ss[i].key===key)return i;return 0;}
+/* 実績を手で変えた後：その便より後ろ（ロックなし）を自動で組み直す */
+function propagate(key){
+  var ss=slotsOf(S.day),q=slotByKey(ss,key),i=idxOf(key),msg='';
+  /* 「あふれ分の移動先＝前の便」の時：予定より減らした分を、ロックしていない前の便の空きへ回す（近い便から） */
+  if(dirOf(key)==='prev'&&i>0){
+    var dp=ensurePlan(S.day),pl=dp.plan[key],set=S.settings,cg={P:colCapOf(set,'P'),B:colCapOf(set,'B')},N=colsOf(set),movedAll=0,leftAll=0;
+    PARTS.forEach(function(p){var d=planQty(pl,p.no)-effAct(key,p.no,pl);if(d<=0)return;var g=p.g,h=g==='P'?'B':'P';
+      for(var k=i-1;k>=0&&d>0;k--){var ks=ss[k].key;if(isLocked(ks))continue;
+        var tt={P:0,B:0};PARTS.forEach(function(x){tt[x.g]+=effAct(ks,x.no,dp.plan[ks]);});
+        var room=(N-resv(ks)-Math.ceil(tt[h]/cg[h]))*cg[g]-tt[g],x=Math.min(room,d);if(x<=0)continue;
+        if(!S.actuals[ks])S.actuals[ks]={};S.actuals[ks][p.no]=effAct(ks,p.no,dp.plan[ks])+x;
+        var pk=dp.plan[ks];if(!pk.parts[p.no])pk.parts[p.no]={qty:0,own:0,pull:{},carry:{},out:0,defer:0};var pp=pk.parts[p.no];pp.qty+=x;pp.pull[key]=(pp.pull[key]||0)+x;
+        var me=pl.parts[p.no];me.qty-=x;me.out=(me.out||0)+x;d-=x;movedAll+=x;}
+      leftAll+=d;});
+    if(movedAll)msg=(lang==='ja'?movedAll+'箱を前の便へ回しました':'Moved '+movedAll+' to earlier trips');
+    if(leftAll)msg+=(msg?'。':'')+(lang==='ja'?'前の便に空きがない'+leftAll+'箱は、後ろの便へ回しました':leftAll+' moved to later trips (no room earlier)');
+  }
+  replan(i+1,true,key); // 後ろの便のあふれも「前の便」設定なら前へ（数を変えた便は動かさない）
+  if(msg)toast(msg);else if(q&&q.idx<ss.length-1)toast(lang==='ja'?slotLabel(q)+'の実績を次の便以降に反映しました':t('recalc')+' ✓');
+}
+function recalc(fromKey,quiet){if(fromKey)propagate(fromKey);else calcAll();}
+function calcAll(){replan(0,true);toast(lang==='ja'?'荷物を算出しました（前詰め・未納なし）':t('calcAll')+' ✓');}
+function recalcSlot(key){var q=slotByKey(slotsOf(S.day),key);replan(idxOf(key),true);toast(lang==='ja'?(q?slotLabel(q):'')+'から後ろを組み直しました':t('recalc')+' ✓');var el=$('slot-'+key);if(el)el.scrollIntoView({block:'nearest'});}
+
+/* ===== 描画 ===== */
+var $=function(id){return document.getElementById(id);};
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+function slotLabel(s){return t('bin',{n:s.bin});}
+function slotByKey(slots,k){for(var i=0;i<slots.length;i++)if(slots[i].key===k)return slots[i];return null;}
+
+function render(){
+  document.documentElement.lang=lang;
+  document.querySelectorAll('[data-i]').forEach(function(el){el.textContent=t(el.getAttribute('data-i'));});
+  document.title=t('title');
+  try{fillSlideUI();}catch(e){}
+  var day=S.day,has=S.orders.length>0;
+  var days=daysList();
+  $('daysel').hidden=!has||days.length<1;
+  var curDay=null;days.forEach(function(d){if(rangeOfDay(d)===day)curDay=d;});
+  $('day').innerHTML=(curDay?'':'<option value="">'+(lang==='ja'?'範囲指定':'Custom')+'</option>')+days.map(function(d){return '<option value="'+d+'"'+(d===curDay?' selected':'')+'>'+d.replace(/-/g,'/')+(lang==='ja'?'（'+S.settings.startBin+'便〜翌'+(S.settings.startBin-1)+'便）':'')+'</option>';}).join('');
+  var all=allSlots(),rr=day&&day.indexOf('~')>=0?day.split('~'):['',''];
+  var opt=function(sel){return all.map(function(o){return '<option value="'+o.key+'"'+(o.key===sel?' selected':'')+'>'+md(o.date)+' '+t('bin',{n:o.bin})+'</option>';}).join('');};
+  $('rFrom').innerHTML=opt(rr[0]);$('rTo').innerHTML=opt(rr[1]);
+  $('verchip').textContent='ver '+VER;
+  document.querySelector('[data-i="flow"]').textContent=t('flowT')+'（'+rangeLabel(day)+'）';
+  $('meta').textContent=has?((S.meta.fileName||'')+(S.meta.importedAt?'　取込 '+S.meta.importedAt.replace('T',' ').slice(0,16):'')+'　対象行 '+(S.meta.rows||0)+'　対象外 '+(S.meta.ignored||0)+(S.meta.bad?'　読めない行 '+S.meta.bad:'')):'';
+  $('sampleNote').innerHTML=S.meta.sample?'<div class="sample">表示中は<b>サンプルデータ</b>です（実データではありません）。「受注CSVを取込む」で実際の受注に置き換わります。</div>':'';
+  $('bRecalc').disabled=!has;$('bWork').disabled=!has;$('bClrAll').disabled=!has;$('bExport').disabled=!has;
+  $('flowH').hidden=!has||!day;
+  if(!has||!day){$('andon').innerHTML='<div class="andon warn"><span class="lamp"></span><div class="msg">'+t('aEmpty')+'</div></div>';$('kpis').innerHTML='';$('flow').innerHTML='';$('slots').innerHTML='';$('legend').innerHTML='';renderSteps(0);return;}
+  var dp=ensurePlan(day),slots=slotsOf(day),orders=ordersAt(slots);
+  var states={};slots.forEach(function(s){states[s.key]=slotState(s.key,dp);});
+  renderAndon(dp,slots,states);
+  renderKpis(dp,slots,orders,states);
+  renderFlow(dp,slots,states);
+  renderLegend();
+  $('slots').innerHTML=slots.map(function(s){return slotCard(s,dp,slots,orders,states[s.key]);}).join('');
+  var anyAct=slots.some(function(s){return states[s.key]!=='pending'&&states[s.key]!=='none';});
+  var anyNg=slots.some(function(s){return states[s.key]==='ng';});
+  renderSteps(anyNg?4:anyAct?3:2);
+  $('fver').textContent='積載効率プランナー ver '+VER;
+}
+function renderSteps(n){var li=document.querySelectorAll('#steps li');li.forEach(function(el,i){el.className=i+1<n?'done':i+1===n?'on':'';});}
+function renderAndon(dp,slots,states){
+  var ng=slots.filter(function(s){return states[s.key]==='ng';});
+  var shorts=dp.warn.filter(function(w){return w.type==='short';}),ex=dp.warn.filter(function(w){return w.type==='excess';});
+  var h='';
+  if((S.slides||[]).length){h+='<div class="andon slide" style="margin-bottom:8px"><span class="lamp"></span><div class="msg">'+t('slideA')+'<ul>'+S.slides.map(function(sl){return '<li>'+(sl.part==='*'?t('allParts'):sl.part)+'　'+slotName(sl.from)+' → '+slotName(sl.to)+'　'+(sl.qty==null?t('allQty'):sl.qty+'箱')+(sl.memo?'　（'+esc(sl.memo)+'）':'')+'</li>';}).join('')+'</ul></div></div>';}
+  if(S.meta&&S.meta.gap)h+='<div class="andon ng" style="margin-bottom:8px"><span class="lamp"></span><div class="msg">'+esc(gapMsg(S.meta.needFrom,S.meta.minD))+'<ul><li>かんばんは2週間前から発行されるため、受注データが足りない可能性があります。EDIの受注日の範囲を広げてダウンロードし直してください。</li></ul></div></div>';
+  if(ng.length){h+='<div class="andon ng"><span class="lamp"></span><div class="msg">'+t('aNg',{n:ng.length})+'<ul>'+ng.map(function(s){return '<li>'+md(s.date)+' '+slotLabel(s)+'</li>';}).join('')+'</ul></div><button class="btn ng" type="button" data-act="recalc">↻ '+t('calcAll')+'</button></div>';}
+  if(shorts.length){h+='<div class="andon ng" style="margin-top:8px"><span class="lamp"></span><div class="msg">'+t('aShort')+'<ul>'+shorts.map(function(w){var s=slotByKey(slots,w.slot);return '<li>'+w.part+'　'+w.qty+'箱（'+md(s.date)+' '+slotLabel(s)+'）</li>';}).join('')+'</ul></div></div>';}
+  var df=[];slots.forEach(function(s){var pl=dp.plan[s.key];if(!pl||pl.confirmed)return;var n=0;PARTS.forEach(function(p){n+=pl.parts[p.no]?pl.parts[p.no].defer:0;});if(n)df.push({s:s,n:n});});
+  if(df.length){h+='<div class="andon warn" style="margin-top:8px"><span class="lamp"></span><div class="msg">'+t('aDefer')+'<ul>'+df.map(function(d){return '<li>'+md(d.s.date)+' '+slotLabel(d.s)+'　'+d.n+'箱 → '+t('nextBin')+'</li>';}).join('')+'</ul></div></div>';}
+  var ords=ordersAt(slots),ovs=[];slots.forEach(function(s){var pl=dp.plan[s.key];if(!pl)return;var L=actualLayout(s,pl,ords);if(L.over)ovs.push({s:s,n:L.over});});
+  if(ovs.length){h+='<div class="andon ng" style="margin-top:8px"><span class="lamp"></span><div class="msg">'+t('aOver')+'<ul>'+ovs.map(function(o){return '<li>'+md(o.s.date)+' '+slotLabel(o.s)+'　+'+o.n+'箱</li>';}).join('')+'</ul></div></div>';}
+  if(ex.length){h+='<div class="andon warn" style="margin-top:8px"><span class="lamp"></span><div class="msg">'+t('aExcess')+'<ul>'+ex.map(function(w){var s=slotByKey(slots,w.slot);return '<li>'+w.part+'　+'+w.qty+'箱（'+md(s.date)+' '+slotLabel(s)+'）</li>';}).join('')+'</ul></div></div>';}
+  if(!h)h='<div class="andon ok"><span class="lamp"></span><div class="msg">'+t('aOk')+'</div></div>';
+  $('andon').innerHTML=h;
+}
+function renderKpis(dp,slots,orders,states){
+  var P=0,B=0;slots.forEach(function(s){PARTS.forEach(function(p){var q=(orders[s.key]||{})[p.no]||0;if(p.g==='P')P+=q;else B+=q;});});
+  var n=0,fillSum=0,pull=0;slots.forEach(function(s){var pl=dp.plan[s.key];if(!pl)return;var L=actualLayout(s,pl,orders);n++;fillSum+=L.fill;pull+=L.hand;});
+  var avg=n?Math.round(fillSum/n*100):0,b=dp.base||{fill:0,defer:0,short:0},bf=Math.round(b.fill*100);
+  var short=dp.warn.filter(function(w){return w.type==='short';}).reduce(function(a,w){return a+w.qty;},0);
+  var dfT=0;slots.forEach(function(s){var pl=dp.plan[s.key];if(pl&&!pl.confirmed)PARTS.forEach(function(p){dfT+=pl.parts[p.no]?pl.parts[p.no].defer||0:0;});});
+  var conf=slots.filter(function(s){return states[s.key]==='ok'||states[s.key]==='ng'||states[s.key]==='abs';}).length;
+  var need=slots.filter(function(s){return states[s.key]!=='none';}).length;
+  $('kpis').innerHTML=
+   '<div class="kpi hero"><div class="l">'+t('kFill')+'</div><div class="v"><b>'+avg+'</b><small>%</small></div><div class="s">'+t('kBaseFill')+' '+bf+'%　'+(avg>bf?'▲'+(avg-bf)+'pt':'')+'</div></div>'+
+   '<div class="kpi"><div class="l">'+t('defer')+'</div><div class="v" style="color:'+(dfT?'var(--ng)':'var(--ok)')+'">'+dfT+'<small> 箱</small></div><div class="s">'+t('kBaseFill')+' '+b.defer+' 箱 ／ '+t('kPull')+' '+pull+' 箱</div></div>'+
+   '<div class="kpi"><div class="l">'+t('kShort')+'</div><div class="v" style="color:'+(short?'var(--ng)':'var(--ok)')+'">'+short+'<small> 箱</small></div><div class="s">'+t('kBaseFill')+' '+b.short+' 箱</div></div>'+
+   '<div class="kpi"><div class="l">'+t('kBoxes')+'</div><div class="v">'+(P+B)+'<small> 箱</small></div><div class="s">'+t('P')+' '+P+' ／ '+t('B')+' '+B+'</div></div>'+
+   '<div class="kpi"><div class="l">'+t('kDone')+'</div><div class="v">'+conf+'<small> / '+need+'</small></div><div class="meter"><i style="width:'+(need?conf/need*100:0)+'%"></i></div></div>';
+}
+function renderFlow(dp,slots,states){
+  var orders=ordersAt(slots);
+  $('flow').innerHTML=slots.map(function(s){var pl=dp.plan[s.key];var st=states[s.key];
+    var f=pl?actualLayout(s,pl,orders).fill:0,def=0;if(pl&&!pl.confirmed)PARTS.forEach(function(p){def+=pl.parts[p.no]?pl.parts[p.no].defer:0;});
+    var dcls=st==='ok'?'ok':st==='ng'?'ng':st==='abs'?'abs':'pending';
+    return '<button type="button" class="fchip'+(s.date!==slots[0].date?' day2':'')+'" data-go="'+s.key+'"><span class="dot '+dcls+'"></span><span class="t">'+slotLabel(s)+'</span><span class="d">'+md(s.date)+'</span><span class="bars"><i style="max-width:none"><b class="'+(f<.75?'lo':'')+'" style="height:'+Math.round(f*100)+'%"></b></i></span><span class="n">'+Math.round(f*100)+'%'+(def?'　<span style="color:var(--ng)">'+t('defer')+def+'</span>':'')+'</span></button>';}).join('');
+}
+function renderLegend(){
+  $('legend').innerHTML=PARTS.map(function(p){return '<span><i class="sw" style="background:var('+p.c+')"></i>'+p.no+'</span>';}).join('')+
+   '<span><i class="sw pull" style="background:var(--muted)"></i>'+t('legPull')+'</span><span><i class="sw carry" style="background:var(--muted)"></i>'+t('legCarry')+'</span><span><i class="sw" style="background:var(--empty);border:1px dashed var(--line)"></i>'+t('legEmpty')+'</span>';
+}
+/* 片面＝5列。プロテクター列は3マス、バッテリー列は同じ高さを2分割して表示（下から積む） */
+function sideHTML(cols,label){
+  var html=cols.map(function(c){
+    if(!c.g)return '<div class="col empty"></div>';
+    if(c.g==='R')return '<div class="col resv">'+t('other')+'</div>';
+    var cg=colCapOf(S.settings,c.g),dep=S.settings[c.g].depth||1,slots=cg/dep,cells='';
+    for(var k=0;k<slots;k++){var bx=c.cells.slice(k*dep,(k+1)*dep);
+      if(!bx.length){cells+='<div class="cell"></div>';continue;}
+      var b=bx[0],p=PARTS[b.p];cells+='<div class="cell f '+(b.k==='own'?'':b.k)+'" style="background:var('+p.c+')">'+p.lab+(dep>1?'×'+bx.length:'')+'</div>';}
+    return '<div class="col g'+c.g+'">'+cells+'</div>';}).join('');
+  var nP=0,nB=0,bP=0,bB=0;cols.forEach(function(c){if(c.g==='P'){nP++;bP+=c.cells.length;}else if(c.g==='B'){nB++;bB+=c.cells.length;}});
+  var sum=(nP?t('P')+' '+bP+'箱<br>':'')+(nB?t('B')+' '+bB+'箱':'')+(!nP&&!nB?t('legEmpty'):'');
+  return '<div class="side"><span class="lab">'+label+'</span><div class="cols" style="--c:'+cols.length+'">'+html+'</div><span class="sum">'+sum+'</span></div>';
+}
+/* 積付図＝実績（未入力は予定数）の箱を並べる。遅れ分→受注分→受注を超えて手入力で足した分（ハッチング） */
+function actualLayout(s,pl,orders){
+  var by={P:[],B:[]},tot={P:0,B:0},hand=0;
+  PARTS.forEach(function(p){var r=(pl&&pl.parts[p.no])||{carry:{}},a=effAct(s.key,p.no,pl),od=(orders[s.key]||{})[p.no]||0,ca=0;
+    Object.keys(r.carry||{}).forEach(function(k){ca+=r.carry[k];});
+    var nC=Math.min(a,ca),nO=Math.min(a-nC,od),nH=a-nC-nO,n;hand+=nH;
+    for(n=0;n<nC;n++)by[p.g].push({p:p.i,k:'carry'});for(n=0;n<nO;n++)by[p.g].push({p:p.i,k:'own'});for(n=0;n<nH;n++)by[p.g].push({p:p.i,k:'pull'});
+    tot[p.g]+=a;});
+  var T=buildTruck(by,S.settings,resv(s.key));
+  return {tr:T.sides,over:T.over,hand:hand,fill:T.fill,T:T};
+}
+function truckHTML(s,pl,orders){
+  var L=actualLayout(s,pl,orders),conf=isConfirmed(s.key);
+  return '<div><div class="truck"><div class="cab"><span class="win"></span><span>#1</span></div><div class="deck">'+sideHTML(L.tr[0],t('left'))+sideHTML(L.tr[1],t('right'))+'</div></div>'+
+    '<div class="truck-cap">'+(conf?'【'+t('actual')+'】':'【'+t('plan')+'】')+t('fill')+' '+Math.round(L.fill*100)+'%（'+L.T.used+'箱・'+L.T.colsUsed+'/'+L.T.N+'列'+(L.T.rv?'・'+L.T.rv+'列空け':'')+'）'+(L.hand?'　<span style="color:var(--p1)">'+t('legPull')+' '+L.hand+'箱</span>':'')+(L.over?'　<b style="color:var(--ng)">'+t('overT',{n:L.over})+'</b>':'')+'</div></div>';
+}
+function slotCard(s,dp,slots,orders,st){
+  var pl=dp.plan[s.key]||{parts:{},trucks:[]},a=slotActual(s.key);
+  var pillMap={ok:['ok','stOk'],ng:['ng','stNg'],abs:['abs','stAbs'],pending:['pending','stPend'],none:['pending','stNone']};
+  var pm=pillMap[st],lk=isLocked(s.key);
+  var nTr=1,fs=0,defN=0;if(!pl.confirmed)PARTS.forEach(function(p){defN+=pl.parts[p.no]?pl.parts[p.no].defer||0:0;});
+  var LA=actualLayout(s,pl,orders);fs=LA.fill;nTr=1;
+  var trucksHTML='<div id="trk-'+s.key+'">'+truckHTML(s,pl,orders)+'</div>';
+  var rows=PARTS.map(function(p){
+    var r=pl.parts[p.no]||{qty:0,pull:{},carry:{}},od=(orders[s.key]||{})[p.no]||0,v=a[p.no];
+    var subs='';
+    Object.keys(r.pull||{}).forEach(function(k){var ss=slotByKey(slots,k);subs+='<span class="sub pull">'+t('pulled')+' +'+r.pull[k]+'（'+t('from',{b:ss?slotLabel(ss):k})+'）</span>';});
+    Object.keys(r.carry||{}).forEach(function(k){var ss=slotByKey(slots,k);subs+='<span class="sub carry">'+t('carry')+' +'+r.carry[k]+'（'+(ss?slotLabel(ss):k)+'）</span>';});
+    if(r.out)subs+='<span class="sub pull">'+t('toPrev')+' −'+r.out+'</span>';
+    ((SLIDE.out[s.key]||{})[p.no]||[]).forEach(function(z){subs+='<span class="sub slide">⇄ '+t('slideL')+' −'+z.q+'（→'+slotName(z.to)+'）</span>';});
+    ((SLIDE.in[s.key]||{})[p.no]||[]).forEach(function(z){subs+='<span class="sub slide">⇄ '+t('slideL')+' +'+z.q+'（'+slotName(z.from)+'より）</span>';});
+    var early=pl.confirmed?0:od-(r.own||0)-(r.defer||0)-(r.out||0);
+    if(early>0)subs+='<span class="sub pull">'+t('early')+' −'+early+'</span>';
+    if(r.defer&&!pl.confirmed)subs+='<span class="sub carry">'+t('defer')+' '+r.defer+' → '+t('nextBin')+'</span>';
+    var conf=isConfirmed(s.key),ev=v!=null?v:r.qty;
+    var pa=conf?preAmt(s.key,p.no,pl):0;
+    var j=!conf?(r.qty>0?'<span class="j pending">'+t('pending')+'</span>':''):(pa>0?'<span class="j prev">● '+t('preDone')+' '+pa+'</span>':(ev===r.qty?'<span class="j ok">● '+t('ok')+'</span>':'<span class="j ng">▲ '+t('ng')+' '+(ev-r.qty>0?'+':'')+(ev-r.qty)+'</span>'));
+    var ic=!conf?'pre':(ev+pa===r.qty?'ok':'ng');
+    var dim=!od&&!r.qty&&v==null;
+    return '<tr class="'+(dim?'dim':'')+'"><td><div class="pno"><i class="sw" style="background:var('+p.c+')"></i><div>'+p.no+'<small>'+t(p.g)+'</small></div></div></td><td class="num">'+od+'</td><td><span class="plan">'+r.qty+'</span>'+subs+'</td><td><span class="act"><button type="button" data-step="-1" data-k="'+s.key+'" data-p="'+p.i+'" aria-label="−1">−</button><input id="a-'+s.key+'-'+p.i+'" class="'+ic+'" type="number" min="0" inputmode="numeric" value="'+ev+'" data-k="'+s.key+'" data-p="'+p.i+'" aria-label="'+p.no+' '+t('actual')+'"><button type="button" data-step="1" data-k="'+s.key+'" data-p="'+p.i+'" aria-label="+1">＋</button></span></td><td id="j-'+s.key+'-'+p.i+'">'+j+'</td></tr>';
+  }).join('');
+  return '<section class="slot st-'+st+(lk?' locked':'')+'" id="slot-'+s.key+'">'+
+   '<div class="slot-h"><div class="slot-name"><b>'+slotLabel(s)+'</b><span>'+md(s.date)+'</span></div>'+
+   (nTr?'<span class="pill">'+t('fill')+' '+Math.round(fs/nTr*100)+'%</span>':'')+(defN?'<span class="pill ng">'+t('defer')+' '+defN+'箱</span>':'')+
+   '<span class="pill '+pm[0]+'">'+t(pm[1])+'</span><span class="sp"></span>'+
+   '<button class="btn sm lockbtn'+(lk?' on':'')+'" type="button" data-lock="'+s.key+'" aria-pressed="'+lk+'">'+(lk?'🔒 '+t('locked'):'🔓 '+t('lock'))+'</button>'+
+   '<fieldset class="fs"'+(lk?' disabled':'')+'>'+
+   '<button class="btn sm '+(LA.over?'ng':'ghost')+'" type="button" data-rc="'+s.key+'"'+''+'>↻ '+t('recalc')+'</button>'+
+   (s.idx===0?'<button class="btn sm prevbtn'+(preOn(s.key)?' on':'')+'" type="button" data-pre="'+s.key+'" aria-pressed="'+preOn(s.key)+'" title="'+t('preHint')+'">📦 '+t('preBtn')+(preOn(s.key)?' ON':'')+'</button>':'')+
+   '<button class="btn sm" type="button" data-fill="'+s.key+'">✓ '+t('asPlan')+'</button><button class="btn sm ghost" type="button" data-clr="'+s.key+'">'+t('clear')+'</button></fieldset></div>'+
+   '<div class="slot-b"><div class="trucks">'+trucksHTML+'</div><fieldset class="fs tbl-wrap"'+(lk?' disabled':'')+'>'+
+   '<div class="ctl"><span class="ctl-l">'+t('resvL')+'</span><span class="stp"><button type="button" data-res="'+s.key+'" data-d="-1" aria-label="−1">−</button><b>'+resv(s.key)+'</b><button type="button" data-res="'+s.key+'" data-d="1" aria-label="+1">＋</button></span><span class="ctl-u">'+t('cols')+'</span>'+
+   '<span class="ctl-l">'+t('dirL')+'</span><span class="seg"><button type="button" class="'+(dirOf(s.key)==='prev'?'on':'')+'" data-dir="'+s.key+'" data-v="prev">◀ '+t('dirPrev')+'</button><button type="button" class="'+(dirOf(s.key)==='next'?'on':'')+'" data-dir="'+s.key+'" data-v="next">'+t('dirNext')+' ▶</button></span></div>'+
+   '<table class="rows"><thead><tr><th>品番</th><th>'+t('order')+'</th><th>'+t('plan')+'</th><th style="text-align:center">'+t('actual')+'</th><th>'+t('judge')+'</th></tr></thead><tbody>'+rows+'</tbody></table>'+extraHTML(s)+'</fieldset></div></section>';
+}
+
+/* ===== イレギュラー積載（5品番以外・手入力）：積付図と計算には入れない ===== */
+function extrasOf(key){if(!S.extras)S.extras={};if(!S.extras[key]||!S.extras[key].length)S.extras[key]=[{no:'',qty:null}];return S.extras[key];}
+function extraHTML(s){
+  var list=extrasOf(s.key);
+  var rows=list.map(function(x,i){return '<div class="ex-row"><input type="text" id="exn-'+s.key+'-'+i+'" class="ex-no" data-ek="'+s.key+'" data-ei="'+i+'" data-ef="no" value="'+esc(x.no||'')+'" placeholder="'+t('exPart')+'" autocomplete="off" aria-label="'+t('exPart')+'">'+
+    '<input type="number" id="exq-'+s.key+'-'+i+'" class="ex-qty" min="0" inputmode="numeric" data-ek="'+s.key+'" data-ei="'+i+'" data-ef="qty" value="'+(x.qty==null?'':x.qty)+'" placeholder="'+t('actual')+'" aria-label="'+t('actual')+'"><span class="ex-u">箱</span>'+
+    '<button type="button" class="ex-del" data-exdel="'+s.key+'" data-ei="'+i+'" aria-label="削除">×</button></div>';}).join('');
+  var n=list.reduce(function(a,x){return a+(x.no&&x.qty?x.qty:0);},0);
+  return '<div class="extra"><div class="ex-h"><b>'+t('exTitle')+'</b><span>'+t('exNote')+'</span>'+(n?'<span class="pill">'+n+'箱</span>':'')+'</div>'+rows+
+    '<button type="button" class="btn sm ghost" data-exadd="'+s.key+'">＋ '+t('exAdd')+'</button></div>';
+}
+document.addEventListener('change',function(e){var el=e.target;if(!el.dataset||!el.dataset.ek)return;
+  var list=extrasOf(el.dataset.ek),x=list[+el.dataset.ei];if(!x)return;
+  if(el.dataset.ef==='no')x.no=el.value.trim().toUpperCase();else x.qty=el.value===''?null:Math.max(0,Math.floor(+el.value));
+  save();var id=el.id;render();var n=$(id);if(n)n.focus();});
+document.addEventListener('click',function(e){var b=e.target.closest('button');if(!b)return;
+  if(b.dataset.exadd){extrasOf(b.dataset.exadd).push({no:'',qty:null});save();render();var l=S.extras[b.dataset.exadd].length-1,n=$('exn-'+b.dataset.exadd+'-'+l);if(n)n.focus();}
+  else if(b.dataset.exdel){var l2=extrasOf(b.dataset.exdel);l2.splice(+b.dataset.ei,1);save();render();}});
+
+/* ===== スライド登録 ===== */
+function fillSlideUI(){
+  var all=S.orders.length?allSlots():[];
+  var cur={part:$('slPart').value,from:$('slFrom').value,to:$('slTo').value};
+  $('slPart').innerHTML=PARTS.map(function(p){return '<option value="'+p.no+'">'+p.no+'（'+t(p.g)+'）</option>';}).join('')+'<option value="*">'+t('allParts')+'</option>';
+  var opt=all.map(function(o){return '<option value="'+o.key+'">'+md(o.date)+' '+t('bin',{n:o.bin})+'</option>';}).join('');
+  $('slFrom').innerHTML=opt;$('slTo').innerHTML=opt+'<option value="CUSTOM">日付・便を入力…</option><option value="HOLD">'+t('hold')+'</option>';
+  if(cur.part)$('slPart').value=cur.part;if(cur.from)$('slFrom').value=cur.from;if(cur.to)$('slTo').value=cur.to;
+  $('slCustom').hidden=$('slTo').value!=='CUSTOM';
+  var L=S.slides||[];
+  $('slList').innerHTML=L.length?L.map(function(sl,i){return '<div class="sl-row"><span>⇄</span><b>'+(sl.part==='*'?t('allParts'):sl.part)+'</b><span>'+slotName(sl.from)+' → <b>'+slotName(sl.to)+'</b></span><span>'+(sl.qty==null?t('allQty'):sl.qty+'箱')+'</span>'+(sl.memo?'<span class="meta">'+esc(sl.memo)+'</span>':'')+'<span style="flex:1"></span><button class="btn sm ghost" type="button" data-sldel="'+i+'">取消</button></div>';}).join(''):'<div class="meta">登録されたスライドはありません。</div>';
+  if(L.length)$('pSlide').open=true;
+}
+$('slTo').onchange=function(){$('slCustom').hidden=this.value!=='CUSTOM';};
+/* スライドで受注が動いた便は、ロックしていなければ実績を新しい受注数にそろえる */
+function resyncSlots(keys){var eo=EO();keys.forEach(function(k){if(k==='HOLD'||isLocked(k))return;if(!S.actuals[k])S.actuals[k]={};
+  PARTS.forEach(function(p){var o=eo.filter(function(x){return x.key===k&&x.part===p.no;})[0];S.actuals[k][p.no]=o?o.qty:0;});});S.plans={};}
+$('bSlideAdd').onclick=function(){
+  var part=$('slPart').value,from=$('slFrom').value,to=$('slTo').value,qty=$('slQty').value===''?null:Math.floor(+$('slQty').value),memo=$('slMemo').value.trim();
+  if(to==='CUSTOM'){var d=$('slDate').value,b=parseInt($('slBin').value,10);if(!d||!b){$('slMsg').textContent='先の日付と便を入れてください。';return;}to=keyOf(d,b);}
+  if(!from||!to){$('slMsg').textContent='元の便と先の便を選んでください。';return;}
+  if(from===to){$('slMsg').textContent='元の便と先の便が同じです。';return;}
+  if(isLocked(from)){$('slMsg').textContent='元の便はロック中（出荷済み）です。ロックを外してから登録してください。';return;}
+  if(qty!=null&&qty<=0){$('slMsg').textContent='数量は1以上を入れてください。';return;}
+  var eo=EO(),parts=part==='*'?PARTS.map(function(p){return p.no;}):[part];
+  var have=parts.reduce(function(a,pn){var o=eo.filter(function(x){return x.key===from&&x.part===pn;})[0];return a+(o?o.qty:0);},0);
+  if(!have){$('slMsg').textContent='元の便に、この品番の受注がありません。';return;}
+  if(qty!=null&&part!=='*'&&qty>have){$('slMsg').textContent='元の便の受注は'+have+'箱です。それ以下の数を入れてください。';return;}
+  if(!S.slides)S.slides=[];S.slides.push({id:Date.now(),part:part,from:from,to:to,qty:qty,memo:memo});
+  resyncSlots([from,to]);save();$('slQty').value='';$('slMsg').textContent='';
+  render();toast('スライドを登録しました（'+slotName(from)+' → '+slotName(to)+'）');
+};
+document.addEventListener('click',function(e){var b=e.target.closest('button');if(!b||b.dataset.sldel==null)return;var i=+b.dataset.sldel,sl=(S.slides||[])[i];if(!sl)return;
+  confirmBox('このスライドを取り消して、受注どおりに戻しますか？（'+slotName(sl.from)+' → '+slotName(sl.to)+'）',['取り消す','やめる'],function(k){if(k!==0)return;S.slides.splice(i,1);resyncSlots([sl.from,sl.to]);save();render();toast('スライドを取り消しました');});});
+
+/* ===== ロック（誤操作防止）：ロック中はその便の実績・イレギュラー・ボタンを触れない ===== */
+function isLocked(key){return !!(S.locks&&S.locks[key]);}
+document.addEventListener('click',function(e){var b=e.target.closest('button');if(!b||!b.dataset.lock)return;var k=b.dataset.lock;if(!S.locks)S.locks={};
+  if(!isLocked(k)){var pl=S.plans[S.day].plan[k];
+    if(!isConfirmed(k)){PARTS.forEach(function(p){setAct(k,p.i,planQty(pl,p.no));});}  // ロック時は表示中の数で確定
+    S.locks[k]=true;save();recalc(k,true);toast(lang==='ja'?'ロックしました':t('locked'));}
+  else confirmBox(lang==='ja'?'ロックを解除して、実績を変更できるようにしますか？':t('unlockQ'),[lang==='ja'?'解除する':'OK',lang==='ja'?'やめる':'Cancel'],function(i){if(i===0){delete S.locks[k];save();render();}});});
+
+document.addEventListener('click',function(e){var b=e.target.closest('button');if(!b||!b.dataset.pre)return;var k=b.dataset.pre;if(isLocked(k))return;if(!S.preShip)S.preShip={};
+  if(S.preShip[k]){delete S.preShip[k];save();recalc(k,true);toast(lang==='ja'?'前日出荷済みを解除しました':t('preBtn')+' OFF');return;}
+  var pl=S.plans[S.day].plan[k];if(!isConfirmed(k))PARTS.forEach(function(p){setAct(k,p.i,planQty(pl,p.no));});
+  S.preShip[k]=true;save();recalc(k,true);toast(lang==='ja'?'不足分は前日出荷済みとして扱います（後の便へ遅れを回しません）':t('preBtn')+' ON');});
+$('bClrAll').onclick=function(){
+  if(!S.day)return;var ss=slotsOf(S.day),lockedN=ss.filter(function(x){return isLocked(x.key);}).length;
+  confirmBox('表示中の範囲の実績を受注数に戻します（イレギュラー・前日出荷済み・空け列もクリア）。'+(lockedN?'ロック中の'+lockedN+'便はそのまま残します。':''),['クリアする','やめる'],function(i){if(i!==0)return;
+    var od=ordersAt(ss);ss.forEach(function(x){if(isLocked(x.key))return;S.actuals[x.key]={};PARTS.forEach(function(p){S.actuals[x.key][p.no]=(od[x.key]||{})[p.no]||0;});if(S.extras)delete S.extras[x.key];if(S.preShip)delete S.preShip[x.key];if(S.reserve)delete S.reserve[x.key];if(S.dir)delete S.dir[x.key];});
+    delete S.plans[S.day];save();render();toast('実績を受注数に戻しました');});};
+
+/* ===== 実績入力 ===== */
+function setAct(key,pi,val){var p=PARTS[pi].no;if(!S.actuals[key])S.actuals[key]={};if(val==null||val==='')delete S.actuals[key][p];else S.actuals[key][p]=Math.max(0,Math.floor(+val));save();}
+document.addEventListener('click',function(e){
+  var b=e.target.closest('button');if(!b)return;
+  if(b.dataset.step){var k=b.dataset.k,pi=+b.dataset.p,pl=S.plans[S.day].plan[k];
+    // 初めて触る便は、他の品番も予定数で確定してから＋−する
+    if(!isConfirmed(k))PARTS.forEach(function(p){setAct(k,p.i,planQty(pl,p.no));});
+    var cur=effAct(k,PARTS[pi].no,pl);setAct(k,pi,Math.max(0,cur+(+b.dataset.step)));propagate(k);}
+  else if(b.dataset.fill){var k2=b.dataset.fill,pl2=S.plans[S.day].plan[k2];PARTS.forEach(function(p){setAct(k2,p.i,planQty(pl2,p.no));});propagate(k2);}
+  else if(b.dataset.clr){var k3=b.dataset.clr,od3=ordersAt(slotsOf(S.day))[k3]||{};PARTS.forEach(function(p){setAct(k3,p.i,od3[p.no]||0);});propagate(k3);toast(lang==='ja'?'受注数に戻しました':t('clear'));}
+  else if(b.dataset.res){var k4=b.dataset.res;if(!S.reserve)S.reserve={};S.reserve[k4]=Math.max(0,Math.min(colsOfS(),resv(k4)+(+b.dataset.d)));save();render();}
+  else if(b.dataset.dir){if(!S.dir)S.dir={};S.dir[b.dataset.dir]=b.dataset.v;save();render();}
+  else if(b.dataset.go){var el=$('slot-'+b.dataset.go);if(el)el.scrollIntoView({behavior:'smooth',block:'start'});}
+  else if(b.dataset.act==='recalc'){calcAll();}
+  else if(b.dataset.rc){recalcSlot(b.dataset.rc);}
+});
+document.addEventListener('change',function(e){var el=e.target;if(el.matches&&el.matches('.act input')){var k=el.dataset.k,pl=S.plans[S.day].plan[k];
+  if(!isConfirmed(k))PARTS.forEach(function(p){setAct(k,p.i,planQty(pl,p.no));});
+  setAct(k,+el.dataset.p,el.value===''?planQty(pl,PARTS[+el.dataset.p].no):el.value);propagate(k);var n=$(el.id);if(n)n.focus();}});
+document.addEventListener('input',function(e){var el=e.target;if(!(el.matches&&el.matches('.act input'))||el.value==='')return;var k=el.dataset.k,dp=S.plans[S.day],pl=dp.plan[k];
+  if(!isConfirmed(k))PARTS.forEach(function(p){setAct(k,p.i,planQty(pl,p.no));});
+  setAct(k,+el.dataset.p,el.value);var sl=slotByKey(slotsOf(S.day),k),box=$('trk-'+k);if(sl&&box)box.innerHTML=truckHTML(sl,pl,ordersAt(slotsOf(S.day)));});
+document.addEventListener('keydown',function(e){if(e.key==='Enter'&&e.target.matches&&e.target.matches('.act input')){e.target.blur();}});
+
+/* ===== CSV取込 ===== */
+function decode(buf){try{return new TextDecoder('utf-8',{fatal:true}).decode(buf).replace(/^﻿/,'');}catch(e){try{return new TextDecoder('shift_jis').decode(buf);}catch(e2){return new TextDecoder().decode(buf);}}}
+function parseCSV(text){
+  var first=text.split(/\r?\n/)[0]||'',delim=(first.split('\t').length>first.split(',').length)?'\t':',';
+  var rows=[],row=[],f='',q=false;
+  for(var i=0;i<text.length;i++){var c=text[i];
+    if(q){if(c==='"'){if(text[i+1]==='"'){f+='"';i++;}else q=false;}else f+=c;}
+    else if(c==='"')q=true;else if(c===delim){row.push(f);f='';}else if(c==='\n'){row.push(f);rows.push(row);row=[];f='';}else if(c!=='\r')f+=c;}
+  if(f!==''||row.length){row.push(f);rows.push(row);}
+  return rows.filter(function(r){return r.some(function(x){return String(x).trim()!=='';});});
+}
+var pending=null;
+var FIELDS=[['part','品番 ※必須'],['date','日付（仕入先発ルート日付）※必須'],['bin','便（仕入先発便＃）※必須'],['qty','かんばん枚数（箱数）'],['ord','納入指示数'],['snp','収容数']];
+function detect(h){
+  function find(){for(var a=0;a<arguments.length;a++){for(var i=0;i<h.length;i++){if(arguments[a].test(h[i]))return i;}}return -1;}
+  return {part:find(/^品番$/,/品番/),date:find(/仕入先発.*ルート.*日/,/仕入先発.*日/,/発.*日付/,/納入.*日/,/日付/),bin:find(/仕入先発.*便/,/発.*便/,/便/),
+    qty:find(/かんばん.*枚数/,/かんばん枚/,/枚数/,/箱数/),ord:find(/納入指示数/,/指示数/,/発注数/,/受注数/,/注文数/,/^数量$/),snp:find(/収容数/)};
+}
+function openMapping(fileName,rows,dataExtra){
+  var hi=0;for(var i=0;i<Math.min(rows.length,10);i++){if(rows[i].some(function(c){return /品番/.test(c);})){hi=i;break;}}
+  var head=rows[hi].map(function(x){return String(x).trim();}),data=rows.slice(hi+1).concat(dataExtra||[]);
+  var m=detect(head);
+  if(S.mapping){Object.keys(S.mapping).forEach(function(k){var idx=head.indexOf(S.mapping[k]);if(idx>=0)m[k]=idx;});}
+  pending={fileName:fileName,head:head,data:data,m:m};
+  var opts=function(sel){return '<option value="-1">（使わない）</option>'+head.map(function(h,i){return '<option value="'+i+'"'+(i===sel?' selected':'')+'>'+esc(h||('列'+(i+1)))+'</option>';}).join('');};
+  $('map').innerHTML=FIELDS.map(function(f){return '<label>'+f[1]+'<select id="m-'+f[0]+'">'+opts(m[f[0]])+'</select></label>';}).join('')+
+    '<label>かんばん枚数（箱数）の出し方<select id="m-mode"><option value="divide">納入指示数÷収容数（切上げ）</option><option value="kanban">かんばん枚数の列をそのまま使う</option><option value="rows">1行＝1箱</option></select></label>';
+  $('m-mode').value=(m.ord>=0&&m.snp>=0)?'divide':(m.qty>=0?'kanban':'rows');
+  showPreview();
+  $('mapArea').hidden=false;$('pImport').open=true;
+  var okAuto=m.part>=0&&m.date>=0&&m.bin>=0&&((m.ord>=0&&m.snp>=0)||m.qty>=0);
+  if(okAuto){$('mapMsg').textContent='列を自動で割り当てて取込みました。違っていれば選び直して「この割り当てで取込む」を押してください。';$('pImport').open=false;applyImport();return;}
+  $('mapMsg').textContent='必須の列が見つかりません。品番・日付・便・納入指示数・収容数の列を選んでください。';
+  $('pImport').scrollIntoView({behavior:'smooth',block:'start'});
+}
+function curMap(){var m={};FIELDS.forEach(function(f){m[f[0]]=+$('m-'+f[0]).value;});m.mode=$('m-mode').value;return m;}
+function showPreview(){if(!pending)return;var m=curMap(),hit={};FIELDS.forEach(function(f){if(m[f[0]]>=0)hit[m[f[0]]]=1;});
+  $('preview').innerHTML='<table><tr>'+pending.head.map(function(h,i){return '<th class="'+(hit[i]?'hit':'')+'">'+esc(h)+'</th>';}).join('')+'</tr>'+pending.data.slice(0,6).map(function(r){return '<tr>'+pending.head.map(function(_,i){return '<td>'+esc(r[i]==null?'':r[i])+'</td>';}).join('')+'</tr>';}).join('')+'</table>';}
+$('map').addEventListener('change',showPreview);
+function buildOrders(){
+  var m=curMap();
+  if(m.part<0||m.date<0||m.bin<0){$('mapMsg').textContent='品番・日付・便の列は必須です。';return null;}
+  if(m.mode==='kanban'&&m.qty<0){$('mapMsg').textContent='かんばん枚数の列を選ぶか、数え方を変えてください。';return null;}
+  if(m.mode==='divide'&&(m.ord<0||m.snp<0)){$('mapMsg').textContent='納入指示数と収容数の列を選んでください。';return null;}
+  var agg={},ign=0,bad=0,rows=0,minD=null;
+  pending.data.forEach(function(r){
+    var d0=parseDate(r[m.date]);if(d0&&(!minD||d0<minD))minD=d0;
+    var p=matchPart(r[m.part]);if(!p){ign++;return;}
+    var d=parseDate(r[m.date]),b=parseInt(String(r[m.bin]||'').replace(/[^\d]/g,''),10);
+    var num=function(x){return +String(x==null?'':x).replace(/[^\d.\-]/g,'')||0;};
+    var q=m.mode==='kanban'?Math.round(num(r[m.qty])):m.mode==='divide'?(num(r[m.snp])>0?Math.ceil(num(r[m.ord])/num(r[m.snp])):0):1;
+    if(!d||!b||q<=0){bad++;return;}
+    var k=keyOf(d,b)+'|'+p.no;if(!agg[k])agg[k]={key:keyOf(d,b),date:d,bin:b,part:p.no,qty:0};agg[k].qty+=q;rows++;
+  });
+  var mp={};FIELDS.forEach(function(f){if(m[f[0]]>=0)mp[f[0]]=pending.head[m[f[0]]];});
+  return {orders:Object.keys(agg).map(function(k){return agg[k];}),ign:ign,bad:bad,rows:rows,map:mp,minD:minD};
+}
+function norm(s){return String(s==null?'':s).toUpperCase().replace(/[^0-9A-Z]/g,'');}
+function matchPart(raw){var n=norm(raw);if(!n)return null;for(var i=0;i<PARTS.length;i++){if(n.indexOf(norm(PARTS[i].no))===0)return PARTS[i];}return null;}
+function applyImport(){
+  var r=buildOrders();if(!r)return;
+  if(!r.orders.length){$('mapMsg').textContent='5品番の行が1件もありません。品番の列を確認してください。';return;}
+  var hasAct=Object.keys(S.actuals).some(function(k){return Object.keys(S.actuals[k]).length;});
+  var go=function(){
+    var keep={settings:S.settings,lang:lang};
+    S=blank();S.settings=keep.settings;S.lang=keep.lang;S.mapping=r.map;S.orders=r.orders;fillActualsFromOrders(S);
+    S.meta={fileName:pending.fileName,importedAt:new Date(Date.now()-new Date().getTimezoneOffset()*60000).toISOString(),rows:r.rows,ignored:r.ign,bad:r.bad,minD:r.minD,needFrom:needFrom,gap:gap};
+    S.day=defaultRange();
+    save();$('pImport').open=false;render();window.scrollTo({top:0,behavior:'smooth'});toast('取込みました：'+r.rows+'行（対象外 '+r.ign+'行）');
+  };
+  /* かんばんは2週間前から発行される：今日から◯日前の納入日分が入っていなければ止めて知らせる（自働化） */
+  var lb=S.settings.lookback==null?14:S.settings.lookback,needFrom=addDays(localToday(),-lb),gap=lb>0&&(!r.minD||r.minD>needFrom);
+  var step2=function(){if(hasAct&&!S.meta.sample)confirmBox('入力済みの実績は消えます。先にExcel出力しましたか？',['取込む','やめる'],function(i){if(i===0)go();});else go();};
+  if(gap)confirmBox(gapMsg(needFrom,r.minD),['取込をやめる','このまま取込む'],function(i){if(i===1)step2();else toast('取込をやめました');});
+  else step2();
+}
+function gapMsg(needFrom,minD){var f=function(d){var a=d.split('-');return (+a[1])+'/'+(+a[2]);};
+  return '⚠ '+f(needFrom)+'日分から受注データを反映させてください。（読み込んだデータの最初の納入日：'+(minD?f(minD):'なし')+'）';}
+/* 取込時：全便の実績＝受注数（そのまま転記） */
+function fillActualsFromOrders(st,onlyMissing){if(!st.actuals)st.actuals={};st.orders.forEach(function(o){if(!st.actuals[o.key])st.actuals[o.key]={};if(!onlyMissing||st.actuals[o.key][o.part]==null)st.actuals[o.key][o.part]=o.qty;});
+  st.orders.forEach(function(o){PARTS.forEach(function(p){if(st.actuals[o.key][p.no]==null)st.actuals[o.key][p.no]=0;});});}
+function localToday(){var d=new Date();return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());}
+function readFiles(list){
+  var files=[].slice.call(list).filter(function(f){return /\.(csv|txt)$/i.test(f.name)||/csv|text/.test(f.type);});
+  if(!files.length){toast('CSVファイルを入れてください');return;}
+  var res=[],n=0;
+  files.forEach(function(f,i){var fr=new FileReader();fr.onload=function(){res[i]=parseCSV(decode(fr.result));if(++n===files.length)done();};fr.readAsArrayBuffer(f);});
+  function done(){
+    var first=res[0];if(!first||!first.length){toast('CSVが空です');return;}
+    // 2ファイル目以降は見出し行を除いて行を足す（同じ形式のCSV）
+    var extra=[];res.slice(1).forEach(function(r){var hi=0;for(var i=0;i<Math.min(r.length,10);i++){if(r[i].some(function(c){return /品番/.test(c);})){hi=i;break;}}extra=extra.concat(r.slice(hi+1));});
+    openMapping(files.map(function(f){return f.name;}).join('、'),first,extra);
+  }
+}
+$('bImport').onclick=function(){$('file').click();};$('bPick').onclick=function(){$('file').click();};
+$('file').onchange=function(){if(this.files.length)readFiles(this.files);this.value='';};
+/* 画面のどこにドロップしても取込める */
+var dragN=0,ov=$('dropOverlay');
+window.addEventListener('dragenter',function(e){if(e.dataTransfer&&[].indexOf.call(e.dataTransfer.types,'Files')>=0){e.preventDefault();dragN++;ov.hidden=false;}});
+window.addEventListener('dragover',function(e){if(e.dataTransfer&&[].indexOf.call(e.dataTransfer.types,'Files')>=0)e.preventDefault();});
+window.addEventListener('dragleave',function(){dragN=Math.max(0,dragN-1);if(!dragN)ov.hidden=true;});
+window.addEventListener('drop',function(e){e.preventDefault();dragN=0;ov.hidden=true;if(e.dataTransfer&&e.dataTransfer.files.length)readFiles(e.dataTransfer.files);});
+$('bApply').onclick=applyImport;
+
+/* ===== Excel出力（ライブラリ不要・オフラインで動く最小XLSX） ===== */
+var CRC=(function(){var t=[];for(var n=0;n<256;n++){var c=n;for(var k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;t[n]=c>>>0;}return t;})();
+function crc32(u){var c=0xFFFFFFFF;for(var i=0;i<u.length;i++)c=CRC[(c^u[i])&255]^(c>>>8);return (c^0xFFFFFFFF)>>>0;}
+function zip(files){
+  var enc=new TextEncoder(),parts=[],cen=[],off=0,cs=0;
+  files.forEach(function(f){var nm=enc.encode(f.name),d=enc.encode(f.text),c=crc32(d);
+    var l=new DataView(new ArrayBuffer(30));l.setUint32(0,0x04034b50,true);l.setUint16(4,20,true);l.setUint16(12,0x21,true);l.setUint32(14,c,true);l.setUint32(18,d.length,true);l.setUint32(22,d.length,true);l.setUint16(26,nm.length,true);
+    parts.push(new Uint8Array(l.buffer),nm,d);
+    var h=new DataView(new ArrayBuffer(46));h.setUint32(0,0x02014b50,true);h.setUint16(4,20,true);h.setUint16(6,20,true);h.setUint16(14,0x21,true);h.setUint32(16,c,true);h.setUint32(20,d.length,true);h.setUint32(24,d.length,true);h.setUint16(28,nm.length,true);h.setUint32(42,off,true);
+    cen.push(new Uint8Array(h.buffer),nm);cs+=46+nm.length;off+=30+nm.length+d.length;});
+  var e=new DataView(new ArrayBuffer(22));e.setUint32(0,0x06054b50,true);e.setUint16(8,files.length,true);e.setUint16(10,files.length,true);e.setUint32(12,cs,true);e.setUint32(16,off,true);
+  return new Blob(parts.concat(cen,[new Uint8Array(e.buffer)]),{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+}
+function xesc(s){return String(s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}).replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g,'');}
+function col(n){var s='';n++;while(n>0){var m=(n-1)%26;s=String.fromCharCode(65+m)+s;n=Math.floor((n-1)/26);}return s;}
+function sheetXML(rows,widths){
+  var x='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetViews><sheetView workbookViewId="0"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>';
+  if(widths)x+='<cols>'+widths.map(function(w,i){return '<col min="'+(i+1)+'" max="'+(i+1)+'" width="'+w+'" customWidth="1"/>';}).join('')+'</cols>';
+  x+='<sheetData>';
+  rows.forEach(function(r,ri){x+='<row r="'+(ri+1)+'">';r.forEach(function(v,ci){if(v==null||v==='')return;var st=ri===0?' s="1"':(r._ng?' s="2"':'');var ref=col(ci)+(ri+1);
+    if(typeof v==='number')x+='<c r="'+ref+'"'+st+'><v>'+v+'</v></c>';else x+='<c r="'+ref+'"'+st+' t="inlineStr"><is><t xml:space="preserve">'+xesc(v)+'</t></is></c>';});x+='</row>';});
+  return x+'</sheetData></worksheet>';
+}
+function makeXlsx(sheets,sb){
+  var files=[
+   {name:'[Content_Types].xml',text:'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>'+sheets.map(function(_,i){return '<Override PartName="/xl/worksheets/sheet'+(i+1)+'.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>';}).join('')+'</Types>'},
+   {name:'_rels/.rels',text:'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>'},
+   {name:'xl/workbook.xml',text:'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>'+sheets.map(function(s,i){return '<sheet name="'+xesc(s.name)+'" sheetId="'+(i+1)+'" r:id="rId'+(i+1)+'"/>';}).join('')+'</sheets></workbook>'},
+   {name:'xl/_rels/workbook.xml.rels',text:'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'+sheets.map(function(_,i){return '<Relationship Id="rId'+(i+1)+'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet'+(i+1)+'.xml"/>';}).join('')+'<Relationship Id="rId'+(sheets.length+1)+'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>'},
+   {name:'xl/styles.xml',text:sb?sb.xml():(new StyleBook()).xml()}
+  ];
+  sheets.forEach(function(s,i){files.push({name:'xl/worksheets/sheet'+(i+1)+'.xml',text:s.raw||sheetXML(s.rows,s.widths)});});
+  return zip(files);
+}
+/* ===== Excelのスタイル帳（作業指示書の色・罫線・結合用） ===== */
+function StyleBook(){
+  this.fonts=['<font><sz val="11"/><name val="Meiryo UI"/></font>','<font><b/><sz val="11"/><name val="Meiryo UI"/></font>'];
+  this.fills=['<fill><patternFill patternType="none"/></fill>','<fill><patternFill patternType="gray125"/></fill>','<fill><patternFill patternType="solid"><fgColor rgb="FFFFE08A"/></patternFill></fill>','<fill><patternFill patternType="solid"><fgColor rgb="FFF8CBCB"/></patternFill></fill>'];
+  this.borders=['<border><left/><right/><top/><bottom/><diagonal/></border>'];
+  this.xfs=['<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>','<xf numFmtId="0" fontId="1" fillId="2" borderId="0" xfId="0" applyFont="1" applyFill="1"/>','<xf numFmtId="0" fontId="0" fillId="3" borderId="0" xfId="0" applyFill="1"/>'];
+}
+StyleBook.prototype.idx=function(arr,x){var i=arr.indexOf(x);if(i<0){arr.push(x);i=arr.length-1;}return i;};
+StyleBook.prototype.xf=function(o){
+  o=o||{};
+  var f='<font>'+(o.b?'<b/>':'')+'<sz val="'+(o.sz||10)+'"/>'+(o.color?'<color rgb="FF'+o.color+'"/>':'')+'<name val="Meiryo UI"/></font>';
+  var fl=o.fill?(o.pat?'<fill><patternFill patternType="'+o.pat+'"><fgColor rgb="FF'+o.fill+'"/><bgColor rgb="FF'+(o.bg||'FFFFFF')+'"/></patternFill></fill>':'<fill><patternFill patternType="solid"><fgColor rgb="FF'+o.fill+'"/><bgColor indexed="64"/></patternFill></fill>'):'<fill><patternFill patternType="none"/></fill>';
+  var side=function(n){var st=o.bd&&(o.bd[n]||o.bd.all);return st?'<'+n+' style="'+st[0]+'"><color rgb="FF'+st[1]+'"/></'+n+'>':'<'+n+'/>';};
+  var bd='<border>'+side('left')+side('right')+side('top')+side('bottom')+'<diagonal/></border>';
+  var al='<alignment horizontal="'+(o.h||'general')+'" vertical="'+(o.v||'center')+'"'+(o.wrap?' wrapText="1"':'')+(o.rot?' textRotation="'+o.rot+'"':'')+(o.shrink?' shrinkToFit="1"':'')+'/>';
+  var x='<xf numFmtId="0" fontId="'+this.idx(this.fonts,f)+'" fillId="'+this.idx(this.fills,fl)+'" borderId="'+this.idx(this.borders,bd)+'" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1">'+al+'</xf>';
+  return this.idx(this.xfs,x);
+};
+StyleBook.prototype.xml=function(){
+  return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><fonts count="'+this.fonts.length+'">'+this.fonts.join('')+'</fonts><fills count="'+this.fills.length+'">'+this.fills.join('')+'</fills><borders count="'+this.borders.length+'">'+this.borders.join('')+'</borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="'+this.xfs.length+'">'+this.xfs.join('')+'</cellXfs></styleSheet>';
+};
+
+/* ===== 作業指示書（A4縦1枚に4便：積付図＋品番ごとの数量） =====
+   積付図はセル結合で描く：1面の高さ＝lcm(プロテクター段数, バッテリー段数)行。3段と2段なら6行で、プロテクター1箱＝2行、バッテリー1箱＝3行 */
+function gcd(a,b){return b?gcd(b,a%b):a;}
+function buildWorkOrder(sb){
+  var day=S.day,dp=ensurePlan(day),slots=slotsOf(day),orders=ordersAt(slots),set=S.settings;
+  var C=set.P.cols,Pt=set.P.tiers,Bt=set.B.tiers,R=Pt*Bt/gcd(Pt,Bt);if(R>12)R=Math.max(Pt,Bt);
+  var cT=C+2,last=cT+5;           // A=面ラベル, B..=積付図, 空き1列, 表6列
+  var cells={},merges=[],hts={},breaks=[];
+  function put(r,c,v,s){if(!cells[r])cells[r]={};cells[r][c]={v:v,s:s};}
+  function merge(r1,c1,r2,c2,v,s){for(var r=r1;r<=r2;r++)for(var c=c1;c<=c2;c++)put(r,c,r===r1&&c===c1?v:'',s);if(r1!==r2||c1!==c2)merges.push(col(c1)+(r1+1)+':'+col(c2)+(r2+1));}
+  var GRAY='CDD5DD',INK='16202B',RED='C42B2B';
+  var sTitle=sb.xf({b:1,sz:16,h:'left'}),sSub=sb.xf({sz:8,color:'5A6775',h:'left',shrink:1}),
+      sBin=sb.xf({b:1,sz:18,h:'left',bd:{bottom:['medium',INK]}}),sInfo=sb.xf({sz:10,h:'right',bd:{bottom:['medium',INK]}}),
+      sSide=sb.xf({b:1,sz:10,h:'center',fill:'E9EDF1',bd:{all:['thin',GRAY]},rot:255}),
+      sEmpty=sb.xf({fill:'F4F6F8',bd:{all:['hair',GRAY]}}),sResv=sb.xf({sz:8,b:1,color:'5A6775',h:'center',wrap:1,fill:'D9DEE4',pat:'gray125',bg:'EEF1F4',bd:{all:['thin','9AA6B2']},rot:255}),
+      sTh=sb.xf({b:1,sz:10,h:'center',fill:'E9EDF1',bd:{all:['thin',GRAY]}}),
+      sNo=sb.xf({b:1,sz:11,h:'left',bd:{all:['thin',GRAY]},shrink:1}),sNum=sb.xf({sz:12,h:'center',bd:{all:['thin',GRAY]}}),
+      sQty=sb.xf({b:1,sz:15,h:'center',bd:{all:['thin',GRAY]}}),sNote=sb.xf({sz:9,h:'left',wrap:1,bd:{all:['thin',GRAY]}}),
+      sBlank=sb.xf({bd:{all:['thin',GRAY]}}),sChk=sb.xf({sz:12,h:'center',bd:{all:['thin',GRAY]}}),
+      sExNo=sb.xf({sz:9,h:'left',bd:{all:['thin',GRAY]},fill:'FDF0D2',shrink:1}),sSign=sb.xf({sz:10,h:'left',bd:{bottom:['thin',INK]}});
+  var sBox=PARTS.map(function(p){var hx=p.hex;return {
+      own:sb.xf({b:1,sz:11,h:'center',color:'FFFFFF',fill:hx,bd:{all:['thin','FFFFFF']}}),
+      pull:sb.xf({b:1,sz:11,h:'center',color:'000000',fill:hx,pat:'lightUp',bg:'FFFFFF',bd:{all:['thin',hx]}}),
+      carry:sb.xf({b:1,sz:11,h:'center',color:'FFFFFF',fill:hx,bd:{all:['mediumDashed',RED]}})};});
+  var sNoP=PARTS.map(function(p){return sb.xf({b:1,sz:11,h:'left',bd:{all:['thin',GRAY],left:['thick',p.hex]},shrink:1});});
+  var pages=Math.ceil(slots.length/4),r=0,now=new Date();
+  /* A4縦・余白1cm（印刷できる高さ約785pt）に4便がちょうど入る行の高さ：ページ見出し40pt＋1便あたり(見出し24＋余白6) */
+  var rowH=Math.floor((((775-40)/4)-30)/(2*R)*10)/10;
+  var stamp=now.getFullYear()+'/'+(now.getMonth()+1)+'/'+now.getDate()+' '+pad(now.getHours())+':'+pad(now.getMinutes());
+  for(var pi=0;pi<slots.length;pi+=4){
+    if(pi>0)breaks.push(r);
+    merge(r,0,r,last,'作業指示書　'+rangeLabel(day)+'　（'+(pi/4+1)+'/'+pages+'枚）',sTitle);hts[r]=26;r++;
+    merge(r,0,r,last,'出力 '+stamp+'　積載効率プランナー ver '+VER+'　図の番号＝品番の末尾（色は表の左端）／斜線＝受注超え（手入力）／赤点線＝遅れ分',sSub);hts[r]=14;r++;
+    slots.slice(pi,pi+4).forEach(function(s){
+      var pl=dp.plan[s.key]||{parts:{}},L=actualLayout(s,pl,orders);
+      merge(r,0,r,C,slotLabel(s)+'　'+md(s.date),sBin);
+      merge(r,cT,r,last,t('fill')+' '+Math.round(L.fill*100)+'%（'+L.T.used+'箱・'+L.T.colsUsed+'/'+L.T.N+'列'+(L.T.rv?'・'+L.T.rv+'列空け':'')+'）'+(L.over?'　積みきれません +'+L.over+'箱':'')+(isLocked(s.key)?'　🔒':''),sInfo);
+      for(var c0=C+1;c0<cT;c0++)put(r,c0,'',sInfo);
+      hts[r]=24;r++;
+      var top=r;
+      [0,1].forEach(function(si){
+        var r0=top+si*R;merge(r0,0,r0+R-1,0,si?'右面':'左面',sSide);
+        L.T.sides[si].forEach(function(cl,ci){var c=1+ci;
+          if(!cl.g){merge(r0,c,r0+R-1,c,'',sEmpty);return;}
+          if(cl.g==='R'){merge(r0,c,r0+R-1,c,'他の荷物',sResv);return;}
+          var tiers=set[cl.g].tiers,dep=set[cl.g].depth||1,per=R/tiers;
+          for(var k=0;k<tiers;k++){var re=r0+R-1-k*per,rs=re-per+1,bx=cl.cells.slice(k*dep,(k+1)*dep);
+            if(!bx.length){merge(rs,c,re,c,'',sEmpty);continue;}
+            var p=PARTS[bx[0].p];merge(rs,c,re,c,p.lab+(dep>1?'×'+bx.length:''),sBox[p.i][bx[0].k]);}
+        });
+      });
+      for(var rr=top;rr<top+2*R;rr++)hts[rr]=rowH;
+      // 表：品番／受注／指示数／備考／実績（手書き）／✓
+      ['品番','受注','指示数','備考','実績','✓'].forEach(function(h,i){put(top,cT+i,h,sTh);});
+      var tr=top+1;
+      PARTS.forEach(function(p){var x=pl.parts[p.no]||{qty:0,carry:{},defer:0,out:0,own:0},od=(orders[s.key]||{})[p.no]||0,ev=effAct(s.key,p.no,pl),ca=0;
+        Object.keys(x.carry||{}).forEach(function(k){ca+=x.carry[k];});
+        var notes=[];((SLIDE.out[s.key]||{})[p.no]||[]).forEach(function(z){notes.push('スライド−'+z.q+'→'+slotName(z.to));});((SLIDE.in[s.key]||{})[p.no]||[]).forEach(function(z){notes.push('スライド+'+z.q+'←'+slotName(z.from));});if(ca)notes.push('遅れ分+'+ca);var early=pl.confirmed?0:od-(x.own||0)-(x.defer||0)-(x.out||0);if(early>0)notes.push('前便で積込済−'+early);
+        var hand=Math.max(0,ev-od-ca);if(hand)notes.push('受注超え+'+hand);var pa=isConfirmed(s.key)?preAmt(s.key,p.no,pl):0;if(pa)notes.push('前日出荷済'+pa);if(!pl.confirmed&&x.defer)notes.push('後回し'+x.defer);
+        put(tr,cT,p.no+'（'+p.lab+'）',sNoP[p.i]);put(tr,cT+1,od,sNum);put(tr,cT+2,ev,sQty);put(tr,cT+3,notes.join('／'),sNote);put(tr,cT+4,'',sBlank);put(tr,cT+5,'□',sChk);tr++;});
+      var ex=((S.extras||{})[s.key]||[]).filter(function(x){return x.no||x.qty;}),room=top+2*R-1-tr;
+      ex.slice(0,room).forEach(function(x,i){var more=(i===room-1&&ex.length>room)?'（他'+(ex.length-room)+'件）':'';
+        put(tr,cT,x.no||'(品番なし)',sExNo);put(tr,cT+1,'',sNum);put(tr,cT+2,x.qty==null?'':x.qty,sQty);put(tr,cT+3,'イレギュラー'+more,sNote);put(tr,cT+4,'',sBlank);put(tr,cT+5,'□',sChk);tr++;});
+      merge(top+2*R-1,cT,top+2*R-1,last,'積込者：　　　　　　確認者：',sSign);
+      r=top+2*R;hts[r]=6;r++;
+    });
+  }
+  var widths=[3.6].concat(Array(C).fill(6.2),[1,15.5,4.8,5.6,11,5.8,3.2]);
+  var x='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetPr><pageSetUpPr fitToPage="1"/></sheetPr><sheetViews><sheetView workbookViewId="0" showGridLines="0" view="pageBreakPreview" zoomScaleNormal="100"/></sheetViews><sheetFormatPr defaultRowHeight="13.5"/>';
+  x+='<cols>'+widths.map(function(w,i){return '<col min="'+(i+1)+'" max="'+(i+1)+'" width="'+w+'" customWidth="1"/>';}).join('')+'</cols><sheetData>';
+  var allR={};Object.keys(cells).forEach(function(k){allR[k]=1;});Object.keys(hts).forEach(function(k){allR[k]=1;});
+  Object.keys(allR).map(Number).sort(function(a,b){return a-b;}).forEach(function(ri){
+    x+='<row r="'+(ri+1)+'"'+(hts[ri]?' ht="'+hts[ri]+'" customHeight="1"':'')+'>';
+    Object.keys(cells[ri]||{}).map(Number).sort(function(a,b){return a-b;}).forEach(function(ci){var c=cells[ri][ci],ref=col(ci)+(ri+1);
+      if(typeof c.v==='number')x+='<c r="'+ref+'" s="'+c.s+'"><v>'+c.v+'</v></c>';else if(c.v==='')x+='<c r="'+ref+'" s="'+c.s+'"/>';else x+='<c r="'+ref+'" s="'+c.s+'" t="inlineStr"><is><t xml:space="preserve">'+xesc(c.v)+'</t></is></c>';});
+    x+='</row>';});
+  x+='</sheetData>';
+  if(merges.length)x+='<mergeCells count="'+merges.length+'">'+merges.map(function(m){return '<mergeCell ref="'+m+'"/>';}).join('')+'</mergeCells>';
+  x+='<printOptions horizontalCentered="1"/><pageMargins left="0.3937" right="0.3937" top="0.3937" bottom="0.3937" header="0.2" footer="0.15"/><pageSetup paperSize="9" orientation="portrait" fitToWidth="1" fitToHeight="0"/><headerFooter><oddFooter>&amp;C&amp;P / &amp;N</oddFooter></headerFooter>';
+  if(breaks.length)x+='<rowBreaks count="'+breaks.length+'" manualBreakCount="'+breaks.length+'">'+breaks.map(function(b){return '<brk id="'+b+'" max="16383" man="1"/>';}).join('')+'</rowBreaks>';
+  x+='</worksheet>';
+  return {name:'作業指示書',raw:x,_cells:cells,_hts:hts};
+}
+function exportWorkOrder(){
+  if(!S.day)return;var sb=new StyleBook(),wo=buildWorkOrder(sb);
+  var blob=makeXlsx([wo],sb),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='作業指示書_'+S.day.replace('~','-')+'.xlsx';document.body.appendChild(a);a.click();
+  setTimeout(function(){URL.revokeObjectURL(a.href);a.remove();},1500);toast('作業指示書を出力しました');
+}
+
+function slideTxt(k,pn){var a=[];((SLIDE.out[k]||{})[pn]||[]).forEach(function(z){a.push('−'+z.q+'→'+slotName(z.to));});((SLIDE.in[k]||{})[pn]||[]).forEach(function(z){a.push('+'+z.q+'←'+slotName(z.from));});return a.join(' ／ ');}
+function exportExcel(){
+  var day=S.day;if(!day)return;var dp=ensurePlan(day),slots=slotsOf(day),orders=ordersAt(slots);var dlab=rangeLabel(day),fn=day.replace('~','-');
+  var ja=lang;lang='ja';
+  var r4=[['日付','便','品番（イレギュラー）','実績（箱）']];
+  var r1=[['集荷範囲','便順','日付','便','品番','品名','受注数','予定数','受注超え（前詰め）','うち遅れ分','後回し','実績','差異','判定','前日出荷済','スライド']];
+  var r2=[['集荷範囲','便順','日付','便','プロテクター列(3段)','バッテリー列(2段)','プロテクター箱','バッテリー箱','積載率(%)','後回し箱','状態']];
+  slots.forEach(function(s){var pl=dp.plan[s.key]||{parts:{},trucks:[]},a=slotActual(s.key),st=slotState(s.key,dp);
+    PARTS.forEach(function(p){var r=pl.parts[p.no]||{qty:0,pull:{},carry:{}},od=(orders[s.key]||{})[p.no]||0,v=a[p.no];
+      var cf=isConfirmed(s.key),ev=v!=null?v:r.qty,pa2=cf?preAmt(s.key,p.no,pl):0;if(!od&&!r.qty&&!ev)return;
+      var ca=0;Object.keys(r.carry||{}).forEach(function(k){ca+=r.carry[k];});var pu=Math.max(0,(v!=null?v:r.qty)-od-ca);
+      var row=[dlab,s.idx+1,s.date.replace(/-/g,'/'),s.bin,p.no,p.g==='P'?'プロテクター':'バッテリーケース',od,r.qty,pu,ca,pl.confirmed?'':(r.defer||0),ev,ev-r.qty,!cf?'未確定（予定値）':(pa2>0?'前日出荷済':(ev===r.qty?'一致':'不一致')),pa2||'',slideTxt(s.key,p.no)];
+      if(ev+pa2!==r.qty)row._ng=true;r1.push(row);});
+    ((S.extras||{})[s.key]||[]).forEach(function(x){if(!x.no&&!x.qty)return;r1.push([dlab,s.idx+1,s.date.replace(/-/g,'/'),s.bin,x.no||'(品番なし)','イレギュラー（5品番以外）','','','','','',x.qty==null?'':x.qty,'','イレギュラー']);r4.push([s.date.replace(/-/g,'/'),s.bin,x.no||'(品番なし)',x.qty==null?'':x.qty]);});
+    var LA=actualLayout(s,pl,orders),P=0,B=0,cP=0,cB=0,fs=LA.fill;LA.T.sides.forEach(function(sd){sd.forEach(function(c){if(c.g==='P'){P+=c.cells.length;cP++;}else if(c.g==='B'){B+=c.cells.length;cB++;}});});
+    var dfn=0;if(!pl.confirmed)PARTS.forEach(function(p){dfn+=pl.parts[p.no]?pl.parts[p.no].defer||0:0;});
+    r2.push([dlab,s.idx+1,s.date.replace(/-/g,'/'),s.bin,cP,cB,P,B,Math.round(fs*100),dfn,t({ok:'stOk',ng:'stNg',abs:'stAbs',pending:'stPend',none:'stNone'}[st])+(isLocked(s.key)?'（ロック）':'')]);
+  });
+  var sh=dp.warn.filter(function(w){return w.type==='short';}).reduce(function(a,w){return a+w.qty;},0);
+  r2.push([]);r2.push(['翌日持越し（箱）',sh]);r2.push(['前倒しなしの平均積載率(%)',Math.round((dp.base&&dp.base.fill||0)*100)]);r2.push(['ツール','積載効率プランナー ver '+VER]);
+  var r3=[['日付','便','品番','かんばん枚数（箱）']];slots.forEach(function(s){PARTS.forEach(function(p){var q=(orders[s.key]||{})[p.no];if(q)r3.push([s.date.replace(/-/g,'/'),s.bin,p.no,q]);});});
+  lang=ja;
+  var sb=new StyleBook();lang='ja';var wo=buildWorkOrder(sb);lang=ja;
+  var blob=makeXlsx([wo,{name:'実績',rows:r1,widths:[24,7,11,6,14,16,8,8,10,10,8,8,8,12,10,26]},{name:'便別サマリ',rows:r2,widths:[24,7,11,6,12,12,14,12,10,10,14]},{name:'イレギュラー積載',rows:r4,widths:[11,6,22,10]},{name:'受注データ',rows:r3,widths:[11,6,14,16]}],sb);
+  var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='積載実績_'+fn+'.xlsx';document.body.appendChild(a);a.click();
+  setTimeout(function(){URL.revokeObjectURL(a.href);a.remove();},1500);toast('Excelを出力しました');
+}
+$('bExport').onclick=exportExcel;$('bWork').onclick=function(){var l=lang;lang='ja';try{exportWorkOrder();}finally{lang=l;}};
+$('bRecalc').onclick=calcAll;
+
+/* ===== 設定 ===== */
+function fillSet(){var s=S.settings;$('sLb').value=s.lookback==null?14:s.lookback;$('sStart').value=s.startBin;$('sLook').value=s.look;$('sPt').value=s.P.tiers;$('sPc').value=s.P.cols;$('sBt').value=s.B.tiers;$('sBc').value=s.B.cols;$('sPd').value=s.P.depth||1;$('sBd').value=s.B.depth||1;
+  var dl=function(c){return (c.depth||1)>1?'×奥行'+c.depth:'';};
+  $('rP').textContent='1列'+s.P.tiers+'段積み'+dl(s.P)+'（片面'+s.P.cols+'列なら'+cap('P')*s.P.cols+'箱）';$('rB').textContent='1列'+s.B.tiers+'段積み'+dl(s.B)+'（片面'+s.P.cols+'列なら'+cap('B')*s.P.cols+'箱）';$('rS').textContent=s.startBin;$('rPn').textContent=PARTS.filter(function(p){return p.g==='P';}).map(function(p){return p.no;}).join('／');$('rBn').textContent=PARTS.filter(function(p){return p.g==='B';}).map(function(p){return p.no;}).join('／');
+  (s.parts||DEF_PARTS).forEach(function(x,k){$('mpn'+k).value=x.no||'';$('mpg'+k).value=x.g||'P';});for(var k2=(s.parts||[]).length;k2<5;k2++){$('mpn'+k2).value='';}$('rE').textContent=s.startBin-1;}
+$('bSaveSet').onclick=function(){
+  var v=function(id,min,max,d){var n=parseInt($(id).value,10);return isNaN(n)?d:Math.min(max,Math.max(min,n));};
+  var s=S.settings;
+  var go=function(){s.lookback=v('sLb',0,60,14);s.parts=[0,1,2,3,4].map(function(k){return {no:$('mpn'+k).value.trim().toUpperCase(),g:$('mpg'+k).value};});applyMaster(s.parts);s.startBin=v('sStart',1,20,4);s.look=v('sLook',0,20,3);s.P={tiers:v('sPt',1,9,3),cols:v('sPc',1,20,5),depth:v('sPd',1,4,1)};s.B={tiers:v('sBt',1,9,2),cols:v('sBc',1,20,5),depth:v('sBd',1,4,1)};
+    S.plans={};if(!validRange(S.day))S.day=defaultRange();save();fillSet();render();toast('設定を保存し、計画を作り直しました');};
+  confirmBox('計画を最初から作り直します。入力済みの実績は残ります。',['作り直す','やめる'],function(i){if(i===0)go();});
+};
+$('bClear').onclick=function(){confirmBox('受注・実績・設定をすべて消します。元に戻せません。',['消す','やめる'],function(i){if(i===0){try{localStorage.removeItem(STORE);}catch(e){}S=blank();S.orders=[];render();fillSet();toast('消しました');}});};
+$('day').onchange=function(){if(!this.value)return;S.day=rangeOfDay(this.value);save();render();};
+function setRange(){var a=$('rFrom').value,b=$('rTo').value;var ia=allSlots().map(function(o){return o.key;});if(ia.indexOf(a)>ia.indexOf(b)){var x=a;a=b;b=x;toast(lang==='ja'?'開始と終了を入れ替えました':'Swapped start and end');}S.day=a+'~'+b;save();render();}
+$('rFrom').onchange=setRange;$('rTo').onchange=setRange;
+$('bDelCsv').onclick=function(){if(!S.orders.length){toast(lang==='ja'?'削除するデータはありません':'No data');return;}
+  confirmBox('取込んだ受注CSVと実績をすべて削除して、画面を白紙に戻します。設定は残ります。先にExcel出力しましたか？',['削除する','やめる'],function(i){if(i!==0)return;var keep={settings:S.settings,lang:lang,mapping:S.mapping};S=blank();S.settings=keep.settings;S.lang=keep.lang;S.mapping=keep.mapping;S.meta={};save();render();toast('CSVデータを削除しました');});};
+$('lang').onchange=function(){lang=this.value;S.lang=lang;save();render();};
+
+/* ===== 画面部品 ===== */
+function confirmBox(msg,btns,cb){var h=$('modalHost');h.innerHTML='<div class="modal" role="dialog" aria-modal="true"><div class="box"><div style="font-weight:700">'+esc(msg)+'</div><div class="row">'+btns.map(function(b,i){return '<button type="button" class="btn '+(i===0?'primary':'ghost')+'" data-mi="'+i+'">'+esc(b)+'</button>';}).join('')+'</div></div></div>';
+  h.querySelectorAll('[data-mi]').forEach(function(b){b.onclick=function(){h.innerHTML='';cb(+b.dataset.mi);};});}
+var tt;function toast(m){var el=document.querySelector('.toast');if(!el){el=document.createElement('div');el.className='toast';el.setAttribute('role','status');document.body.appendChild(el);}el.textContent=m;el.hidden=false;clearTimeout(tt);tt=setTimeout(function(){el.hidden=true;},2600);}
+
+/* ===== サンプル（初回のみ） ===== */
+function sample(){
+  var d0=localToday(),d1=addDays(d0,1),bins=[[d0,4],[d0,5],[d0,6],[d0,7],[d0,8],[d1,1],[d1,2],[d1,3]];
+  var q=[[5,4,3,4,3],[6,5,2,3,2],[3,2,2,0,5],[8,6,5,6,4],[3,3,0,3,2],[5,4,3,3,3],[4,3,2,2,2],[5,3,2,3,2]];
+  var o=[];bins.forEach(function(b,i){PARTS.forEach(function(p,j){if(q[i][j])o.push({key:keyOf(b[0],b[1]),date:b[0],bin:b[1],part:p.no,qty:q[i][j]});});});
+  var s=blank();s.orders=o;fillActualsFromOrders(s);s.day=keyOf(d0,4)+'~'+keyOf(d1,3);s.meta={sample:true,fileName:'サンプル',importedAt:'',rows:o.length,ignored:0};return s;
+}
+
+/* ===== 起動 ===== */
+S=load()||sample();
+if(!S.settings)S.settings=JSON.parse(JSON.stringify(DEF_SET));
+if(!S.settings.parts){S.settings.parts=JSON.parse(JSON.stringify(DEF_PARTS));S.plans={};}
+S.settings.parts.forEach(function(x){if(x.no==='G9622-47010'){x.no='G9611-42010';x.g='B';S.plans={};}}); // 誤って入れた品番を置き換え
+applyMaster(S.settings.parts);
+Object.keys(S.plans||{}).forEach(function(d){var b=S.plans[d].base;if(typeof b!=='object'||!S.plans[d].plan||false)delete S.plans[d];});
+if(S.orders.length&&!validRange(S.day)){var od=S.day;S.day=(od&&daysList().indexOf(od)>=0)?rangeOfDay(od):defaultRange();S.plans={};}
+if(S.planVer!==VER){S.plans={};S.planVer=VER;if(S.orders&&S.orders.length)fillActualsFromOrders(S,true);}
+lang=S.lang||'ja';$('lang').value=lang;
+$('ver').textContent='ver '+VER;
+fillSet();render();
+window.__planDay=planDay; // テスト用
+})();
+</script>
+
+</body>
+</html>

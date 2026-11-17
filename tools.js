@@ -9,7 +9,7 @@
      「新しい版があります」と表示されます
    ========================================================= */
 
-var SITE_VER = '2026-11-17d';
+var SITE_VER = '2026-11-17e';
 
 /* GitHub Pages の場所（各ツールのリポジトリはここの下にある） */
 var BASE = 'https://overbridge038-lnk.github.io/';
@@ -33,7 +33,7 @@ var MAP_WALLS = [];
 var AREAS = [
   { id: 'office', icon: '🏢', name: '事務所',
     names: { id: 'Kantor', tl: 'Opisina', en: 'Office' },
-    x: 40, y: 50, w: 280, h: 130, tools: ['uriage', 'kanri-sheet', 'naiji', 'shukka-houkoku'] },
+    x: 40, y: 50, w: 280, h: 130, tools: ['uriage', 'mitsumori', 'kanri-sheet', 'naiji', 'shukka-houkoku'] },
 
   { id: 'ukeire', icon: '📥', name: '受入・素材',
     names: { id: 'Penerimaan', tl: 'Receiving', en: 'Receiving' },
@@ -130,7 +130,7 @@ var TOOLS = [
 
   { id: 'sekisai', icon: '🚛', name: '積載効率プランナー',
     desc: '便別の積載を算出してExcel出力',
-    file: 'tools/sekisai-planner.html', ver: '2026-11-11' },
+    file: 'tools/sekisai-planner.html', ver: '2026-11-06' },
 
   { id: 'sango', icon: '🏭', name: '三五在庫管理',
     desc: '在庫管理表・内示PDF・受注CSVから在庫と素材発注を算出',
@@ -156,7 +156,11 @@ var TOOLS = [
 
   { id: 'uriage', icon: '💴', name: '売上・仕入照合',
     desc: '売上伝票と仕入明細を照合してOK/NG判定',
-    file: 'tools/uriage-shiire.html', ver: '2026-11-11' },
+    file: 'tools/uriage-shiire.html', ver: '2026-11-17' },
+
+  { id: 'mitsumori', icon: '🧾', name: '見積単価 反映ツール',
+    desc: '過去の見積書から品番ごとの単価を探して、見積もり提出書に入れる',
+    file: 'tools/mitsumori-tanka.html', ver: '2026-11-17' },
 
   { id: 'naiji', icon: '📅', name: 'ユニクレア 出荷内示 月度表',
     desc: '出荷ファイルの注文数を月度表に入れ、前回から変わった日を赤字で知らせる',
