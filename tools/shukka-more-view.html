@@ -22,7 +22,7 @@ tr.grp{cursor:pointer}tr.grp:hover td{background:var(--sf2)}tr.grp:focus-visible
 .tg{display:inline-block;width:1.1em;color:var(--mu)}small.ol{color:var(--mu)}small.ol b{color:var(--ink)}
 tr.det td{background:var(--sf2);font-size:.82rem;color:var(--mu);white-space:normal}tr.det.drem td{background:color-mix(in srgb,var(--bad) 8%,var(--sf2))}tr.det b{color:var(--ink)}.empty{text-align:center;color:var(--mu);padding:24px}#net b{color:var(--ink)}#net .x{color:var(--bad);font-weight:700}a.bk{color:var(--ac)}
 </style></head><body><main>
-<h1>出荷漏れ照合（閲覧用） <small>ver 2026-11-17b</small> <small id="ver"></small></h1><div class="meta" id="net"></div><div class="meta">60秒ごとに最新の照合結果を読み直します。行をクリックすると、納入番号・オーダーごとの内訳が開きます。コメントの入力や照合は、照合しているPCで行ってください。</div>
+<h1>出荷漏れ照合（閲覧用） <small>ver 2026-11-18</small> <small id="ver"></small></h1><div class="meta" id="net"></div><div class="chips" id="dayF"></div><div class="meta">60秒ごとに最新の照合結果を読み直します。行をクリックすると、納入番号・オーダーごとの内訳が開きます。コメントの入力や照合は、照合しているPCで行ってください。</div>
 <div id="band"></div><div class="kpis" id="kpis"></div>
 <div class="box"><div class="meta">照合範囲</div><div id="scope"></div><div class="meta" style="margin-top:6px">端末ごとの最終読取（これより後の読取は、まだDriveに上がっていません）</div><div class="fr" id="fresh"></div></div>
 <div class="chips" id="stF"></div><div class="chips" id="mkF"></div>
@@ -34,11 +34,20 @@ const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&
 const ST={none:"未出荷",part:"途中",done:"完了",over:"過剰"};
 const OPEN=new Set((()=>{try{return JSON.parse(localStorage.getItem("snapOpen")||"[]")}catch(e){return[]}})());
 let st=(()=>{try{return localStorage.getItem("snapSt")||"rem"}catch(e){return"rem"}})(), mk=(()=>{try{return localStorage.getItem("snapMk")||"all"}catch(e){return"all"}})();
+let DAY="", DAYS=[];
+function drawDays(){
+  const el=document.getElementById("dayF"); if(!DAYS.length){ el.innerHTML=""; return; }
+  const wd=d=>"日月火水木金土"[new Date(d+"T00:00:00").getDay()];
+  el.innerHTML='<button data-day=""'+(DAY?'':' class="on"')+'>今日（最新）</button>'+DAYS.map(d=>'<button data-day="'+d+'"'+(DAY===d?' class="on"':'')+'>'+d.slice(5).replace("-","/")+'（'+wd(d)+'）</button>').join("");
+}
+document.addEventListener("click",e=>{const b=e.target.closest("button[data-day]"); if(!b) return; DAY=b.dataset.day; drawDays(); load();});
 function draw(){
   if(!D) return;
   const age=Math.round((Date.now()-D.at)/60000);
   document.getElementById("ver").textContent=D.ver;
-  document.getElementById("band").innerHTML = age>=90
+  document.getElementById("band").innerHTML = DAY
+    ? '<div class="band old">📅 過去の状況：'+esc(DAY)+' の最後の照合（'+esc(D.atLabel)+'）　残り '+D.rem+'枚'+(D.ok?'・OK':'')+'</div>'
+    : age>=90
     ? '<div class="band old">⚠ 最後の照合から'+age+'分たっています（'+esc(D.atLabel)+'）。照合しているPCの自動運転が止まっていないか確認してください。</div>'
     : '<div class="band '+(D.ok?"ok":"ng")+'">'+(D.ok?"✔ OK：すべて照合済み":"⚠ 要確認：残り "+D.rem+"枚")+'　（照合 '+esc(D.atLabel)+'・'+age+'分前）</div>';
   document.getElementById("kpis").innerHTML=[["かんばん枚数",D.tot,0],["残り",D.rem,D.rem],["過剰",D.over,D.over],["受注にないスキャン",D.unplanned,D.unplanned],["NG",D.ngs,D.ngs]]
@@ -82,8 +91,10 @@ async function load(){
     return;
   }
   try{
-    const r=await fetch(CFG.gas+"?key="+encodeURIComponent(CFG.key)+"&t="+Date.now(),{cache:"no-store"});
+    const r=await fetch(CFG.gas+"?key="+encodeURIComponent(CFG.key)+(DAY?"&day="+DAY:"")+"&t="+Date.now(),{cache:"no-store"});
     const j=await r.json();
+    if(DAY){ if(!j.ok) throw new Error(j.err==="none"?DAY+" の記録はありません":(j.err||"読み込めません")); D=j.D; net('過去の状況を取得 <b>'+esc(DAY)+'</b>'); draw(); return; }
+    try{ const r2=await fetch(CFG.gas+"?key="+encodeURIComponent(CFG.key)+"&list=1&t="+Date.now(),{cache:"no-store"}); const j2=await r2.json(); if(j2.ok){ DAYS=j2.days||[]; drawDays(); } }catch(x){}
     if(!j.ok) throw new Error(j.err==="key"?"合言葉がちがいます":j.err==="format"?"閲覧用ファイルの形が読めません":(j.err||"読み込めません"));
     D=j.D; const got=Date.now();
     try{localStorage.setItem(LAST,JSON.stringify({got,D}))}catch(e){}

@@ -191,7 +191,7 @@ input.cmt:focus{outline:3px solid var(--accent);outline-offset:1px}
 <div class="wrap">
   <header>
     <div>
-      <h1>出荷漏れチェック <small style="font-size:.6em;color:var(--muted);font-weight:400">v26.29 自動照合 <span style="white-space:nowrap">版 2026-11-18</span></small></h1>
+      <h1>出荷漏れチェック <small style="font-size:.6em;color:var(--muted);font-weight:400">v26.30 自動照合 <span style="white-space:nowrap">版 2026-11-18</span></small></h1>
       <p class="sub">メーカーごとの受注データのかんばん枚数から、スキャナーの照合データを差し引いて残りを管理します</p>
     </div>
     <div class="ctrls">
@@ -1243,7 +1243,7 @@ async function syncResult(trigger, quick){
    自動照合のたびに、結果フォルダーへ同じ名前で上書きする。中身は1ファイルで完結し、ネットがなくても開ける。
    閲覧専用（コメントの入力や照合はできない）。60秒ごとに読み直して、Driveで同期された最新を表示する */
 const SNAP_NAME="出荷漏れ照合_最新.html";
-function snapshotHtml(t0, tot){
+function snapData(t0, tot){
   const R=LAST;
   const rows=R.list.map(g=>({m:g.maker, d:g.date, dl:fmtDateW(g.date), b:g.bin, s:g.status, sb:[...g.sebango].join(" / "), ky:isEk(g.maker)?(kyohoOf(g.rows[0]&&g.rows[0].pn)||"－"):"", p:g.part,
     dest:[...g.dest].join("、"), plan:g.plan, done:Math.min(g.done,g.plan), rem:g.remain, over:g.over, last:g.last?g.last.slice(5,16):"", c:cmtOf(g.key),
@@ -1258,7 +1258,10 @@ function snapshotHtml(t0, tot){
     unplanned:R.unplanned.length, ngs:R.ngs.length, scope:R.plans.map(pi=>`${pi.makers.join("、")}：${slotLabel(pi.slots[pi.lo])}～${slotLabel(pi.slots[pi.hi])}`),
     fresh:FRESH.map(x=>({n:x.name, last:x.last.slice(11,16), mins:x.mins, stale:x.stale, lost:x.lost||0, gaps:(x.gaps||[]).map(g=>`${g.from}～${g.to}`).join("、")})),
     rows, ng, ver:(document.querySelector("h1 small")||{}).textContent||""};
-  const json=JSON.stringify(data).replace(/</g,"\\u003c");
+  return data;
+}
+function snapshotHtml(t0, tot){
+  const json=JSON.stringify(snapData(t0, tot)).replace(/</g,"\\u003c");
   return `<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta http-equiv="refresh" content="60"><title>出荷漏れ照合（閲覧用）</title><style>
 :root{--bg:#edf0f2;--sf:#fff;--sf2:#f6f8f9;--ink:#17212b;--mu:#5a6773;--ln:#d3d9de;--ok:#1f7a4d;--bad:#c0392b;--warn:#b7791f;--ac:#1d4e7a}
@@ -1332,7 +1335,18 @@ async function writeSnapshot(t0, tot){
   const od=await DIR.getDirectoryHandle(A.outDir,{create:true});
   const fh=await od.getFileHandle(SNAP_NAME,{create:true});
   const w=await fh.createWritable(); await w.write(new Blob([snapshotHtml(t0, tot)],{type:"text/html"})); await w.close();
+  // 過去の日の状況：その日の最後の結果を「日別\YYYY-MM-DD.json」に上書きで残す（閲覧用の日付ボタン用）。7日より古い分は消す
+  try{
+    const dd=await od.getDirectoryHandle(DAILY_DIR,{create:true}); const p2=x=>String(x).padStart(2,"0");
+    const key=d=>`${d.getFullYear()}-${p2(d.getMonth()+1)}-${p2(d.getDate())}`;
+    const jh=await dd.getFileHandle(key(t0)+".json",{create:true});
+    const jw=await jh.createWritable(); await jw.write(new Blob([JSON.stringify(snapData(t0, tot))],{type:"application/json"})); await jw.close();
+    const old=key(new Date(t0.getTime()-DAILY_KEEP*864e5)); const del=[];
+    for await (const [n,h] of dd.entries()){ const m=/^(\d{4}-\d{2}-\d{2})\.json$/.exec(n); if(h.kind==="file"&&m&&m[1]<=old) del.push(n); }
+    for(const n of del) await dd.removeEntry(n);
+  }catch(e){}
 }
+const DAILY_DIR="日別", DAILY_KEEP=7;
 
 // コメントを書き換えたら、閲覧用ページにも5秒後に反映する
 let SNAP_TOT=null, snapT=null;
