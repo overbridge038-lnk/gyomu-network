@@ -966,6 +966,25 @@ let DIR = null, PERM = "none", RUNNING = false;
    フォルダーと同じ形にして照合する。読むだけ（結果Excel・閲覧用ページ・日付別への片付けは職場PCが行う） */
 const GASCFG_KEY = "shukkaAutoGas";
 let GAS = false, GAS_AT = "", GAS_NOTE = [];
+/* v26.28：照合の結果を左右する設定は、職場PCのものをドライブ（出荷漏れ照合結果\出荷漏れ照合_設定.json）に置き、
+   読むだけのPCは毎回その設定で照合する（PCごとに設定がちがって結果が分かれないように＝標準化） */
+const SHARE_KEYS=["ageDays","sub","newestOnly","relDays","incPast","ranges","planKw","scanKw","archDir","outDir"];
+const SHARE_FILE="出荷漏れ照合_設定.json";
+let SHARE_LAST="", SHARE_T=null, GAS_CFG=null;
+function shareObj(){ const o={}; SHARE_KEYS.forEach(k=>o[k]=A[k]); return o; }
+async function writeShare(force){
+  if(GAS || !DIR || PERM!=="granted") return;
+  const body=JSON.stringify(shareObj()); if(!force && body===SHARE_LAST) return;
+  try{ const od=await DIR.getDirectoryHandle(A.outDir,{create:true}); const h=await od.getFileHandle(SHARE_FILE,{create:true});
+       const w=await h.createWritable(); await w.write(JSON.stringify(Object.assign({at:Date.now()},shareObj()))); await w.close(); SHARE_LAST=body; }catch(e){}
+}
+function queueShare(){ if(GAS || !DIR) return; clearTimeout(SHARE_T); SHARE_T=setTimeout(()=>writeShare(false),3000); }
+function applyShared(c){
+  if(!c) return; GAS_CFG=c;
+  SHARE_KEYS.forEach(k=>{ if(c[k]!==undefined && c[k]!==null) A[k]=c[k]; }); saveA();
+  for(const [id,k] of [["planKw","planKw"],["scanKw","scanKw"],["ageDays","ageDays"],["relDays","relDays"]]){ const el=$(id); if(el){ el.value=A[k]; el.disabled=true; } }
+  for(const [id,k] of [["newestOnly","newestOnly"],["subDirs","sub"],["incPast","incPast"]]){ const el=$(id); if(el){ el.checked=!!A[k]; el.disabled=true; } }
+}
 function gasCfg(){ try{ const c=JSON.parse(localStorage.getItem(GASCFG_KEY)||"null"); if(c && c.gas && c.key) return c; }catch(e){} return null; }
 function vFile(f){ return { kind:"file", name:f.name, async getFile(){ const bin=atob(f.b64||""), u=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++) u[i]=bin.charCodeAt(i); return new File([u], f.name, {lastModified:f.mtime}); } }; }
 function vDir(name, node){
@@ -986,10 +1005,12 @@ async function gasSnapshot(){
   catch(e){ throw new Error("GASにつながりませんでした（URL・公開設定・Wi-Fiを確認）："+e.message); }
   if(!j || !j.ok) throw new Error("GASから読めませんでした："+((j&&j.err)||"不明"));
   GAS_AT=hmOf(new Date()); GAS_NOTE=j.note||[];
+  if(j.cfg){ applyShared(j.cfg); GAS_NOTE.unshift(`職場PCの設定で照合（${new Date(j.cfg.at).toLocaleString("ja-JP")} 時点・更新日${j.cfg.ageDays}日以内）`); }
+  else GAS_NOTE.unshift("職場PCの設定がまだドライブにありません（この端末の設定で照合）。職場PCで一度照合すると置かれます");
   return vDir("Googleドライブ（GAS経由）", j.root||{});
 }
 
-function saveA(){ try{ localStorage.setItem(AKEY, JSON.stringify(A)); }catch(e){} }
+function saveA(){ try{ localStorage.setItem(AKEY, JSON.stringify(A)); }catch(e){} if(typeof queueShare==='function') queueShare(); }
 function loadA(){ try{ const t=localStorage.getItem(AKEY); if(t) A=Object.assign(A, JSON.parse(t)); }catch(e){}
   // v26.1：e-かんばんの「…一致.xlsx」も受注データとして読む
   if(A.planKw==="受注"){ A.planKw="受注、一致"; saveA(); }
@@ -1109,7 +1130,7 @@ async function runOnce(trigger){
     const okAll = rem===0 && over===0 && !R.unplanned.length && !R.ngs.length;
     const outName=`出荷漏れ照合_${stamp(t0)}.xlsx`;
     if(GAS){ notes.push(...GAS_NOTE); }
-    else await writeExcel(outName, t0, {tot, rem, over, okAll}, planF, notes);
+    else { await writeExcel(outName, t0, {tot, rem, over, okAll}, planF, notes); await writeShare(true); }
     if(!GAS) try{ SNAP_TOT={t0, tot:{tot, rem, over, okAll}}; await writeSnapshot(t0, SNAP_TOT.tot); }catch(e){ notes.push("閲覧用ページを保存できませんでした："+e.message); }
     entry.ok=okAll;
     entry.text = okAll ? `OK：${tot}枚すべて照合済み` : `NG：残り${rem}枚${over?`・過剰${over}枚`:""}${R.unplanned.length?`・受注にないスキャン${R.unplanned.length}枚`:""}${R.ngs.length?`・NG${R.ngs.length}件`:""}`;
