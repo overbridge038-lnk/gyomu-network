@@ -95,7 +95,7 @@ dialog select{background:#fff;color:var(--ink);border-color:var(--line);max-widt
 </head>
 <body>
 <header>
-  <h1>ユニクレア 出荷内示 月度表<span class="ver">ver 2026-11-17d</span></h1>
+  <h1>ユニクレア 出荷内示 月度表<span class="ver">ver 2026-11-18</span></h1>
   <div class="ctl"><label for="selMonth">月度</label><select id="selMonth"></select></div>
   <div class="ctl"><label for="selVer">版</label><select id="selVer"></select></div>
   <div class="spacer"></div>
@@ -144,7 +144,7 @@ dialog select{background:#fff;color:var(--ink);border-color:var(--line);max-widt
 <div class="toast" id="toast"></div>
 
 <script>
-const TOOL_VER='2026-11-17d';
+const TOOL_VER='2026-11-18';
 /* ====== 原紙レイアウト定義（出荷内示原紙の行番号に対応） ====== */
 const ROWS = [
   {r:10,label:'TTA7(2RG) サイドフレーム',cap:120,kind:'in',cls:'mikawa-t'},
@@ -220,7 +220,7 @@ function nextSeq(rec){ return (rec.versions||[]).reduce((a,v)=>Math.max(a,v.seq|
 
 
 /* ====== 基準データ（どのPCでも、このデータを 11-5 とし、ここから数え直す） ====== */
-const PIN_ID='pin-2026-11-5-v1';
+const PIN_ID='pin-2026-11-5-v2';
 const PINNED={'2026-11':{"label":"11-5","seq":5,"fileNo":6,"source":"20261110130203_2611_注文書_五和製作所.xlsx","loadedAt":"2026-11-17T15:45:00+09:00","pinned":true,"parts":{"82136-32R4-J000-SB-0000-T":{"name":"FOOT COMP R,RR CUSH","qty":[0,840,840,720,840,720,0,0,840,720,840,840,840,0,0,840,720,840,840,840,0,0,840,840,840,840,840,0,0,720,0],"diff":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,120,0,0,0,0,0,120,0,0,0,0,0]},"82536-32R4-J000-SB-0000-T":{"name":"FOOT COMP L,RR CUSH","qty":[0,840,840,720,840,720,0,0,840,720,840,840,840,0,0,840,720,840,840,840,0,0,840,840,840,840,840,0,0,720,0],"diff":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,120,0,0,0,0,0,120,0,0,0,0,0]},"82129-TTE8-J000-SA-0001":{"name":"PARTATION PLATE SUB COMP(塗装)","qty":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,360,0,0,0,0],"diff":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]},"82136-TTE8-J000-SA-0002-T":{"name":"FOOT PIPE SUB COMP（塗装）","qty":[0,0,0,140,0,0,0,0,0,140,0,0,0,0,0,0,140,0,0,0,0,0,140,0,0,0,0,0,0,280,0],"diff":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]},"82136-TXA9-J000-SA-0002-T":{"name":"FOOT PIPE SUB COMP,RR CUSH","qty":[0,280,140,0,0,420,0,0,140,0,140,140,140,0,0,280,140,140,140,280,0,0,140,0,280,140,140,0,0,140,0],"diff":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]},"82136-TZA0-J000-SA-0000":{"name":"FOOT PIPE SUB COMP R,RR CUSH","qty":[0,280,280,280,280,280,0,0,280,280,280,280,280,0,0,280,280,280,280,280,0,0,420,280,420,280,420,0,0,280,0],"diff":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]},"82536-TZA0-J000-SA-0000":{"name":"FOOT PIPE SUB COMP L,RR CUSH","qty":[0,280,280,280,280,280,0,0,280,280,280,280,280,0,0,280,280,280,280,280,0,0,420,280,420,280,420,0,0,280,0],"diff":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]},"82136-TTA7-J010-SB-0002-T":{"name":"FOOT COMP R,RR CUSH","qty":[0,0,0,120,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"diff":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]},"82536-TTA7-J010-SB-0002-T":{"name":"FOOT COMP L,RR CUSH","qty":[0,0,0,120,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"diff":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]}}}};
 function stripRemoved(parts){ const o={}; for(const pn in (parts||{})) if(!parts[pn].removed) o[pn]=parts[pn]; return o; }
 function applyPinned(s){
@@ -237,9 +237,9 @@ function applyPinned(s){
     const before=others.filter(v=>String(v.loadedAt||'')<pivot).sort(byTime);
     const after=others.filter(v=>String(v.loadedAt||'')>=pivot).sort(byTime);
     const base=dup?Object.assign(dup,{pinned:true}):pv;
-    base.seq=pv.seq;
-    before.forEach((v,i)=>v.seq=Math.max(1,pv.seq-(before.length-i)));
-    after.forEach((v,i)=>v.seq=pv.seq+1+i);
+    base.seq=Math.max(pv.seq,before.length+1);
+    before.forEach((v,i)=>v.seq=i+1);
+    after.forEach((v,i)=>v.seq=base.seq+1+i);
     rec.versions=[...before,base,...after];
     rec.versions.forEach(v=>v.label=`${m}-${v.seq}`);
     s.pinApplied[mon]=PIN_ID;
