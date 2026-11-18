@@ -205,7 +205,7 @@ input.cmt:focus{outline:3px solid var(--accent);outline-offset:1px}
       <span class="runstate" id="runState">停止中</span>
     </div>
     <p class="msg err" id="fsUnsupported" hidden>このブラウザはフォルダーの自動読込に対応していません。表紙の右上 ⚙ で「出荷漏れ自動照合」のGAS（URL・合言葉）を入れると、Googleドライブから読んで照合できます。</p>
-    <p class="msg" id="gasNote" hidden>この端末は Googleドライブを <b>GAS経由で読むだけ</b> で照合します。「今すぐ照合」を押すと、その時点のドライブの受注データ・照合データで照合します（結果Excelの保存・日付別への片付け・自動運転は職場PCが行います）。</p>
+    <p class="msg" id="gasNote" hidden>この端末は Googleドライブを <b>GAS経由で読むだけ</b> で照合します。「今すぐ照合」を押すと、その時点のドライブの受注データ・照合データで照合します。「開始」を押すと、決めた曜日・時刻に自動で読み直します（結果Excelの保存・日付別への片付けは職場PCが行います）。</p>
 
     <div class="autogrid">
       <div class="autobox">
@@ -214,6 +214,7 @@ input.cmt:focus{outline:3px solid var(--accent);outline-offset:1px}
         <div class="row">
           <button class="btn ghost sm" id="pickDir" type="button">フォルダーを選ぶ</button>
           <button class="btn sm" id="grantDir" type="button" hidden>アクセスを許可</button>
+          <button class="btn ghost sm" id="dropDir" type="button" hidden>フォルダーを外す（ドライブを読むだけ）</button>
         </div>
         <p class="note">受注データ・照合データ・結果の保存先は同じフォルダーです。結果は中の「<span id="outDirLabel">出荷漏れ照合結果</span>」フォルダーに保存します。他のPCからは、同じフォルダーの「出荷漏れ照合_最新.html」をブラウザで開くと見られます。</p>
         <span class="seglabel" style="margin-top:6px">スキャナーのRESULT（照合のとき直接読みます）</span>
@@ -1005,6 +1006,7 @@ async function idbPut(k,v){ const db=await idb(); return new Promise((res,rej)=>
 async function idbGet(k){ const db=await idb(); return new Promise((res,rej)=>{ const tx=db.transaction("h"); const q=tx.objectStore("h").get(k); q.onsuccess=()=>res(q.result); q.onerror=()=>rej(q.error); }); }
 
 async function checkPerm(ask){
+  if(GAS){ PERM="granted"; return PERM; }   // 読むだけ（GAS経由）は許可がいらない
   if(!DIR){ PERM="none"; return PERM; }
   try{
     let p=await DIR.queryPermission({mode:"readwrite"});
@@ -1555,7 +1557,7 @@ function paintAuto(){
   const st=$("runState");
   if(RUNNING){ st.textContent="照合中…"; st.className="runstate busy"; }
   else if(A.auto && PERM!=="granted"){ st.textContent="停止（許可待ち）"; st.className="runstate stop"; }
-  else if(A.auto){ st.textContent="自動運転中"; st.className="runstate on"; }
+  else if(A.auto){ st.textContent=GAS?"自動（読むだけ）":"自動運転中"; st.className="runstate on"; }
   else { st.textContent="停止中"; st.className="runstate"; }
   if(GAS){ $("dirName").textContent=`Googleドライブ（GAS経由・読むだけ）${GAS_AT?`　前回の読込 ${GAS_AT}`:"　「今すぐ照合」で読み込みます"}`; }
   else $("dirName").textContent = DIR ? `${DIR.name}${PERM==="granted"?"（アクセス許可済み）":"（アクセスの許可が必要）"}` : "未設定（G:\\マイドライブ を選んでください）";
@@ -1564,7 +1566,10 @@ function paintAuto(){
   $("resState").textContent = !RES ? "C:\\GOHIN\\HT\\RESULT を選ぶと、照合のたびに直接読みます（転送した直後でもすぐ反映）。Googleドライブへの保存は「自動コピーを登録.bat」が5分ごとに HT_RESULT へ行います。"
     : RPERM!=="granted" ? "RESULTフォルダーへのアクセスが切れています。「アクセスを許可」を押してください。"
     : `照合のたびにRESULTを直接読みます${RES_LAST?`（前回 ${RES_LAST}）`:""}。ドライブへの保存はバッチ（5分ごと・HT_RESULT）が行います。`;
-  $("autoStart").hidden=A.auto||GAS; $("autoStop").hidden=!A.auto;
+  $("autoStart").hidden=A.auto; $("autoStop").hidden=!A.auto;
+  $("autoStart").textContent = GAS ? "▶ 開始（自動で読み直す）" : "▶ 開始（自動運転ON）";
+  $("archNow").hidden=GAS; ["pickRes","resNow"].forEach(id=>{ const e=$(id); if(e) e.hidden=GAS; });
+  { const d=$("dropDir"); if(d) d.hidden = GAS || !(DIR||RES) || !gasCfg(); }
   $("outDirLabel").textContent=A.outDir; $("archLabel").textContent=A.archDir;
   const nx=nextRunAt(new Date());
   $("nextRun").textContent = A.auto ? (nx ? `次の照合：${nx.getMonth()+1}/${nx.getDate()}（${DOW[nx.getDay()]}）${hmOf(nx)}` : "曜日・時刻が設定されていません") : "";
@@ -1594,8 +1599,14 @@ function initAutoUI(){
     if(b.dataset.deltime){ A.times=A.times.filter(t=>t!==b.dataset.deltime); saveA(); paintAuto(); }
     else if(b.id==="alarmAck"){ $("alarm").hidden=true; document.title="出荷漏れチェック"; }
     else if(b.id==="pickDir"){
+      if(gasCfg() && !confirm("フォルダーを選ぶのは、自動運転で照合する職場PCだけです。このPCでも結果Excelの保存・日付別への片付けを行うようになります。続けますか？\n（ほかのPCは、フォルダーを選ばずに「今すぐ照合」でドライブを読むだけにしてください）")) return;
       try{ DIR=await window.showDirectoryPicker({id:"shukka-auto", mode:"readwrite"}); await idbPut("dir",DIR); await checkPerm(true); }catch(err){ if(err.name!=="AbortError") alarm("フォルダーを選べませんでした："+err.message,false); }
       paintAuto();
+    }
+    else if(b.id==="dropDir"){
+      if(!confirm("このPCのフォルダー設定を外して、Googleドライブを読むだけにします（結果Excelの保存・日付別への片付けは職場PCが行います）。よろしいですか？")) return;
+      try{ await idbPut("dir",null); await idbPut("res",null); }catch(e){}
+      A.auto=false; saveA(); location.reload(); return;
     }
     else if(b.id==="pickRes"){
       try{ RES=await window.showDirectoryPicker({id:"shukka-result", mode:"read"}); await idbPut("res",RES); await checkResPerm(true);
@@ -1616,6 +1627,7 @@ function initAutoUI(){
     }
     else if(b.id==="grantDir"){ if(RES) await checkResPerm(true); await checkPerm(true); paintAuto(); if(PERM==="granted" && A.auto) $("alarm").hidden=true; }
     else if(b.id==="autoStart"){
+      if(GAS){ A.auto=true; saveA(); paintAuto(); runNow("開始ボタン"); return; }
       if(!DIR){ alarm("先に「フォルダーを選ぶ」で G:\\マイドライブ を選んでください。",false); return; }
       if(await checkPerm(true)!=="granted"){ paintAuto(); return; }
       A.auto=true; saveA(); keepAwake(true); paintAuto(); runNow("開始ボタン");
@@ -1632,7 +1644,7 @@ function initAutoUI(){
   try{ DIR=await idbGet("dir")||null; }catch(e){ DIR=null; }
   try{ RES=await idbGet("res")||null; }catch(e){ RES=null; }
   // フォルダーを選んでいない端末で、表紙の ⚙ に GAS が入っていれば、GAS経由で読む（読むだけ）
-  if(!DIR && gasCfg()){ GAS=true; PERM="granted"; A.auto=false; $("fsUnsupported").hidden=true; $("runNow").disabled=false;
+  if(!DIR && gasCfg()){ GAS=true; PERM="granted"; $("fsUnsupported").hidden=true; $("runNow").disabled=false; $("autoStart").disabled=false;
     const g=$("gasNote"); if(g) g.hidden=false; }
   await checkPerm(false); await checkResPerm(false);
   checkGap("画面が閉じられた・再読み込みされた、またはブラウザがタブを休止させた可能性");
