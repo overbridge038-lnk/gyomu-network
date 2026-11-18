@@ -692,6 +692,11 @@ refreshVers();
    ・三五在庫管理      … localStorage 'sangoZaikoCfg' の gas・key（ドライブ共有。ツールの「☁ 共有の設定」と同じ場所）
    ・出荷漏れ自動照合  … localStorage 'shukkaAutoGas' の gas・key（ドライブの受注・照合データを読むだけ。フォルダーを選べない端末で使う） */
 var CFG_RE=/^https:\/\/script\.google\.com\/macros\/s\/[A-Za-z0-9_-]{20,}\/exec$/;
+// 貼り付けのくせを直す（空白・改行・? 以降・最後の / を取る。デプロイIDだけなら URL にする）ポカヨケ
+function fixUrl(el){ var v=(el.value||'').replace(/\s+/g,'').replace(/[?#].*$/,'').replace(/\/+$/,'');
+  if(/^AKfyc[A-Za-z0-9_-]{20,}$/.test(v)) v='https://script.google.com/macros/s/'+v+'/exec';
+  v=v.replace(/^http:\/\//,'https://').replace(/^(https:\/\/script\.google\.com\/macros\/s\/[A-Za-z0-9_-]{20,})$/,'$1/exec');
+  el.value=v; return v; }
 function lsGet(k){ try{ return JSON.parse(localStorage.getItem(k)||'null')||{}; }catch(e){ return {}; } }
 function lsSet(k,o){ try{ localStorage.setItem(k,JSON.stringify(o)); return true; }catch(e){ return false; } }
 function cfgSt(v){ return v?'<span class="st ok">設定済み</span>':'<span class="st no">未設定</span>'; }
@@ -720,6 +725,7 @@ function openCfg(){
 }
 function closeCfg(){ document.getElementById('cfgBg').classList.remove('show'); document.getElementById('cfgBox').innerHTML=''; }
 function saveCfg(){
+  ['cfZ','cfS','cfV','cfM','cfG'].forEach(function(id){ var e=document.getElementById(id); if(e) fixUrl(e); });
   var vi=document.getElementById('cfV'), vu=vi.value.trim(), vki=document.getElementById('cfVK'), vk=vki.value.trim(), gi=document.getElementById('cfG'), gu=gi.value.trim(), gki=document.getElementById('cfGK'), gk=gki.value.trim();
   var zi=document.getElementById('cfZ'), si=document.getElementById('cfS'), ki=document.getElementById('cfK'), er=document.getElementById('cfErr');
   var mi=document.getElementById('cfM'), mu=mi.value.trim(), mki=document.getElementById('cfMK'), mk=mki.value.trim();
