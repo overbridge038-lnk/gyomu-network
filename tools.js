@@ -9,7 +9,7 @@
      「新しい版があります」と表示されます
    ========================================================= */
 
-var SITE_VER = '2026-11-18k';
+var SITE_VER = '2026-11-18l';
 
 /* GitHub Pages の場所（各ツールのリポジトリはここの下にある） */
 var BASE = 'https://overbridge038-lnk.github.io/';
@@ -189,7 +189,7 @@ var TOOLS = [
   { id: 'shukka-more-view', icon: '👀', name: '出荷漏れ照合（閲覧用）',
     desc: '照合PCの最新の照合結果を表で見る（60秒ごとに読み直し。⚙ で接続を設定）',
     names: { id: 'Cek Kebocoran (Lihat)', tl: 'Shipping Miss Check (View)', en: 'Shipping Miss Check (View)' },
-    file: 'tools/shukka-more-view.html', ver: '2026-11-18k' },
+    file: 'tools/shukka-more-view.html', ver: '2026-11-18l' },
 
   { id: 'rinkan-yama', icon: '📚', name: '臨かん かんばん山積み',
     desc: '臨かんだけを品番・日付ごとにかんばん枚数で山積みしてExcel出力',
