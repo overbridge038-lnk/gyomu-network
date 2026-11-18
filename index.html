@@ -749,8 +749,11 @@ function saveCfg(){
   closeCfg(); toast('接続の設定を保存しました（この端末）');
 }
 document.getElementById('cfgBtn').addEventListener('click',openCfg);
+// URLを選ぶときにマウスが枠の外で離れても閉じない（押した場所も外のときだけ閉じる）
+var cfgDownBg=false;
+document.getElementById('cfgBg').addEventListener('pointerdown',function(e){ cfgDownBg=(e.target.id==='cfgBg'); });
 document.getElementById('cfgBg').addEventListener('click',function(e){
-  if(e.target.id==='cfgBg'||e.target.closest('#cfNo')){ closeCfg(); return; }
+  if((e.target.id==='cfgBg'&&cfgDownBg)||e.target.closest('#cfNo')){ closeCfg(); return; }
   if(e.target.closest('#cfOk')){ saveCfg(); return; }
   if(e.target.closest('#cfSameM')){ document.getElementById('cfM').value=document.getElementById('cfV').value; document.getElementById('cfMK').value=document.getElementById('cfVK').value; return; }
   if(e.target.closest('#cfSame')){ document.getElementById('cfG').value=document.getElementById('cfV').value; document.getElementById('cfGK').value=document.getElementById('cfVK').value; return; }
