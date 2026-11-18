@@ -43,6 +43,26 @@ self.addEventListener('fetch', function (e) {
   if (e.request.method !== 'GET') return;
   if (e.request.cache === 'no-store') return; // 最新版の確認はネットへ直接
   if (/script\.google(usercontent)?\.com/.test(e.request.url)) return; // Googleへの送信・共有データはいつもネットへ（保存しない）
+  var url = new URL(e.request.url);
+  // 画面（表紙・各ツールのHTML）は、電波があれば毎回いちばん新しい版を開く（3秒で返事がなければ保存した版）。
+  // 開いたHTMLは保存し直すので、電波がないときも最後に開いた版で動く
+  if (e.request.mode === 'navigate' && url.origin === self.location.origin) {
+    var key = url.origin + url.pathname;
+    e.respondWith(caches.open(CACHE).then(function (c) {
+      var net = fetch(e.request, { cache: 'no-store' }).then(function (r) {
+        if (r && r.ok) c.put(key, r.clone());
+        return r;
+      });
+      var late = new Promise(function (res) { setTimeout(res, 3000); });
+      return Promise.race([net.catch(function () { return null; }), late]).then(function (r) {
+        if (r) return r;
+        return c.match(key, { ignoreSearch: true }).then(function (hit) {
+          return hit || net.catch(function () { return c.match('./index.html'); });
+        });
+      });
+    }));
+    return;
+  }
   e.respondWith(
     caches.open(CACHE).then(function (c) {
       var same = new URL(e.request.url).origin === self.location.origin;
