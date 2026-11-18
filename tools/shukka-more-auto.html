@@ -191,7 +191,7 @@ input.cmt:focus{outline:3px solid var(--accent);outline-offset:1px}
 <div class="wrap">
   <header>
     <div>
-      <h1>出荷漏れチェック <small style="font-size:.6em;color:var(--muted);font-weight:400">v26.28 自動照合 <span style="white-space:nowrap">版 2026-11-18</span></small></h1>
+      <h1>出荷漏れチェック <small style="font-size:.6em;color:var(--muted);font-weight:400">v26.29 自動照合 <span style="white-space:nowrap">版 2026-11-18</span></small></h1>
       <p class="sub">メーカーごとの受注データのかんばん枚数から、スキャナーの照合データを差し引いて残りを管理します</p>
     </div>
     <div class="ctrls">
@@ -974,6 +974,7 @@ let SHARE_LAST="", SHARE_T=null, GAS_CFG=null;
 function shareObj(){ const o={}; SHARE_KEYS.forEach(k=>o[k]=A[k]); return o; }
 async function writeShare(force){
   if(GAS || !DIR || PERM!=="granted") return;
+  if(!RES || RES.name!=="RESULT") return;   // 設定を書くのは、スキャナーの C:\GOHIN\HT\RESULT を選んでいる職場PCだけ（ほかのPCが上書きしないように）
   const body=JSON.stringify(shareObj()); if(!force && body===SHARE_LAST) return;
   try{ const od=await DIR.getDirectoryHandle(A.outDir,{create:true}); const h=await od.getFileHandle(SHARE_FILE,{create:true});
        const w=await h.createWritable(); await w.write(JSON.stringify(Object.assign({at:Date.now()},shareObj()))); await w.close(); SHARE_LAST=body; }catch(e){}
