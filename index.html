@@ -318,7 +318,7 @@ var savedSet = {}, swReg = null, newSiteVer = '', openArea = null;
 var TOOL = {}; TOOLS.forEach(function(t){ TOOL[t.id]=t; });
 var AREA = {}; AREAS.forEach(function(a){ AREA[a.id]=a; });
 
-function md(v){ var p=v.split('-'); return (+p[1])+'/'+(+p[2]); }
+function md(v){ var m=String(v).match(/^\d{4}-(\d{1,2})-(\d{1,2})/); return m?(+m[1])+'/'+(+m[2]):String(v); }  /* 「2026-11-18 08:23」「2026-11-17c」も日付だけ出す */
 function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
 function nm(o){ return (lang!=='ja' && o.names && o.names[lang]) ? o.names[lang] : o.name; }
 /* 別リポジトリのツールは、Wi-Fiにつながったときにツール本体の画面から ver を読み取る */
