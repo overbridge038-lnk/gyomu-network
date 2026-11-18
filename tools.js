@@ -9,7 +9,7 @@
      「新しい版があります」と表示されます
    ========================================================= */
 
-var SITE_VER = '2026-11-18b';
+var SITE_VER = '2026-11-18c';
 
 /* GitHub Pages の場所（各ツールのリポジトリはここの下にある） */
 var BASE = 'https://overbridge038-lnk.github.io/';
@@ -33,15 +33,15 @@ var MAP_WALLS = [];
 var AREAS = [
   { id: 'office', icon: '🏢', name: '事務所',
     names: { id: 'Kantor', tl: 'Opisina', en: 'Office' },
-    x: 40, y: 50, w: 280, h: 130, tools: ['uriage', 'mitsumori', 'kanri-sheet', 'naiji', 'shukka-houkoku'] },
+    x: 40, y: 50, w: 280, h: 130, tools: ['uriage', 'mitsumori', 'naiji', 'shukka-houkoku', 'shikyu-naiji'] },
 
   { id: 'ukeire', icon: '📥', name: '受入・素材',
     names: { id: 'Penerimaan', tl: 'Receiving', en: 'Receiving' },
-    x: 40, y: 400, w: 170, h: 130, tools: ['shikyu-naiji', 'kakeoki'] },
+    x: 40, y: 400, w: 170, h: 130, tools: ['kakeoki'] },
 
   { id: 'kake', icon: '🪝', name: '掛け',
     names: { id: 'Gantung', tl: 'Hanging', en: 'Hanging' },
-    x: 250, y: 400, w: 170, h: 130, tools: ['kakeoki', 'seisan', 'point'] },
+    x: 250, y: 400, w: 170, h: 130, tools: ['seisan', 'point'] },
 
   { id: 'dasshi', icon: '🧼', name: '脱脂工程',
     names: { id: 'Degreasing', tl: 'Degreasing', en: 'Degreasing' },
@@ -53,7 +53,7 @@ var AREAS = [
 
   { id: 'kensa', icon: '🔬', name: '検査',
     names: { id: 'Inspeksi', tl: 'Inspection', en: 'Inspection' },
-    x: 670, y: 400, w: 150, h: 130, tools: ['point', 'seisan', 'kakeoki'] },
+    x: 670, y: 400, w: 150, h: 130, tools: ['seisan', 'point'] },
 
   { id: 'store', icon: '🗄️', name: 'ストア',
     names: { id: 'Gudang', tl: 'Store', en: 'Store' },
@@ -62,7 +62,7 @@ var AREAS = [
   { id: 'shukka', icon: '🚚', name: '出荷場',
     names: { id: 'Pengiriman', tl: 'Shipping', en: 'Shipping' },
     x: 850, y: 210, w: 120, h: 320,
-    tools: ['gohin', 'gohin-fts', 'sekisai', 'zaiko-count', 'shukka-more-auto', 'shukka-more-view', 'hayami', 'sango', 'furidashi', 'tsumitsuke', 'shogo-matome', 'rinkan-yama'] }
+    tools: ['gohin', 'gohin-fts', 'sekisai', 'zaiko-count', 'shukka-more-auto', 'shukka-more-view', 'hayami', 'sango', 'furidashi', 'tsumitsuke', 'shogo-matome', 'rinkan-yama', 'kanri-sheet'] }
 ];
 
 /* ---------------------------------------------------------
