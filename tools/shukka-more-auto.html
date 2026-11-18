@@ -191,7 +191,7 @@ input.cmt:focus{outline:3px solid var(--accent);outline-offset:1px}
 <div class="wrap">
   <header>
     <div>
-      <h1>出荷漏れチェック <small style="font-size:.6em;color:var(--muted);font-weight:400">v26.25 自動照合 <span style="white-space:nowrap">版 2026-11-06</span></small></h1>
+      <h1>出荷漏れチェック <small style="font-size:.6em;color:var(--muted);font-weight:400">v26.26 自動照合 <span style="white-space:nowrap">版 2026-11-18</span></small></h1>
       <p class="sub">メーカーごとの受注データのかんばん枚数から、スキャナーの照合データを差し引いて残りを管理します</p>
     </div>
     <div class="ctrls">
@@ -204,7 +204,8 @@ input.cmt:focus{outline:3px solid var(--accent);outline-offset:1px}
       <h2><span class="step">AUTO</span>自動照合（Googleドライブから自動で読み込み）</h2>
       <span class="runstate" id="runState">停止中</span>
     </div>
-    <p class="msg err" id="fsUnsupported" hidden>このブラウザはフォルダーの自動読込に対応していません。Chrome または Edge で開いてください。</p>
+    <p class="msg err" id="fsUnsupported" hidden>このブラウザはフォルダーの自動読込に対応していません。表紙の右上 ⚙ で「出荷漏れ自動照合」のGAS（URL・合言葉）を入れると、Googleドライブから読んで照合できます。</p>
+    <p class="msg" id="gasNote" hidden>この端末は Googleドライブを <b>GAS経由で読むだけ</b> で照合します。「今すぐ照合」を押すと、その時点のドライブの受注データ・照合データで照合します（結果Excelの保存・日付別への片付け・自動運転は職場PCが行います）。</p>
 
     <div class="autogrid">
       <div class="autobox">
@@ -958,6 +959,35 @@ let A = { days:[1,2,3,4,5,6], times:["08:30","12:00","15:30"], planKw:"受注、
           newestOnly:true, sub:false, relDays:1, incPast:false, auto:false, lastRuns:{}, log:[], ranges:{}, resSync:true, resSince:0, resSent:{}, resLast:'', archive:true, archDir:"日付別データ", lastArchive:"", outDir:"出荷漏れ照合結果" };
 let DIR = null, PERM = "none", RUNNING = false;
 
+/* ---------- Googleドライブを GAS 経由で読む（v26.26） ----------
+   フォルダーを選べない端末（タブレット・表紙から開いたほかのPC）では、表紙の ⚙ で入れた
+   Apps Script（出荷用アカウント）から、マイドライブの受注データ・照合データをまとめて受け取り、
+   フォルダーと同じ形にして照合する。読むだけ（結果Excel・閲覧用ページ・日付別への片付けは職場PCが行う） */
+const GASCFG_KEY = "shukkaAutoGas";
+let GAS = false, GAS_AT = "", GAS_NOTE = [];
+function gasCfg(){ try{ const c=JSON.parse(localStorage.getItem(GASCFG_KEY)||"null"); if(c && c.gas && c.key) return c; }catch(e){} return null; }
+function vFile(f){ return { kind:"file", name:f.name, async getFile(){ const bin=atob(f.b64||""), u=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++) u[i]=bin.charCodeAt(i); return new File([u], f.name, {lastModified:f.mtime}); } }; }
+function vDir(name, node){
+  const kids=new Map(); (node.files||[]).forEach(f=>kids.set(f.name, vFile(f))); Object.entries(node.dirs||{}).forEach(([n,d])=>kids.set(n, vDir(n,d)));
+  const nf=()=>Object.assign(new Error("見つかりません"),{name:"NotFoundError"});
+  return { kind:"directory", name, gas:true,
+    async *entries(){ for(const kv of kids) yield kv; },
+    async getDirectoryHandle(n){ const h=kids.get(n); if(h && h.kind==="directory") return h; throw nf(); },
+    async getFileHandle(n){ const h=kids.get(n); if(h && h.kind==="file") return h; throw nf(); },
+    async removeEntry(){ throw new Error("GAS経由は読むだけです"); },
+    async queryPermission(){ return "granted"; }, async requestPermission(){ return "granted"; } };
+}
+async function gasSnapshot(){
+  const c=gasCfg(); if(!c) throw new Error("Googleドライブの読み込み口（GAS）が設定されていません。表紙の右上 ⚙ で「出荷漏れ自動照合」のURLと合言葉を入れてください。");
+  if(navigator.onLine===false) throw new Error("Wi-Fiにつながっていません。つないでから「今すぐ照合」を押してください。");
+  const body={ key:c.key, action:"snapshot", since:Date.now()-A.ageDays*864e5, planKw:A.planKw, scanKw:A.scanKw, archDir:A.archDir, outDir:A.outDir };
+  let j; try{ const r=await fetch(c.gas,{ method:"POST", headers:{"Content-Type":"text/plain;charset=utf-8"}, body:JSON.stringify(body) }); j=await r.json(); }
+  catch(e){ throw new Error("GASにつながりませんでした（URL・公開設定・Wi-Fiを確認）："+e.message); }
+  if(!j || !j.ok) throw new Error("GASから読めませんでした："+((j&&j.err)||"不明"));
+  GAS_AT=hmOf(new Date()); GAS_NOTE=j.note||[];
+  return vDir("Googleドライブ（GAS経由）", j.root||{});
+}
+
 function saveA(){ try{ localStorage.setItem(AKEY, JSON.stringify(A)); }catch(e){} }
 function loadA(){ try{ const t=localStorage.getItem(AKEY); if(t) A=Object.assign(A, JSON.parse(t)); }catch(e){}
   // v26.1：e-かんばんの「…一致.xlsx」も受注データとして読む
@@ -1024,6 +1054,10 @@ async function runNow(trigger){
   try{ await runOnce(trigger); } finally { RUNNING=false; paintAuto(); }
 }
 async function runOnce(trigger){
+  if(GAS){
+    try{ DIR=await gasSnapshot(); PERM="granted"; }
+    catch(e){ const t0=new Date(); alarm(`${hmOf(t0)} ${trigger}　${e.message}`, false); A.log.unshift({at:t0.toISOString(), trigger, ok:false, text:"照合できませんでした："+e.message}); A.log=A.log.slice(0,60); saveA(); return; }
+  }
   if(!DIR){ alarm("フォルダーが未設定です。「フォルダーを選ぶ」で G:\\マイドライブ を選んでください。", false); return; }
   if(await checkPerm(false)!=="granted"){ alarm("フォルダーへのアクセスが切れています。「アクセスを許可」を押してください。照合は止まっています。", false); return; }
   paintAuto();
@@ -1072,11 +1106,12 @@ async function runOnce(trigger){
     const tot=L.reduce((a,g)=>a+g.plan,0), rem=L.reduce((a,g)=>a+g.remain,0), over=L.reduce((a,g)=>a+g.over,0);
     const okAll = rem===0 && over===0 && !R.unplanned.length && !R.ngs.length;
     const outName=`出荷漏れ照合_${stamp(t0)}.xlsx`;
-    await writeExcel(outName, t0, {tot, rem, over, okAll}, planF, notes);
-    try{ SNAP_TOT={t0, tot:{tot, rem, over, okAll}}; await writeSnapshot(t0, SNAP_TOT.tot); }catch(e){ notes.push("閲覧用ページを保存できませんでした："+e.message); }
+    if(GAS){ notes.push(...GAS_NOTE); }
+    else await writeExcel(outName, t0, {tot, rem, over, okAll}, planF, notes);
+    if(!GAS) try{ SNAP_TOT={t0, tot:{tot, rem, over, okAll}}; await writeSnapshot(t0, SNAP_TOT.tot); }catch(e){ notes.push("閲覧用ページを保存できませんでした："+e.message); }
     entry.ok=okAll;
     entry.text = okAll ? `OK：${tot}枚すべて照合済み` : `NG：残り${rem}枚${over?`・過剰${over}枚`:""}${R.unplanned.length?`・受注にないスキャン${R.unplanned.length}枚`:""}${R.ngs.length?`・NG${R.ngs.length}件`:""}`;
-    entry.text += `（受注${N.plans.length}件・照合${N.files.length}ファイル → ${outName}）`;
+    entry.text += `（受注${N.plans.length}件・照合${N.files.length}ファイル → ${GAS?"この端末に表示（GoogleドライブからGAS経由で読込。結果Excelは職場PCが保存）":outName}）`;
     const lost=FRESH.filter(x=>x.lost);
     if(lost.length){ entry.text += `　※届いていない読取があります：${lost.map(x=>`${x.name} 通し番号${x.gaps.map(g=>g.from===g.to?g.from:`${g.from}～${g.to}`).join("、")}（${x.lost}件・${x.gaps.map(g=>`${g.after}～${g.before}頃`).join("、")}）`).join("／")}。その端末から全データを書き出してDriveへ送ってください`; entry.ok=false; }
     const stale=FRESH.filter(x=>x.stale);
@@ -1098,7 +1133,7 @@ let RES_LAST="";
 // 「今すぐコピー」：バッチ（5分ごと）を待たずに、RESULTの新しいファイルを マイドライブ\HT_RESULT へコピーする。
 // バッチと同じ置き場所なので二重にならない。HT_RESULTにない・大きさが違う・RESULTの方が新しいファイルだけコピーする（照合の範囲の日数分）
 async function copyResultNow(){
-  if(!RES || !DIR) return {n:0, errs:[]};
+  if(GAS || !RES || !DIR) return {n:0, errs:[]};
   if(await checkResPerm(false)!=="granted" || await checkPerm(false)!=="granted") return {n:0, errs:[], wait:true};
   const dst=await DIR.getDirectoryHandle("HT_RESULT",{create:true}); const lim=Date.now()-A.ageDays*864e5; let n=0; const errs=[];
   for await (const [name,h] of RES.entries()){
@@ -1279,7 +1314,7 @@ async function writeSnapshot(t0, tot){
 let SNAP_TOT=null, snapT=null;
 document.addEventListener("input", e=>{ if(e.target.matches && e.target.matches("input.cmt")) queueSnap(); });
 document.addEventListener("change", e=>{ if(e.target.matches && e.target.matches("select.cmsel")) queueSnap(); });
-function queueSnap(){ if(!SNAP_TOT || !DIR || PERM!=="granted") return; clearTimeout(snapT); snapT=setTimeout(()=>writeSnapshot(SNAP_TOT.t0, SNAP_TOT.tot).catch(()=>{}), 5000); }
+function queueSnap(){ if(GAS || !SNAP_TOT || !DIR || PERM!=="granted") return; clearTimeout(snapT); snapT=setTimeout(()=>writeSnapshot(SNAP_TOT.t0, SNAP_TOT.tot).catch(()=>{}), 5000); }
 
 /* ---------- データの鮮度（端末ごとの最終読取） ----------
    タブレット・スキャナーはオフラインで読み、まとめてDriveに上げるため、
@@ -1347,6 +1382,7 @@ async function mergeFolder(src, dst){
   return n;
 }
 async function archiveOld(trigger){
+  if(GAS) return;
   if(ARCHIVING || !DIR || PERM!=="granted") return;
   ARCHIVING=true;
   const today=ymdOf(new Date()); const moved=[], errs=[];
@@ -1521,13 +1557,14 @@ function paintAuto(){
   else if(A.auto && PERM!=="granted"){ st.textContent="停止（許可待ち）"; st.className="runstate stop"; }
   else if(A.auto){ st.textContent="自動運転中"; st.className="runstate on"; }
   else { st.textContent="停止中"; st.className="runstate"; }
-  $("dirName").textContent = DIR ? `${DIR.name}${PERM==="granted"?"（アクセス許可済み）":"（アクセスの許可が必要）"}` : "未設定（G:\\マイドライブ を選んでください）";
+  if(GAS){ $("dirName").textContent=`Googleドライブ（GAS経由・読むだけ）${GAS_AT?`　前回の読込 ${GAS_AT}`:"　「今すぐ照合」で読み込みます"}`; }
+  else $("dirName").textContent = DIR ? `${DIR.name}${PERM==="granted"?"（アクセス許可済み）":"（アクセスの許可が必要）"}` : "未設定（G:\\マイドライブ を選んでください）";
   $("grantDir").hidden = (!DIR || PERM==="granted") && (!RES || RPERM==="granted");
   $("resName").textContent = RES ? `${RES.name}${RPERM==="granted"?"（アクセス許可済み）":"（アクセスの許可が必要）"}` : "未設定（C:\\GOHIN\\HT\\RESULT を選んでください）";
   $("resState").textContent = !RES ? "C:\\GOHIN\\HT\\RESULT を選ぶと、照合のたびに直接読みます（転送した直後でもすぐ反映）。Googleドライブへの保存は「自動コピーを登録.bat」が5分ごとに HT_RESULT へ行います。"
     : RPERM!=="granted" ? "RESULTフォルダーへのアクセスが切れています。「アクセスを許可」を押してください。"
     : `照合のたびにRESULTを直接読みます${RES_LAST?`（前回 ${RES_LAST}）`:""}。ドライブへの保存はバッチ（5分ごと・HT_RESULT）が行います。`;
-  $("autoStart").hidden=A.auto; $("autoStop").hidden=!A.auto;
+  $("autoStart").hidden=A.auto||GAS; $("autoStop").hidden=!A.auto;
   $("outDirLabel").textContent=A.outDir; $("archLabel").textContent=A.archDir;
   const nx=nextRunAt(new Date());
   $("nextRun").textContent = A.auto ? (nx ? `次の照合：${nx.getMonth()+1}/${nx.getDate()}（${DOW[nx.getDay()]}）${hmOf(nx)}` : "曜日・時刻が設定されていません") : "";
@@ -1594,6 +1631,9 @@ function initAutoUI(){
   initAutoUI();
   try{ DIR=await idbGet("dir")||null; }catch(e){ DIR=null; }
   try{ RES=await idbGet("res")||null; }catch(e){ RES=null; }
+  // フォルダーを選んでいない端末で、表紙の ⚙ に GAS が入っていれば、GAS経由で読む（読むだけ）
+  if(!DIR && gasCfg()){ GAS=true; PERM="granted"; A.auto=false; $("fsUnsupported").hidden=true; $("runNow").disabled=false;
+    const g=$("gasNote"); if(g) g.hidden=false; }
   await checkPerm(false); await checkResPerm(false);
   checkGap("画面が閉じられた・再読み込みされた、またはブラウザがタブを休止させた可能性");
   if(A.auto){ if(PERM==="granted") keepAwake(true); else alarm("自動運転は「許可待ち」で止まっています。「アクセスを許可」を押すと再開します。",false); }

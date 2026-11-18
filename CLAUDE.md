@@ -19,7 +19,7 @@ GitHub Pages（main / root）で公開：https://overbridge038-lnk.github.io/gyo
 ## tools/ に入れたツール（2026-11-17）
 | ファイル | ツール | 元 |
 |---|---|---|
-| shukka-more-auto.html | 出荷漏れ自動照合 | 前の表紙（出荷業務ツール集・版 2026-11-17）に埋め込まれていたもの |
+| shukka-more-auto.html | 出荷漏れ自動照合 | 前の表紙（出荷業務ツール集・版 2026-11-17）に埋め込まれていたもの。v26.26（2026-11-18）：フォルダーを選べない端末（タブレット・ほかのPC）は、表紙 ⚙ の `shukkaAutoGas`（新しい Apps Script・出荷用アカウント。Code.gs は GitHub に載せない）からマイドライブの受注・照合データ（直下・HT_RESULT・日付別データ・協豊背番号）をまとめて受け取り、フォルダーと同じ形にして照合する。**読むだけ**（結果Excel・閲覧用ページ・日付別への片付け・自動運転は職場PCだけ）。フォルダーを選んである職場PCは今までどおり |
 | hayamihyo.html | 早見表／eかんばん・EDI受注数の統合 | PC |
 | tsumitsuke.html | 積み付け表 作成ツール | PC |
 | rinkan-yamazumi.html | 臨かん かんばん山積み | 前の表紙に埋め込まれていたもの |
@@ -48,6 +48,7 @@ GitHub Pages（main / root）で公開：https://overbridge038-lnk.github.io/gyo
   - 在庫カウント：localStorage `zaikoCountCfg` の `gas`（ツールの ⚙ と同じ場所）
   - 生産管理しくみ：localStorage `sk_settings` の `gasUrl`・`key`（URLを初めて入れたときは `mode` を `live`＝本番にする）
   - 出荷漏れ照合（閲覧用）：localStorage `shukkaMoreViewCfg` の `gas`・`key`（Apps Script のURL・合言葉。片方だけは保存しない）
+  - 出荷漏れ自動照合：localStorage `shukkaAutoGas` の `gas`・`key`（ドライブを読むだけの読み込み口。閲覧用・三五とは別の Apps Script）
   - 三五在庫管理：localStorage `sangoZaikoCfg` の `gas`・`key`（同じ Apps Script を使う。⚙ の「上と同じ」でコピーできる）
 - URLの形（https://script.google.com/macros/s/…/exec）がちがう・生産管理しくみのURLと合言葉の片方だけ、は保存しない（ポカヨケ）
 - タブレットごとに1回入れる

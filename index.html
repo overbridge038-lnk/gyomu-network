@@ -689,13 +689,14 @@ refreshVers();
    ・在庫カウント      … localStorage 'zaikoCountCfg' の gas
    ・生産管理しくみ    … localStorage 'sk_settings' の gasUrl・key（URLを入れたら本番につなぐ）
    ・出荷漏れ照合（閲覧用）… localStorage 'shukkaMoreViewCfg' の gas・key（Apps Script のURL・合言葉）
-   ・三五在庫管理      … localStorage 'sangoZaikoCfg' の gas・key（ドライブ共有。ツールの「☁ 共有の設定」と同じ場所） */
+   ・三五在庫管理      … localStorage 'sangoZaikoCfg' の gas・key（ドライブ共有。ツールの「☁ 共有の設定」と同じ場所）
+   ・出荷漏れ自動照合  … localStorage 'shukkaAutoGas' の gas・key（ドライブの受注・照合データを読むだけ。フォルダーを選べない端末で使う） */
 var CFG_RE=/^https:\/\/script\.google\.com\/macros\/s\/[A-Za-z0-9_-]{20,}\/exec$/;
 function lsGet(k){ try{ return JSON.parse(localStorage.getItem(k)||'null')||{}; }catch(e){ return {}; } }
 function lsSet(k,o){ try{ localStorage.setItem(k,JSON.stringify(o)); return true; }catch(e){ return false; } }
 function cfgSt(v){ return v?'<span class="st ok">設定済み</span>':'<span class="st no">未設定</span>'; }
 function openCfg(){
-  var z=lsGet('zaikoCountCfg'), sk=lsGet('sk_settings'), mv=lsGet('shukkaMoreViewCfg'), sg=lsGet('sangoZaikoCfg');
+  var z=lsGet('zaikoCountCfg'), sk=lsGet('sk_settings'), mv=lsGet('shukkaMoreViewCfg'), sg=lsGet('sangoZaikoCfg'), sm=lsGet('shukkaAutoGas');
   document.getElementById('cfgBox').innerHTML=
     '<h2>⚙ 接続の設定</h2>'+
     '<p class="note">Googleドライブ・スプレッドシートにつなぐための送り先と合言葉です。<b>この端末の中だけ</b>に保存し、公開ページ（GitHub）には入りません。タブレットごとに1回入れてください。</p>'+
@@ -707,6 +708,9 @@ function openCfg(){
     '<fieldset><legend>👀 出荷漏れ照合（閲覧用）'+cfgSt(mv.gas&&mv.key)+'</legend>'+
       '<label for="cfV">Apps Script のURL</label><input id="cfV" type="url" autocomplete="off" spellcheck="false" placeholder="https://script.google.com/macros/s/…/exec" value="'+esc(mv.gas||'')+'">'+
       '<label for="cfVK">合言葉</label><input id="cfVK" type="password" autocomplete="off" value="'+esc(mv.key||'')+'"></fieldset>'+
+    '<fieldset><legend>🔎 出荷漏れ自動照合（ドライブを読む）'+cfgSt(sm.gas&&sm.key)+'</legend>'+
+      '<label for="cfM">Apps Script のURL（出荷漏れ照合の読み込み口）</label><input id="cfM" type="url" autocomplete="off" spellcheck="false" placeholder="https://script.google.com/macros/s/…/exec" value="'+esc(sm.gas||'')+'">'+
+      '<label for="cfMK">合言葉</label><input id="cfMK" type="password" autocomplete="off" value="'+esc(sm.key||'')+'"></fieldset>'+
     '<fieldset><legend>🏭 三五在庫管理（ドライブ共有）'+cfgSt(sg.gas&&sg.key)+'</legend>'+
       '<label for="cfG">Apps Script のURL</label><div class="row"><input id="cfG" type="url" autocomplete="off" spellcheck="false" placeholder="https://script.google.com/macros/s/…/exec" value="'+esc(sg.gas||'')+'"><button class="btn" id="cfSame" type="button">上と同じ</button></div>'+
       '<label for="cfGK">合言葉</label><input id="cfGK" type="password" autocomplete="off" value="'+esc(sg.key||'')+'"></fieldset>'+
@@ -718,8 +722,9 @@ function closeCfg(){ document.getElementById('cfgBg').classList.remove('show'); 
 function saveCfg(){
   var vi=document.getElementById('cfV'), vu=vi.value.trim(), vki=document.getElementById('cfVK'), vk=vki.value.trim(), gi=document.getElementById('cfG'), gu=gi.value.trim(), gki=document.getElementById('cfGK'), gk=gki.value.trim();
   var zi=document.getElementById('cfZ'), si=document.getElementById('cfS'), ki=document.getElementById('cfK'), er=document.getElementById('cfErr');
+  var mi=document.getElementById('cfM'), mu=mi.value.trim(), mki=document.getElementById('cfMK'), mk=mki.value.trim();
   var zu=zi.value.trim(), su=si.value.trim(), k=ki.value.trim(), bad=[];
-  [zi,si,ki,vi,vki,gi,gki].forEach(function(x){ x.classList.remove('ng'); });
+  [zi,si,ki,vi,vki,gi,gki,mi,mki].forEach(function(x){ x.classList.remove('ng'); });
   /* ポカヨケ：URLの形がちがう・URLと合言葉の片方だけ、は保存しない */
   if(zu&&!CFG_RE.test(zu)){ zi.classList.add('ng'); bad.push('在庫カウントのURLの形がちがいます（https://script.google.com/macros/s/…/exec）'); }
   if(su&&!CFG_RE.test(su)){ si.classList.add('ng'); bad.push('生産管理しくみのURLの形がちがいます（https://script.google.com/macros/s/…/exec）'); }
@@ -728,11 +733,13 @@ function saveCfg(){
   if(gu&&!CFG_RE.test(gu)){ gi.classList.add('ng'); bad.push('三五在庫管理のURLの形がちがいます（https://script.google.com/macros/s/…/exec）'); }
   if(!!gu!==!!gk){ (gu?gki:gi).classList.add('ng'); bad.push('三五在庫管理は、URLと合言葉を両方入れてください'); }
   if(!!vu!==!!vk){ (vu?vki:vi).classList.add('ng'); bad.push('出荷漏れ照合（閲覧用）は、URLと合言葉を両方入れてください'); }
+  if(mu&&!CFG_RE.test(mu)){ mi.classList.add('ng'); bad.push('出荷漏れ自動照合のURLの形がちがいます（https://script.google.com/macros/s/…/exec）'); }
+  if(!!mu!==!!mk){ (mu?mki:mi).classList.add('ng'); bad.push('出荷漏れ自動照合は、URLと合言葉を両方入れてください'); }
   if(bad.length){ er.innerHTML=bad.map(esc).join('<br>'); return; }
   var z=lsGet('zaikoCountCfg'); z.gas=zu;
   var sk=lsGet('sk_settings'), was=sk.gasUrl||''; sk.gasUrl=su; sk.key=k; if(su&&!was) sk.mode='live';
   var mv=lsGet('shukkaMoreViewCfg'); delete mv.url; mv.gas=vu; mv.key=vk;
-  if(!(lsSet('zaikoCountCfg',z)&&lsSet('sk_settings',sk)&&lsSet('shukkaMoreViewCfg',mv)&&lsSet('sangoZaikoCfg',{gas:gu,key:gk}))){ er.textContent='この端末に保存できませんでした（Chromeで開いてください）'; return; }
+  if(!(lsSet('zaikoCountCfg',z)&&lsSet('sk_settings',sk)&&lsSet('shukkaMoreViewCfg',mv)&&lsSet('sangoZaikoCfg',{gas:gu,key:gk})&&lsSet('shukkaAutoGas',{gas:mu,key:mk}))){ er.textContent='この端末に保存できませんでした（Chromeで開いてください）'; return; }
   closeCfg(); toast('接続の設定を保存しました（この端末）');
 }
 document.getElementById('cfgBtn').addEventListener('click',openCfg);
