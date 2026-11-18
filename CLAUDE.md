@@ -24,7 +24,7 @@ GitHub Pages（main / root）で公開：https://overbridge038-lnk.github.io/gyo
 | tsumitsuke.html | 積み付け表 作成ツール | PC |
 | rinkan-yamazumi.html | 臨かん かんばん山積み | 前の表紙に埋め込まれていたもの |
 | furidashi-check.html | 購入かんばん振出しチェック表 | PC |
-| shogo-matome.html | 照合結果まとめ | PC。見本データ（作業者名入りの照合記録）は Public のため外した（SAMPLE=null）。charset の宣言を足した |
+| shogo-matome.html | 照合結果まとめ | PC。見本データ（作業者名入りの照合記録）は Public のため外した（SAMPLE=null）。charset の宣言を足した。ver 2026-11-18：ドライブから自動読み込み（`shukkaAutoGas` の Apps Script `action=snapshot`・読むだけ・今日は1分ごと）、日付（カレンダー・前後の日）＋開始〜終了時刻で範囲を絞る。`since` は選んだ日の0:00で、Code.gs には「終わり」の指定がないため古い日ほど受け取る量が増える（画面で範囲外は隠す）。通し番号の重複判定に日付を足した |
 | kanri-sheet.html | 管理シート作成ツール（協豊・FTS広田・三五） | PC。単体の協豊・FTS広田版より新しい（PDF対応）ので、まとめ版だけを入れた |
 | sango-zaiko.html | 三五 在庫管理ツール | PC。ver.2026.11.17 でドライブ共有を追加：自動保存のたびに Excel を Apps Script（出荷用アカウント・Code.gs の app=sango）経由で「三五在庫管理_共有.json」に送り、開いたとき・2分ごとに新しい版を開く。直すのは1台（ユーザー決定）。ドライブがこの端末の知らない版なら上書きしない（あんどん→「ドライブの版を開く」／「上書き」）。作成時刻を除いた中身が同じなら送らない（見るだけのPCは送らない）。設定は localStorage `sangoZaikoCfg`（ツールの「☁ 共有の設定」と表紙 ⚙） |
 | shukka-naiji.html | ユニクレア 出荷内示 月度表（事務所） | PC（2026-11-17 追加。前の「出荷内示原紙」の置き場所）。枝番＝違うデータを読み込んだ回数（同じデータは数えない）。11月度の基準データ（2611 注文書）は 11-5 に固定。2026-11-18：前の版が5つあると 11-1 が重なる不具合を修正 |

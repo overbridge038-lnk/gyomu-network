@@ -9,7 +9,7 @@
      「新しい版があります」と表示されます
    ========================================================= */
 
-var SITE_VER = '2026-11-18n';
+var SITE_VER = '2026-11-18o';
 
 /* GitHub Pages の場所（各ツールのリポジトリはここの下にある） */
 var BASE = 'https://overbridge038-lnk.github.io/';
@@ -179,8 +179,8 @@ var TOOLS = [
     file: 'tools/tsumitsuke.html', ver: '2026-11-17' },
 
   { id: 'shogo-matome', icon: '🧮', name: '照合結果まとめ',
-    desc: '誤品照合・ハンディの照合ファイルをまとめて未処置NGを見つける',
-    file: 'tools/shogo-matome.html', ver: '2026-11-17' },
+    desc: '誤品照合・ハンディの照合をドライブから自動で読み、日付・時間を選んで未処置NGを見つける',
+    file: 'tools/shogo-matome.html', ver: '2026-11-18' },
 
   { id: 'shukka-more-auto', icon: '⏰', name: '出荷漏れ自動照合',
     desc: '受注データと照合記録を決めた時刻に自動で照合して残す',

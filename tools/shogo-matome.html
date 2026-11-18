@@ -86,6 +86,13 @@ input[type=search]{flex:1 1 180px;min-width:0}
 input[type=number]{font:inherit;font-size:.9rem;padding:6px 8px;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--ink);min-height:36px}
 .rest{color:var(--warn);font-weight:700}
 .rate{font-family:var(--f-code);font-size:1.15rem;font-weight:600;color:var(--accent)}
+.rng{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center}
+.rng label{font-size:.85rem;color:var(--sub);display:inline-flex;align-items:center;gap:6px}
+input[type=date],input[type=time]{font:inherit;font-size:.95rem;padding:6px 8px;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--ink);min-height:44px}
+.rng button{padding:8px 14px}
+.stat{font-size:.85rem;padding:6px 12px;border-radius:8px;background:var(--bg);border:1px solid var(--line);color:var(--sub)}
+.stat.err{background:var(--ng-soft);border-color:var(--ng);color:var(--ng);font-weight:700}
+.stat.live{color:var(--ok)}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(20px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:10px 18px;border-radius:8px;font-size:.9rem;z-index:20}
 @media (max-width:860px){.kpis{grid-template-columns:repeat(3,minmax(0,1fr))}.two{grid-template-columns:minmax(0,1fr)}}
 @media (max-width:420px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.kpi .v{font-size:1.4rem}}
@@ -94,7 +101,7 @@ input[type=number]{font:inherit;font-size:.9rem;padding:6px 8px;border-radius:8p
 <div class="wrap">
   <header>
     <div>
-      <h1>照合結果まとめ<span style="font-size:.6em;font-weight:400;opacity:.75;margin-left:.4em;white-space:nowrap">ver 2026-11-17</span></h1>
+      <h1>照合結果まとめ<span style="font-size:.6em;font-weight:400;opacity:.75;margin-left:.4em;white-space:nowrap">ver 2026-11-18</span></h1>
       <div class="range" id="range">データなし</div>
     </div>
     <div class="btns">
@@ -105,11 +112,26 @@ input[type=number]{font:inherit;font-size:.9rem;padding:6px 8px;border-radius:8p
     </div>
   </header>
 
+  <section id="rngSec">
+    <h2>照合データの範囲</h2>
+    <div class="rng">
+      <button id="dPrev" type="button" aria-label="前の日">◀ 前の日</button>
+      <label>日付（過去はカレンダーで選ぶ）<input id="day" type="date"></label>
+      <button id="dNext" type="button" aria-label="次の日">次の日 ▶</button>
+      <button id="dToday" type="button">今日</button>
+      <label>開始<input id="tFrom" type="time" value="00:00"></label>
+      <label>終了<input id="tTo" type="time" value="23:59"></label>
+      <label><input id="autoChk" type="checkbox" checked> 自動で読み込む（今日は1分ごと）</label>
+      <button id="loadBtn" type="button" class="primary">今すぐ読み込む</button>
+    </div>
+    <div class="stat" id="drvStat" role="status">準備中…</div>
+  </section>
+
   <div class="drop" id="drop">
-    <span><b>ここに照合ファイルをまとめてドロップ</b>（スマホ照合の <span class="code">*_誤品照合_*.csv</span> ／ ハンディの <span class="code">HTRESULT_*</span>）</span>
+    <span><b>手持ちのファイルを足すときはここにドロップ</b>（スマホ照合の <span class="code">*_誤品照合_*.csv</span> ／ ハンディの <span class="code">HTRESULT_*</span>）</span>
     <div class="chips" id="chips"></div>
   </div>
-  <div class="steps"><span>① 照合ファイルを全部入れる（同じファイルを2回入れても重複は自動で除外）</span><span>② 赤の「未処置NG」を確認</span><span>③ 必要ならコピーしてExcelに貼付</span></div>
+  <div class="steps"><span>① 日付と時間を選ぶ（開くと今日をドライブから自動で読み込む）</span><span>② 赤の「未処置NG」を確認</span><span>③ 必要ならコピーしてExcelに貼付</span></div>
   <div class="sample" id="sampleNote" hidden>いま表示しているのは 10/21 にアップロードされた照合ファイルです。「全部クリア」で消してから新しいファイルを入れてください。</div>
 
   <div class="kpis" id="kpis"></div>
@@ -160,7 +182,7 @@ const HT = {res:0, who:2, date:4, time:5, id:10, kind:11, plant:15, plant2:16, d
 
 const SAMPLE = null;   /* 見本データ（作業者名入り）は公開ページに載せないため外した */
 
-const S = {recs:new Map(), files:[], shown:PAGE, isSample:false};
+const S = {recs:new Map(), files:[], shown:PAGE, isSample:false, day:'', from:'00:00', to:'23:59', auto:true, dsum:'', loading:false};
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const nk = s => String(s || '').normalize('NFKC').trim();
@@ -215,7 +237,7 @@ function ingest(name, text){
       if (!res) continue;
       const ok=res==='OK';
       const qr=g('客先QR全文');
-      addRec({id:'C|'+term+'|'+no, src:'スマホ', who:nk(term), term:nk(term), no,
+      addRec({id:'C|'+term+'|'+no+'|'+g('日時').slice(0,10), src:'スマホ', who:nk(term), term:nk(term), no,
         dt:g('日時').replace(/\//g,'-'), cust:g('客先品番'), own:g('社内品番'), cb:'', ob:'',
         ok, reason: ok ? '' : res.replace(/^NG[：:]\s*/, ''), note:g('備考'),
         kkey: qr ? 'Q|'+qr : '', file:name}, out);
@@ -237,12 +259,13 @@ function ingest(name, text){
         kkey:'H|'+[c[HT.plant],c[HT.plant2],c[HT.dock],c[HT.nouDate],c[HT.bin],cb,c[HT.renban]].join('|'), file:name}, out);
     }
   }
-  S.files.push(out);
+  return out;
 }
 
 /* 並べ替え・二重読取・NG後の再照合を判定 */
 function analyze(){
-  const a=[...S.recs.values()].sort((x,y)=> x.dt<y.dt?-1: x.dt>y.dt?1: x.id<y.id?-1:1);
+  const lo=S.day+' '+S.from+':00', hi=S.day+' '+S.to+':59';
+  const a=[...S.recs.values()].filter(r=>!S.day || (r.dt>=lo && r.dt<=hi)).sort((x,y)=> x.dt<y.dt?-1: x.dt>y.dt?1: x.id<y.id?-1:1);
   const prev=new Map();   // 担当・端末ごとに前の照合からの経過秒（日付が変わったらリセット）
   for (const r of a){ const k=r.who+'|'+r.term, p=prev.get(k);
     r.gap = (p && p.dt.slice(0,10)===r.dt.slice(0,10)) ? Math.max(0, tsec(r.dt)-tsec(p.dt)) : null; prev.set(k,r); }
@@ -282,8 +305,9 @@ function render(){
   const n=ALL.length, ng=ALL.filter(r=>!r.ok), open=ng.filter(r=>!r.fix), dup=ALL.filter(r=>r.dupOf);
   const dates=[...new Set(ALL.map(r=>r.dt.slice(0,10)))].sort();
   $('range').textContent = n ? `${ALL[0].dt.slice(0,16)} 〜 ${ALL[n-1].dt.slice(0,16)}` : 'データなし';
+  const hid=S.recs.size-n;
 
-  $('chips').innerHTML = S.files.map(f=> f.n||f.dup
+  $('chips').innerHTML = (S.dsum?`<span class="chip">☁ ${esc(S.dsum)}</span>`:'') + (hid>0?`<span class="chip off">範囲外 <b>${hid}</b>件は表示していません</span>`:'') + S.files.map(f=> f.n||f.dup
     ? `<span class="chip">${esc(f.name)} · <b>${f.n}</b>件${f.dup?`（重複${f.dup}件除外）`:''}</span>`
     : `<span class="chip off">${esc(f.name)} · 照合データなし</span>`).join('');
   $('sampleNote').hidden = !S.isSample;
@@ -373,7 +397,7 @@ $('fText').oninput=()=>{S.shown=PAGE;renderAll();};
 
 async function addFiles(list){
   if (S.isSample){ S.recs.clear(); S.files=[]; S.isSample=false; }
-  for (const f of list){ try { ingest(f.name, decode(await f.arrayBuffer())); } catch(e){ S.files.push({name:f.name,n:0,dup:0}); } }
+  for (const f of list){ try { S.files.push(ingest(f.name, decode(await f.arrayBuffer()))); } catch(e){ S.files.push({name:f.name,n:0,dup:0}); } }
   S.shown=PAGE; render();
   const ng=ALL.filter(r=>!r.ok&&!r.fix).length;
   toast(ng ? `未処置NGが ${ng}件 あります` : '取り込みました');
@@ -384,6 +408,69 @@ const drop=$('drop');
 ['dragleave','drop'].forEach(ev=>document.addEventListener(ev,e=>{e.preventDefault();if(ev==='drop'||e.target===document.documentElement)drop.classList.remove('over');}));
 document.addEventListener('drop',e=>{ const fs=[...(e.dataTransfer?.files||[])]; if(fs.length) addFiles(fs); });
 
-if (SAMPLE){ for (const s of SAMPLE) ingest(s.name, s.text); S.isSample=true; }
+if (SAMPLE){ for (const s of SAMPLE) S.files.push(ingest(s.name, s.text)); S.isSample=true; }
+
+/* ===== 日付・時間の範囲と、Googleドライブからの自動読み込み =====
+   表紙 ⚙ で入れた「出荷漏れ自動照合」のURL・合言葉（localStorage shukkaAutoGas）を使い、
+   Apps Script の action=snapshot で、マイドライブの誤品照合CSV・HTRESULT（日付別データ内も）を読む。読むだけ。 */
+const GASCFG_KEY='shukkaAutoGas', RNG_KEY='shogoMatomeRange';
+const p2=n=>String(n).padStart(2,'0');
+const ymd=d=>`${d.getFullYear()}-${p2(d.getMonth()+1)}-${p2(d.getDate())}`;
+const todayStr=()=>ymd(new Date());
+function gasCfg(){ try{ const c=JSON.parse(localStorage.getItem(GASCFG_KEY)||'null'); if(c&&c.gas&&c.key) return c; }catch(e){} return null; }
+function stat(msg, cls){ const e=$('drvStat'); e.textContent=msg; e.className='stat'+(cls?' '+cls:''); }
+function saveRng(){ try{ localStorage.setItem(RNG_KEY, JSON.stringify({from:S.from,to:S.to,auto:S.auto})); }catch(e){} }
+function nowStr(){ const d=new Date(); return `${p2(d.getHours())}:${p2(d.getMinutes())}:${p2(d.getSeconds())}`; }
+function b64bytes(b){ const bin=atob(b||''), u=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++) u[i]=bin.charCodeAt(i); return u; }
+function walk(node, out){ (node.files||[]).forEach(f=>out.push(f)); Object.values(node.dirs||{}).forEach(d=>walk(d,out)); }
+const isScan=n=>/誤品照合|HTRESULT|HT_RESULT/i.test(n) && !/^~\$|出荷漏れ照合_/.test(n);
+
+async function loadDrive(manual){
+  if (S.loading) return;
+  const c=gasCfg();
+  if (!c){ stat('Googleドライブにつなぐ設定がありません。表紙の右上 ⚙ で「出荷漏れ自動照合」のURLと合言葉を入れてください（手持ちのファイルは下にドロップできます）','err'); return; }
+  if (navigator.onLine===false){ stat('Wi-Fiにつながっていません。つながると自動で読み直します','err'); return; }
+  S.loading=true; if (manual) stat('読み込み中…');
+  try{
+    // 選んだ日の 0:00 以降に更新されたファイルだけ受け取る（照合の時刻より後にファイルは更新される）
+    const since=Date.parse(S.day+'T00:00:00');
+    const body={key:c.key, action:'snapshot', since, planKw:'照合結果まとめ用（受注は読まない）', scanKw:'誤品照合、HTRESULT', archDir:'日付別データ', outDir:'出荷漏れ照合結果'};
+    const r=await fetch(c.gas,{method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'}, body:JSON.stringify(body)});
+    const j=await r.json();
+    if (!j||!j.ok) throw new Error((j&&j.err)||'不明');
+    const fs=[]; walk(j.root||{}, fs);
+    let used=0, add=0;
+    for (const f of fs){ if(!isScan(f.name)) continue; used++;
+      try{ add+=ingest(f.name, decode(b64bytes(f.b64).buffer)).n; }catch(e){} }
+    S.isSample=false; S.dsum=`ドライブ ${used}ファイル・最終読込 ${nowStr()}`;
+    S.shown=PAGE; render();
+    const live=S.day===todayStr() && S.auto;
+    stat(`${S.day} を読み込みました（${nowStr()}）${live?' ・1分ごとに自動で読み直します':''}${add?' ・新しい照合 '+add+'件':''}`, live?'live':'');
+    const ng=ALL.filter(x=>!x.ok&&!x.fix).length; if (manual||add) toast(ng?`未処置NGが ${ng}件 あります`:'読み込みました');
+  }catch(e){
+    stat('Googleドライブから読めませんでした（URL・合言葉・Wi-Fiを確認）：'+e.message,'err');
+  }finally{ S.loading=false; }
+}
+function setDay(d, load){ S.day=d; $('day').value=d; S.shown=PAGE; render(); if (load!==false) loadDrive(true); }
+function shiftDay(n){ const d=new Date(S.day+'T00:00:00'); d.setDate(d.getDate()+n); setDay(ymd(d)); }
+function readTimes(){
+  let a=$('tFrom').value||'00:00', b=$('tTo').value||'23:59';
+  if (a>b){ [a,b]=[b,a]; $('tFrom').value=a; $('tTo').value=b; toast('開始と終了が逆だったので入れ替えました'); }
+  S.from=a; S.to=b; saveRng(); S.shown=PAGE; render();
+}
+try{ const v=JSON.parse(localStorage.getItem(RNG_KEY)||'null'); if(v){ S.from=v.from||S.from; S.to=v.to||S.to; S.auto=v.auto!==false; } }catch(e){}
+$('tFrom').value=S.from; $('tTo').value=S.to; $('autoChk').checked=S.auto;
+$('day').onchange=()=>{ if($('day').value) setDay($('day').value); };
+$('dPrev').onclick=()=>shiftDay(-1);
+$('dNext').onclick=()=>shiftDay(1);
+$('dToday').onclick=()=>setDay(todayStr());
+$('tFrom').onchange=readTimes; $('tTo').onchange=readTimes;
+$('autoChk').onchange=()=>{ S.auto=$('autoChk').checked; saveRng(); if(S.auto) loadDrive(true); else stat('自動読み込みをとめました（「今すぐ読み込む」で読めます）'); };
+$('loadBtn').onclick=()=>loadDrive(true);
+// 今日を見ているときだけ1分ごとに読み直す（過去の日は一度読めば変わらない）。画面が隠れている間はしない
+setInterval(()=>{ if(S.auto && !document.hidden && S.day===todayStr()) loadDrive(false); }, 60000);
+document.addEventListener('visibilitychange',()=>{ if(!document.hidden && S.auto && S.day===todayStr()) loadDrive(false); });
+S.day=todayStr(); $('day').value=S.day;
 render();
+loadDrive(true);
 </script>
