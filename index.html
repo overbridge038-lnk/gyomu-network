@@ -709,10 +709,10 @@ function openCfg(){
       '<label for="cfV">Apps Script のURL</label><input id="cfV" type="url" autocomplete="off" spellcheck="false" placeholder="https://script.google.com/macros/s/…/exec" value="'+esc(mv.gas||'')+'">'+
       '<label for="cfVK">合言葉</label><input id="cfVK" type="password" autocomplete="off" value="'+esc(mv.key||'')+'"></fieldset>'+
     '<fieldset><legend>🔎 出荷漏れ自動照合（ドライブを読む）'+cfgSt(sm.gas&&sm.key)+'</legend>'+
-      '<label for="cfM">Apps Script のURL（出荷漏れ照合の読み込み口）</label><input id="cfM" type="url" autocomplete="off" spellcheck="false" placeholder="https://script.google.com/macros/s/…/exec" value="'+esc(sm.gas||'')+'">'+
+      '<label for="cfM">Apps Script のURL（出荷漏れ照合の読み込み口）</label><div class="row"><input id="cfM" type="url" autocomplete="off" spellcheck="false" placeholder="https://script.google.com/macros/s/…/exec" value="'+esc(sm.gas||'')+'"><button class="btn" id="cfSameM" type="button">閲覧用と同じ</button></div>'+
       '<label for="cfMK">合言葉</label><input id="cfMK" type="password" autocomplete="off" value="'+esc(sm.key||'')+'"></fieldset>'+
     '<fieldset><legend>🏭 三五在庫管理（ドライブ共有）'+cfgSt(sg.gas&&sg.key)+'</legend>'+
-      '<label for="cfG">Apps Script のURL</label><div class="row"><input id="cfG" type="url" autocomplete="off" spellcheck="false" placeholder="https://script.google.com/macros/s/…/exec" value="'+esc(sg.gas||'')+'"><button class="btn" id="cfSame" type="button">上と同じ</button></div>'+
+      '<label for="cfG">Apps Script のURL</label><div class="row"><input id="cfG" type="url" autocomplete="off" spellcheck="false" placeholder="https://script.google.com/macros/s/…/exec" value="'+esc(sg.gas||'')+'"><button class="btn" id="cfSame" type="button">閲覧用と同じ</button></div>'+
       '<label for="cfGK">合言葉</label><input id="cfGK" type="password" autocomplete="off" value="'+esc(sg.key||'')+'"></fieldset>'+
     '<div class="err" id="cfErr"></div>'+
     '<div class="ft"><button class="btn" id="cfNo" type="button">やめる</button><button class="btn" id="cfOk" type="button" style="background:var(--grad);color:#0b1020;font-weight:700">保存</button></div>';
@@ -746,6 +746,7 @@ document.getElementById('cfgBtn').addEventListener('click',openCfg);
 document.getElementById('cfgBg').addEventListener('click',function(e){
   if(e.target.id==='cfgBg'||e.target.closest('#cfNo')){ closeCfg(); return; }
   if(e.target.closest('#cfOk')){ saveCfg(); return; }
+  if(e.target.closest('#cfSameM')){ document.getElementById('cfM').value=document.getElementById('cfV').value; document.getElementById('cfMK').value=document.getElementById('cfVK').value; return; }
   if(e.target.closest('#cfSame')){ document.getElementById('cfG').value=document.getElementById('cfV').value; document.getElementById('cfGK').value=document.getElementById('cfVK').value; return; }
   if(e.target.closest('#cfEye')){ var k=document.getElementById('cfK'); k.type=k.type==='password'?'text':'password'; e.target.textContent=k.type==='password'?'表示':'かくす'; }
 });

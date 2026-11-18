@@ -49,8 +49,8 @@ GitHub Pages（main / root）で公開：https://overbridge038-lnk.github.io/gyo
   - 在庫カウント：localStorage `zaikoCountCfg` の `gas`（ツールの ⚙ と同じ場所）
   - 生産管理しくみ：localStorage `sk_settings` の `gasUrl`・`key`（URLを初めて入れたときは `mode` を `live`＝本番にする）
   - 出荷漏れ照合（閲覧用）：localStorage `shukkaMoreViewCfg` の `gas`・`key`（Apps Script のURL・合言葉。片方だけは保存しない）
-  - 出荷漏れ自動照合：localStorage `shukkaAutoGas` の `gas`・`key`（ドライブを読むだけの読み込み口。閲覧用・三五とは別の Apps Script）
-  - 三五在庫管理：localStorage `sangoZaikoCfg` の `gas`・`key`（同じ Apps Script を使う。⚙ の「上と同じ」でコピーできる）
+  - 出荷漏れ自動照合：localStorage `shukkaAutoGas` の `gas`・`key`（ドライブを読むだけの読み込み口。2026-11-18d から閲覧用・三五と同じ Apps Script の action=snapshot でも読める。⚙ の「閲覧用と同じ」でコピー）
+  - 三五在庫管理：localStorage `sangoZaikoCfg` の `gas`・`key`（同じ Apps Script を使う。⚙ の「閲覧用と同じ」でコピーできる）
 - URLの形（https://script.google.com/macros/s/…/exec）がちがう・生産管理しくみのURLと合言葉の片方だけ、は保存しない（ポカヨケ）
 - タブレットごとに1回入れる
 
