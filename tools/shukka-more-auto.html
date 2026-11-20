@@ -111,6 +111,22 @@ td .ordl{display:block;font-size:.78rem;color:var(--muted);font-family:var(--mon
 td .ordl b{color:inherit;font-weight:600}
 tr.src td{background:var(--surface2);font-size:.8rem;color:var(--muted);padding-top:4px;padding-bottom:4px;border-top:0}
 tr.src b{font-weight:600;font-family:var(--mono)}
+.gb{display:grid;gap:8px;margin-bottom:6px}.gbt{font-weight:700;color:var(--ink)}
+.gb1{border:1px solid var(--line);border-radius:8px;padding:8px 10px;background:var(--surface);display:grid;gap:6px}
+.gbh{font-size:.82rem;color:var(--ink)}.gbl{font-size:.8rem;color:var(--ink);overflow-wrap:anywhere}
+.gb .bad,.gbl .bad{color:var(--bad)}.gbl .warn{color:var(--warn)}
+.ecs{display:flex;flex-wrap:wrap;gap:3px}
+.ec{min-width:26px;padding:2px 4px;text-align:center;border-radius:4px;font-family:var(--mono);font-size:.74rem;border:1px solid var(--line)}
+.ec.ok{background:var(--ok-soft);color:var(--ok);border-color:var(--ok)}
+.ec.miss{background:var(--bad);color:#fff;border-color:var(--bad);font-weight:700}
+.gbopens{display:flex;flex-wrap:wrap;gap:6px}
+a.gbopen{text-decoration:none;display:inline-flex;align-items:center;min-height:38px;padding:4px 10px;font-size:.78rem;overflow-wrap:anywhere}
+@media print{a.gbopen{display:none}}
+.ec.gap{border:0;color:var(--muted)}
+.ec.over{background:var(--warn);color:#fff;border-color:var(--warn)}
+.gbitem{border-top:1px solid var(--line);padding-top:8px;display:grid;gap:6px}.gbhd{font-size:.88rem}
+.gbf{font-size:.76rem}
+@media print{ body.pgb .wrap>*:not(#gbPanel){display:none!important} body.pgb #gbPrint{display:none} body.pgb details.panel>*{display:block} }
 .pill{display:inline-block;font-size:.74rem;font-weight:700;padding:3px 9px;border-radius:999px;white-space:nowrap}
 .pill.none{background:var(--bad-soft);color:var(--bad)}
 .pill.part{background:var(--warn-soft);color:var(--warn)}
@@ -191,7 +207,7 @@ input.cmt:focus{outline:3px solid var(--accent);outline-offset:1px}
 <div class="wrap">
   <header>
     <div>
-      <h1>出荷漏れチェック <small style="font-size:.6em;color:var(--muted);font-weight:400">v26.30 自動照合 <span style="white-space:nowrap">版 2026-11-18</span></small></h1>
+      <h1>出荷漏れチェック <small style="font-size:.6em;color:var(--muted);font-weight:400">v26.31 自動照合 <span style="white-space:nowrap">版 2026-11-20</span></small></h1>
       <p class="sub">メーカーごとの受注データのかんばん枚数から、スキャナーの照合データを差し引いて残りを管理します</p>
     </div>
     <div class="ctrls">
@@ -303,6 +319,7 @@ input.cmt:focus{outline:3px solid var(--accent);outline-offset:1px}
   <section class="stats" id="stats"></section>
   <section id="orderWarn"></section>
   <section id="binSummary"></section>
+  <section id="gbPanel"></section>
 
   <section style="display:grid;gap:10px">
     <div class="toolbar">
@@ -363,6 +380,7 @@ function save(){ try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){ s
 function load(){ try{ const t=localStorage.getItem(KEY); if(t){ const o=JSON.parse(t); if(o && Array.isArray(o.plans)) { S=Object.assign(S,o); if(o.date && o.date!=="all" && !o.from){ S.legacyDate=o.date; } delete S.date; return true; } } }catch(e){} return false; }
 
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const tnOf = x => (typeof termName==="function" ? termName(x) : String(x||"").split("\\").pop());   // 起動直後（後ろの script を読む前）でも止まらないように
 const norm = s => String(s ?? "").toUpperCase().replace(/[^0-9A-Z]/g,"");
 const pad2 = s => String(s ?? "").trim().padStart(2,"0");
 function showMsg(t, kind){ const m=document.getElementById("msg"); m.textContent=t; m.className="msg "+(kind||"info"); m.hidden=false; clearTimeout(showMsg._t); showMsg._t=setTimeout(()=>m.hidden=true, 8000); }
@@ -470,6 +488,8 @@ const rowKey = r => [r.maker,r.pn,r.date,r.bin,r.doc,r.gyo,r.dest].join("|");
 
 /* ---------- 照合データ（スキャナー2種類に対応） ---------- */
 const QR_TOYOTA = /16D(\d{8})9D(\d+?)10K(\w{8})P\s*(\w{3,4})P\s*([A-Z0-9\-]+?)Q(\d+)2P\w*?K(\d+)Z/;
+// かんばん1枚ごとの枝番（QRの「…K1Z…」の数字）
+const edaOf = qr => { const m=/2P\w*?K(\d+)Z/.exec(qr||""); return m ? +m[1] : null; };
 const TYPE_LABEL = { EKAN_MAE:"e-かんばん", EDI_FTS:"FTS", EDI_KYOHO:"協豊", EDI:"EDI", QR:"かんばんQR", GOHIN:"誤品照合" };
 const tyLabel = t => TYPE_LABEL[t] || t || "不明";
 // 「JT…」「JY…」形式のQR全文から 品番・背番号・納入番号・日付・便 を取り出す
@@ -498,7 +518,7 @@ function parseScanFile(text){
   if(lines.length && /客先QR全文/.test(lines[0])){
     const rows=parseCSV(lines.join("\n"));
     const h=rows[0].map(x=>x.trim()); const ix=n=>h.indexOf(n);
-    const cT=ix("日時"), cP=ix("客先品番"), cR=ix("結果"), cQ=ix("客先QR全文"), cN=ix("端末番号"), cS=ix("通し番号");
+    const cT=ix("日時"), cP=ix("客先品番"), cR=ix("結果"), cQ=ix("客先QR全文"), cN=ix("端末番号"), cS=ix("通し番号"), cE=ix("枝番");
     for(const f of rows.slice(1)){
       if(f.length<=Math.max(cT,cP,cR,cQ)){ if(f.some(x=>x)) bad.push(f.join(",")); continue; }
       const qr=(f[cQ]||"").trim(), res=(f[cR]||"").trim(), ok=/^OK$/i.test(res);
@@ -509,6 +529,7 @@ function parseScanFile(text){
       if(!ok) rec.reason="誤品照合："+res.replace(/^NG[：:]?/,"");
       if(!rec.k) rec.k=`GOHIN|${f[cN]||""}|${rec.t}|${rec.part}`;
       if(cS>=0 && /^\d+$/.test((f[cS]||"").trim())){ rec.seq=+f[cS]; rec.term=(f[cN]||"").trim(); }
+      { const ev=cE>=0?(f[cE]||"").trim():""; rec.eda=/^\d+$/.test(ev) ? +ev : edaOf(qr); rec.tn=cN>=0?(f[cN]||"").trim():""; }
       types.GOHIN=(types.GOHIN||0)+1; recs.push(rec);
     }
     return {recs,bad,types};
@@ -524,11 +545,13 @@ function parseScanFile(text){
       rec = { ty:f[11]||"", date:normDate(f[23]), bin:f[24]?String(parseInt(f[24],10)||f[24]):"", doc:(f[25]||"").trim(), sebango:(f[26]||"").trim(), part,
               r: f[0]!=="1" || !part ? "ERR" : !(f[38]||"").trim() ? "NOLABEL" : "OK", t };
       rec.k = rec.r==="OK" ? `HT|${rec.date}|${rec.bin}|${rec.doc}|${norm(part)}|${(f[30]||"").trim()}` : (f[10]||line);
+      { const e=parseInt((f[30]||"").trim(),10); rec.eda=isNaN(e)?null:e; }
     } else {
       const f=line.trim().split(",");
       if(f.length<4 || !f[1]){ bad.push(line); continue; }
       const m=QR_TOYOTA.exec(f[1]);
       rec = { ty:"QR", k:f[1], r:(f[f.length-2]||"").trim().toUpperCase(), t:(f[f.length-1]||"").trim(), date:"", bin:"", doc:"", sebango:"", part:"" };
+      rec.eda = edaOf(f[1]);
       if(m) Object.assign(rec,{ date:m[1], bin:String(parseInt(m[2],10)), doc:m[3], sebango:m[4], part:m[5] });
       else if(f.length>=12){
         Object.assign(rec,{ part:f[5].trim(), sebango:f[6].trim() });
@@ -581,16 +604,25 @@ function compute(){
   const resolve = sp => { if(cache.has(sp)) return cache.get(sp);
     const v=allPns.find(pn=>pn===sp) || allPns.find(pn => pn.startsWith(sp) && pn.length-sp.length<=2) || allPns.find(pn => sp.startsWith(pn) && sp.length-pn.length<=2) || null; cache.set(sp,v); return v; };
   const fileName = id => (S.files.find(f=>f.id===id)||{}).name || "";
-  const seen=new Map(); const dups=[], ngs=[], unplanned=[], outside=[], unparsed=[], noOrder=[];
+  const seen=new Map(), seenTn=new Map(), seenFn=new Map(); const dups=[], ngs=[], unplanned=[], outside=[], unparsed=[], noOrder=[];
   // 受注データにないオーダーNoのかんばん。読み取ったメイン日付・便が受注の期間内かどうかで「要確認／参考」を分ける
   const ngSeen=new Set();
   const orderSet=new Set(allRows.map(r=>r.orderNo).filter(Boolean));
   const minR=rows[0];
   const inRange=x=>!minR || !x.date || (x.date.localeCompare(minR.date) || (+x.bin||0)-(+minR.bin||0))>=0;
-  const put=(r,rec)=>{ r.got++; if(rec.t>r.last) r.last=rec.t; const fn=fileName(rec.f)||String(rec.f||"不明"); if(!r.srcs) r.srcs=new Map(); r.srcs.set(fn,(r.srcs.get(fn)||0)+1); };
+  const put=(r,rec)=>{ r.got++; if(rec.t>r.last) r.last=rec.t; const fn=fileName(rec.f)||String(rec.f||"不明"); if(!r.srcs) r.srcs=new Map(); r.srcs.set(fn,(r.srcs.get(fn)||0)+1);
+    // 枝番ごとに「どの端末が・いつ」読んだかを残す（現物確認用）
+    if(rec.eda!=null){ if(!r.edas) r.edas=new Map(); const o={tn:rec.tn||tnOf(fn),t:rec.t,fn}; const a=r.edas.get(rec.eda); if(a) a.push(o); else r.edas.set(rec.eda,[o]); }
+    else r.noEda=(r.noEda||0)+1; };
   // 納入番号のあるスキャン（確実に照合できる）を先に割り当て、番号のないスキャンは残りの枠に入れる
   // 前のバージョンで読み込み済みの照合データ（先頭が欠けたQR）も、保存してあるQR全文から読み直す
   const eff=S.records.map(rec0=>{
+    if(rec0.eda==null){   // 前のバージョンで読み込み済みの記録も、保存してあるQR全文・キーから枝番を読み直す
+      let e=null;
+      if(rec0.ty==="HT"){ const x=parseInt(String(rec0.k||"").split("|")[5],10); if(!isNaN(x)) e=x; }
+      else if(typeof rec0.k==="string") e=edaOf(rec0.k);
+      if(e!=null) rec0=Object.assign({},rec0,{eda:e});
+    }
     let rec=rec0;
     if(!rec.doc && !rec.qdoc && rec.ty!=="HT" && typeof rec.k==="string" && !/^J[A-Z]/.test(rec.k)){ const c=Object.assign({},rec); if(parseTrunc(c.k,c)) rec=c; }
     if(!rec.doc && rec.qdoc){ const dr=findDoc(rec.qdoc), p0=resolve(norm(rec.part||""));
@@ -602,8 +634,8 @@ function compute(){
     const base=Object.assign({}, rec, {file:fileName(rec.f)});
     if(rec.r!=="OK"){ const nk=[rec.t,rec.part||"",rec.sebango||"",rec.r,String(rec.k||"")].join("|"); if(ngSeen.has(nk)) continue; ngSeen.add(nk); ngs.push(base); continue; }
     if(!rec.part){ unparsed.push(base); continue; }
-    if(seen.has(rec.k)){ dups.push(Object.assign(base,{first:seen.get(rec.k)})); continue; }
-    seen.set(rec.k, rec.t);
+    if(seen.has(rec.k)){ dups.push(Object.assign(base,{first:seen.get(rec.k), firstTn:seenTn.get(rec.k), firstFn:seenFn.get(rec.k), tn:rec.tn||tnOf(base.file||""), pn:resolve(norm(rec.part||""))})); continue; }
+    seen.set(rec.k, rec.t); seenTn.set(rec.k, rec.tn||tnOf(base.file||"")); seenFn.set(rec.k, base.file||"");
     if(!allRows.length){ base.reason="受注データ未読込"; unplanned.push(base); continue; }
     const pn=resolve(norm(rec.part));
     const docRows=findDoc(rec.doc);
@@ -739,7 +771,8 @@ function render(){
     html+=`<tr class="grp" tabindex="0" data-k="${esc(g.key)}" aria-expanded="${open}"><td><span class="pill ${cls}">${lab}</span></td><td class="mono">${esc([...g.sebango].join(" / "))}${(()=>{ if(!isEk(g.maker)) return ""; const k=kyohoOf(g.rows[0]&&g.rows[0].pn); return k ? `<br><small class="ky">協豊 ${esc(k)}</small>` : `<br><small class="ky none">協豊 －</small>`; })()}</td><td class="mono">${esc(g.part)}</td><td>${esc([...g.dest].join("、"))}${orderLines(g)}</td>
       <td class="n">${g.plan}</td><td class="n">${g.done}</td><td class="n ${g.remain?"remain":"zero"}">${g.remain}</td>
       <td><div class="bar ${cls}"><i style="width:${pct.toFixed(0)}%"></i></div></td><td class="mono">${esc(g.last ? g.last.slice(5,16) : "—")}</td><td class="cm"><div class="cmbox"><input class="cmt" type="text" maxlength="60" data-ck="${esc(g.key)}" value="${esc(cmtOf(g.key))}" placeholder="未納・夕方作業など" aria-label="コメント（${esc(g.part)}）"><select class="cmsel" data-ck="${esc(g.key)}" aria-label="コメントを選ぶ（${esc(g.part)}）">${CMT_OPTS}</select></div></td></tr>`;
-    if(g.status==="part" || g.status==="over"){ html+=`<tr class="src"><td></td><td colspan="9">読み取りデータ：${[...(g.srcs||[])].map(([fn,n])=>`<b>${esc(fn)}</b>（${n}枚）`).join("、")||"—"}</td></tr>`; }
+    { const gb = g.status==="none" ? "" : gbHtml(g,R);
+      if(g.status==="part" || g.status==="over" || gb){ html+=`<tr class="src"><td></td><td colspan="9">${gb?`<div class="gb"><div class="gbt">現物確認</div>${gb}</div>`:""}<div class="gbf">読み取りデータ：${[...(g.srcs||[])].map(([fn,n])=>`<b>${esc(fn)}</b>（${n}枚）`).join("、")||"—"}</div></td></tr>`; } }
     if(open){ for(const r of g.rows){ html+=`<tr class="det"><td colspan="3">番号 <span class="mono">${esc(r.doc||"-")}</span>${r.orderNo?`　オーダー <span class="mono">${esc(r.orderNo)}</span>`:""}${r.uke?`　受入 ${esc(r.uke)}`:""}　背番号 <span class="mono">${esc(r.sebango)}</span></td><td>${esc(destOf(r))}${r.mrDate?`　メイン ${esc(r.mrDate)}-${r.mrSeq}`:""}</td><td class="n">${r.cards}</td><td class="n">${r.got}</td><td class="n">${Math.max(r.cards-r.got,0)}</td><td colspan="3">収容数 ${esc(r.pack)}${r.srcs&&r.srcs.size?`<br>読み取り：${[...r.srcs].map(([fn,n])=>`${esc(fn)}（${n}）`).join("、")}`:""}</td></tr>`; } }
   }
   const act=document.activeElement, actK=act&&act.matches&&act.matches("input.cmt")?act.dataset.ck:null, actS=actK?act.selectionStart:0;
@@ -751,7 +784,7 @@ function render(){
   ex.push(box("受注にないスキャン", R.unplanned.length, true, "誤出荷・別便の積み込みの可能性があります。選んだ納入指示日以外のものは「対象外」に分けています。",
     ["種別","品番","背番号","番号","枚","理由"], sumBy(R.unplanned,s=>`${s.ty}|${s.part}|${s.doc}|${s.reason}`).map(o=>[tyLabel(o.s.ty),o.s.part,o.s.sebango,o.s.doc,o.n,o.s.reason||""])));
   ex.push(box("二重スキャン（除外済）", R.dupsRe.length, false, "同じかんばんを時間をおいて2回読んだもの。1回分だけ数えています。",
-    ["種別","背番号","品番","1回目","2回目"], R.dupsRe.map(s=>[tyLabel(s.ty),s.sebango||"",s.part||"",(s.first||"").slice(11),s.t.slice(11)])));
+    ["種別","背番号","品番","納番","枝番","1回目（端末 時刻）","2回目（端末 時刻）"], R.dupsRe.map(s=>[tyLabel(s.ty),s.sebango||"",s.part||"",s.doc||"",s.eda==null?"":s.eda,`${s.firstTn||""} ${(s.first||"").slice(11,16)}`,`${s.tn||""} ${s.t.slice(11,16)}`])));
   ex.push(box("NG（照合不一致）", R.ngs.length, R.ngs.length>0, "スキャナーでNG・エラーになった記録。出荷数には数えていません。現品を確認してください。",
     ["種別","背番号","品番","時刻","ファイル"], R.ngs.map(s=>[s.r==="NOLABEL"?`${tyLabel(s.ty)}（現品未照合）`:s.part?tyLabel(s.ty):"空データ",s.sebango||"",s.part||"",s.t,s.file])));
   ex.push(box("対象外（選んだ日付以外・未登録の得意先）", R.outside.length, false, "照合データには入っているが、いま表示している受注の対象ではないスキャンです。得意先別：" + Object.entries(R.outside.reduce((a,s)=>(a[tyLabel(s.ty)]=(a[tyLabel(s.ty)]||0)+1,a),{})).map(([k,v])=>`${k} ${v}`).join("・"),
@@ -759,6 +792,84 @@ function render(){
   if(R.unparsed.length) ex.push(box("読み取れなかった行", R.unparsed.length, true, "品番を読み取れなかった行です。", ["内容","時刻"], R.unparsed.map(s=>[String(s.k).slice(0,60)+"…",s.t])));
   document.getElementById("exceptions").innerHTML = ex.join("");
   renderOrderWarn(R);
+  renderGb(R, L);
+}
+function renderGb(R, L){
+  const el=document.getElementById("gbPanel"); if(!el) return;
+  const items=[]; for(const g of L){ if(g.status==="none") continue; const h=gbHtml(g,R); if(h) items.push({g,h}); }
+  if(!items.length){ el.innerHTML=""; return; }
+  el.innerHTML=`<details class="panel alert" open><summary>現物確認まとめ（途中・二重読み）<span class="cnt">${items.length}件</span></summary>
+    <p class="note">抜けている枝番と、その前後を読んだ端末・オーダーです。現物はこの順に探してください。<button class="btn ghost" id="gbPrint" type="button" style="margin-left:8px;min-height:34px">印刷</button></p>
+    ${items.map(({g,h})=>`<div class="gbitem"><div class="gbhd"><b>${esc(g.maker)}</b>　${esc(fmtDateW(g.date))}${g.bin?` 便${esc(g.bin)}`:""}　<span class="mono">${esc(g.part)}</span>　背番号 <span class="mono">${esc([...g.sebango].join(" / "))}</span></div>${h}</div>`).join("")}
+  </details>`;
+}
+document.addEventListener("click",e=>{ const b=e.target.closest&&e.target.closest("#gbPrint"); if(!b) return; document.body.classList.add("pgb"); setTimeout(()=>{ window.print(); document.body.classList.remove("pgb"); },50); });
+/* ---------- 現物確認（途中・重複のとき、どの端末で、枝番のどこが抜けているか） ----------
+   かんばん1枚ごとの枝番（納番ごとに1から）を、受注のかんばん枚数と突き合わせる */
+function rngs(a){ const o=[]; let s0=null,p0=null; for(const n of a){ if(s0===null){ s0=p0=n; } else if(n===p0+1){ p0=n; } else { o.push(s0===p0?`${s0}`:`${s0}〜${p0}`); s0=p0=n; } } if(s0!==null) o.push(s0===p0?`${s0}`:`${s0}〜${p0}`); return o.join("、"); }
+const hm = t => (t||"").slice(11,16);
+function gbKeys(g, R){
+  const km=new Map();
+  for(const r of g.rows){
+    const k=[r.doc||"", r.pn, r.orderNo||""].join("|");
+    let o=km.get(k); if(!o){ o={doc:r.doc||"", orderNo:r.orderNo||"", pn:r.pn, n:0, got:0, noEda:0, edas:new Map()}; km.set(k,o); }
+    o.n+=r.cards; o.got+=r.got; o.noEda+=r.noEda||0;
+    if(r.edas) for(const [e,a] of r.edas){ const b=o.edas.get(e); if(b) b.push(...a); else o.edas.set(e,a.slice()); }
+  }
+  const same=(a,b)=>!a||!b||a===b||a.startsWith(b)||b.startsWith(a);
+  return [...km.values()].map(o=>{
+    // 枝番は納番ごとに1から。ただし1〜枚数に1枚も入らない納番（協豊など通し番号の場合）は、最小の枝番から枚数分を期待範囲にする
+    // 枚数どおり読めている納番（残りも過剰もない）は、枝番が飛んでいても表示しない（枝番が通し番号で、他の納番と飛び飛びになることがあるため）
+    const ks=[...o.edas.keys()].sort((a,b)=>a-b); const std=!ks.length || ks.some(e=>e>=1&&e<=o.n);
+    const remain=Math.max(o.n-o.got,0), over=Math.max(o.got-o.n,0);
+    let lo=1, hi=o.n, miss=[], extra=[], gaps=[];
+    if(std){ for(let e=1;e<=o.n;e++) if(!o.edas.has(e)) miss.push(e); extra=ks.filter(e=>e<1||e>o.n); }
+    else { lo=ks[0]; hi=ks[ks.length-1]; for(let i=1;i<ks.length;i++) if(ks[i]>ks[i-1]+1) gaps.push([ks[i-1]+1,ks[i]-1]); }
+    const dups=(R.dupsRe||[]).filter(d=>d.pn===o.pn && same(o.doc,d.doc||""));
+    return Object.assign(o,{miss,extra,dups,lo,hi,std,remain,over,gaps,prob:remain>0||over>0||dups.length>0});
+  });
+}
+function gbHtml(g, R){
+  const parts=[];
+  for(const o of gbKeys(g,R)){
+    if(!o.prob) continue;
+    const head=`納番 <b class="mono">${esc(o.doc||"（番号なし）")}</b>${o.orderNo?`　オーダー <b class="mono">${esc(o.orderNo)}</b>`:""}　受注${o.n}枚　読取${o.got}枚${o.remain?`　<b class="bad">残り${o.remain}枚</b>`:""}${o.over?`　<b class="bad">過剰${o.over}枚</b>`:""}`;
+    let cells="";
+    if(o.std){ const lim=Math.min(o.n,300);
+      for(let e=1;e<=lim;e++){ const a=o.edas.get(e); cells+= a ? `<span class="ec ok" title="${esc(a.map(x=>x.tn+" "+hm(x.t)).join(" / "))}">${e}</span>` : `<span class="ec miss" title="未読">${e}</span>`; }
+      if(o.n>lim) cells+=`<span class="ec">…</span>`;
+      for(const e of o.extra) cells+=`<span class="ec over" title="受注枚数を超えた枝番">${e}</span>`;
+    } else { let prev=null, k=0;
+      for(const [e,a] of [...o.edas].sort((x,y)=>x[0]-y[0])){ if(k++>300) break; if(prev!==null && e>prev+1) cells+=`<span class="ec gap" title="枝番が飛んでいます">…</span>`; cells+=`<span class="ec ok" title="${esc(a.map(x=>x.tn+" "+hm(x.t)).join(" / "))}">${e}</span>`; prev=e; } }
+    const by=new Map(); for(const [e,a] of o.edas) for(const x of a){ if(!by.has(x.tn)) by.set(x.tn,[]); by.get(x.tn).push(e); }
+    const tnLine=[...by].map(([tn,l])=>`<b>${esc(tn)}</b>（枝番 ${rngs([...new Set(l)].sort((a,b)=>a-b))}）`).join("、");
+    const lines=[];
+    if(tnLine) lines.push(`読んだ端末：${tnLine}`);
+    if(!o.std && o.remain) lines.push(`<b class="bad">残り${o.remain}枚</b>　この納番の枝番は通し番号で、1からの連番ではないため、抜けた枝番は特定できません${o.gaps.length?`（参考：読んだ枝番の途切れ ${o.gaps.map(([a,b])=>a===b?a:`${a}〜${b}`).join("、")}。他の納番の枝番が入っていることもあります）`:""}`);
+    if(!o.std && o.over) lines.push(`<b class="bad">受注より${o.over}枚多く読んでいます</b>`);
+    if(o.std && o.remain && o.miss.length){
+      const have=[...o.edas.keys()].filter(e=>e>=o.lo&&e<=o.hi).sort((a,b)=>a-b); const segs=[]; let s1=null,p1=null;
+      for(const e of o.miss){ if(s1===null){ s1=p1=e; } else if(e===p1+1){ p1=e; } else { segs.push([s1,p1]); s1=p1=e; } } if(s1!==null) segs.push([s1,p1]);
+      const near=e=>{ if(e==null) return "なし"; const x=o.edas.get(e)[0]; return `${e}枚目 ${esc(x.tn)} ${esc(hm(x.t))}`; };
+      for(const [a,b] of segs){ const prev=[...have].reverse().find(e=>e<a), next=have.find(e=>e>b);
+        lines.push(`<b class="bad">抜け：枝番 ${a===b?a:`${a}〜${b}`}（${b-a+1}枚）</b>　直前＝${near(prev)}　直後＝${near(next)}`); }
+    }
+    if(o.std && o.over && o.extra.length) lines.push(`<b class="bad">受注枚数を超えた枝番：${o.extra.join("、")}</b>`);
+    if(o.noEda) lines.push(`枝番のない読取：${o.noEda}枚（照合データを読み込み直すと、枝番を判定できます）`);
+    for(const d of o.dups) lines.push(`<b class="warn">二重読み：枝番 ${d.eda==null?"不明":d.eda}</b>　1回目＝${esc(d.firstTn||"")} ${esc(hm(d.first))} ／ 2回目＝${esc(d.tn||"")} ${esc(hm(d.t))}`);
+    // 読取データ（端末のCSV）をドライブで開く：抜けの前後を読んだ端末のファイル。ファイルIDは持たないので、ファイル名でドライブ検索を開く
+    const bn=x=>String(x||"").split(/[\\/]/).pop(); const fl=new Map();
+    const addF=(x,why)=>{ const n=bn(x.fn); if(n && !fl.has(n)) fl.set(n,`${x.tn} ${hm(x.t)}（${why}）`); };
+    if(o.std && o.remain && o.miss.length){ const have=[...o.edas.keys()].filter(e=>e>=1&&e<=o.n).sort((a,b)=>a-b); let p1=null;
+      for(const e of o.miss){ if(p1!==null && e===p1+1){ p1=e; continue; } p1=e; const prev=[...have].reverse().find(x=>x<e); const nx=have.find(x=>x>e);
+        if(prev!=null) addF(o.edas.get(prev)[0],`${prev}枚目`); if(nx!=null) addF(o.edas.get(nx)[0],`${nx}枚目`); } }
+    for(const d of o.dups){ if(d.firstFn) addF({fn:d.firstFn,tn:d.firstTn||"",t:d.first},"1回目"); if(d.file) addF({fn:d.file,tn:d.tn||"",t:d.t},"2回目"); }
+    if(!fl.size) for(const [e,a] of [...o.edas].sort((x,y)=>x[0]-y[0])){ addF(a[0],`${e}枚目`); if(fl.size>=3) break; }
+    const links=[...fl].slice(0,4).map(([n,lab])=>`<a class="btn ghost gbopen" href="https://drive.google.com/drive/search?q=${encodeURIComponent(n)}" target="_blank" rel="noopener noreferrer" title="${esc(n)}">${esc(lab)}　${esc(n)} をドライブで開く</a>`).join("");
+    if(links) lines.push(`<span class="gbopens">${links}</span>`);
+    parts.push(`<div class="gb1"><div class="gbh">${head}</div><div class="ecs">${cells}</div>${lines.map(l=>`<div class="gbl">${l}</div>`).join("")}</div>`);
+  }
+  return parts.join("");
 }
 function orderLines(g){
   const m=new Map(); for(const r of g.rows){ if(!r.orderNo) continue; const o=m.get(r.orderNo)||{c:0,g:0}; o.c+=r.cards; o.g+=r.got; m.set(r.orderNo,o); }
