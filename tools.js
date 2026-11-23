@@ -9,7 +9,7 @@
      「新しい版があります」と表示されます
    ========================================================= */
 
-var SITE_VER = '2026-11-20';
+var SITE_VER = '2026-11-23';
 
 /* GitHub Pages の場所（各ツールのリポジトリはここの下にある） */
 var BASE = 'https://overbridge038-lnk.github.io/';
@@ -184,7 +184,7 @@ var TOOLS = [
 
   { id: 'shukka-more-auto', icon: '⏰', name: '出荷漏れ自動照合',
     desc: '受注データと照合記録を決めた時刻に自動で照合して残す',
-    file: 'tools/shukka-more-auto.html', ver: '2026-11-20' },
+    file: 'tools/shukka-more-auto.html', ver: '2026-11-23' },
 
   { id: 'shukka-more-view', icon: '👀', name: '出荷漏れ照合（閲覧用）',
     desc: '照合PCの最新の照合結果を表で見る（60秒ごとに読み直し。⚙ で接続を設定）',

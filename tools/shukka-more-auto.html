@@ -207,7 +207,7 @@ input.cmt:focus{outline:3px solid var(--accent);outline-offset:1px}
 <div class="wrap">
   <header>
     <div>
-      <h1>出荷漏れチェック <small style="font-size:.6em;color:var(--muted);font-weight:400">v26.31 自動照合 <span style="white-space:nowrap">版 2026-11-20</span></small></h1>
+      <h1>出荷漏れチェック <small style="font-size:.6em;color:var(--muted);font-weight:400">v26.32 自動照合 <span style="white-space:nowrap">版 2026-11-23</span></small></h1>
       <p class="sub">メーカーごとの受注データのかんばん枚数から、スキャナーの照合データを差し引いて残りを管理します</p>
     </div>
     <div class="ctrls">
@@ -1183,33 +1183,60 @@ function applyRange(p, today){
 }
 
 /* ---------- 1回分の照合 ---------- */
+/* v26.27：ドライブの読み書きが返ってこなくても「照合中」で固まらないようにする
+   ・各ステップに時間制限（tmo）を付け、どこで止まったかを STEP に残す
+   ・全体が RUN_LIMIT を超えたら強制的に解除し、止まった場所を実行の記録と画面に出す */
+let STEP="", RUN_ID=0, STEP_AT=0;
+const RUN_LIMIT=5*60e3;
+const setStep=s=>{ STEP=s; STEP_AT=Date.now(); try{ paintAuto(); }catch(e){} };
+function tmo(p, ms, label){
+  let t; const lim=new Promise((_,rej)=>{ t=setTimeout(()=>rej(new Error(`${label}が${Math.round(ms/1000)}秒以内に終わりませんでした（Googleドライブの同期待ちの可能性）`)), ms); });
+  return Promise.race([Promise.resolve(p), lim]).finally(()=>clearTimeout(t));
+}
 async function runNow(trigger){
   if(RUNNING || ARCHIVING) return;
-  RUNNING=true;
-  try{ await runOnce(trigger); } finally { RUNNING=false; paintAuto(); }
+  RUNNING=true; const id=++RUN_ID; setStep("開始");
+  let timer; const wd=new Promise(res=>{ timer=setTimeout(()=>res("timeout"), RUN_LIMIT); });
+  try{
+    const r=await Promise.race([runOnce(trigger).then(()=>"done",e=>{ throw e; }), wd]);
+    if(r==="timeout"){
+      const msg=`照合が${Math.round(RUN_LIMIT/60e3)}分たっても終わらなかったため、止めました（止まった場所：${STEP||"不明"}）。次の予定時刻に自動でやり直します。続けて止まる場合は、RESULTフォルダー・フォルダーの「アクセスを許可」を押し直してください。`;
+      A.log.unshift({at:new Date().toISOString(), trigger, ok:false, text:msg}); A.log=A.log.slice(0,60); saveA();
+      alarm(`${hmOf(new Date())} ${trigger}　${msg}`, false);
+    }
+  }catch(e){
+    const msg=`照合できませんでした：${e.message}（止まった場所：${STEP||"不明"}）`;
+    A.log.unshift({at:new Date().toISOString(), trigger, ok:false, text:msg}); A.log=A.log.slice(0,60); saveA();
+    alarm(`${hmOf(new Date())} ${trigger}　${msg}`, false);
+  }finally{ clearTimeout(timer); if(id===RUN_ID){ RUNNING=false; STEP=""; } paintAuto(); }
 }
 async function runOnce(trigger){
   if(GAS){
+    setStep("ドライブから受け取り（GAS）");
     try{ DIR=await gasSnapshot(); PERM="granted"; }
     catch(e){ const t0=new Date(); alarm(`${hmOf(t0)} ${trigger}　${e.message}`, false); A.log.unshift({at:t0.toISOString(), trigger, ok:false, text:"照合できませんでした："+e.message}); A.log=A.log.slice(0,60); saveA(); return; }
   }
   if(!DIR){ alarm("フォルダーが未設定です。「フォルダーを選ぶ」で G:\\マイドライブ を選んでください。", false); return; }
-  if(await checkPerm(false)!=="granted"){ alarm("フォルダーへのアクセスが切れています。「アクセスを許可」を押してください。照合は止まっています。", false); return; }
+  setStep("フォルダーの許可を確認");
+  if(await tmo(checkPerm(false),15e3,"フォルダーの許可確認")!=="granted"){ alarm("フォルダーへのアクセスが切れています。「アクセスを許可」を押してください。照合は止まっています。", false); return; }
   paintAuto();
   const t0=new Date(), today=ymdOf(t0), minTime=t0.getTime()-A.ageDays*864e5;
   const entry={ at:t0.toISOString(), trigger, ok:false, text:"" };
+  const notesPre=[];
   try{
-    try{ await loadKyohoFolder(); }catch(e){}
-    const all=await listFiles(DIR, A.sub?1:0, "");
-    all.push(...await listArchived(A.ageDays));
-    all.push(...await listResultFiles());
+    setStep("協豊背番号を読込"); try{ await tmo(loadKyohoFolder(),30e3,"協豊背番号の読込"); }catch(e){}
+    setStep("フォルダー内のファイルを探索"); const all=await tmo(listFiles(DIR, A.sub?1:0, ""),90e3,"フォルダー内のファイル探索");
+    setStep("日付別データを探索"); try{ all.push(...await tmo(listArchived(A.ageDays),60e3,"日付別データの探索")); }catch(e){ notesPre.push("日付別データを読めませんでした："+e.message); }
+    setStep("RESULTフォルダーを探索"); try{ all.push(...await tmo(listResultFiles(),60e3,"RESULTフォルダーの探索")); }catch(e){ notesPre.push("RESULTを読めませんでした："+e.message); }
+    setStep("ファイルの更新日を確認");
     const skipped=[];
-    const pick=async (f)=>{ try{ const file=await f.h.getFile(); return Object.assign(f,{file, mod:file.lastModified}); }
-      catch(e){ await sleep(1500); try{ const file=await f.h.getFile(); return Object.assign(f,{file, mod:file.lastModified}); }catch(e2){ skipped.push(f.path); return null; } } };
+    const pick=async (f)=>{ try{ const file=await tmo(f.h.getFile(),20e3,"ファイルを開く"); return Object.assign(f,{file, mod:file.lastModified}); }
+      catch(e){ await sleep(1500); try{ const file=await tmo(f.h.getFile(),20e3,"ファイルを開く"); return Object.assign(f,{file, mod:file.lastModified}); }catch(e2){ skipped.push(f.path); return null; } } };
     const planF=(await Promise.all(all.filter(f=>isPlanName(f.name)).map(pick))).filter(f=>f && f.mod>=minTime).sort((a,b)=>b.mod-a.mod);
     const scanF=(await Promise.all(all.filter(f=>isScanName(f.name)).map(pick))).filter(f=>f && f.mod>=minTime).sort((a,b)=>a.mod-b.mod);
 
-    const N=blank(); const notes=[]; const usedMakers=new Set();
+    const N=blank(); const notes=[...notesPre]; const usedMakers=new Set();
+    setStep("受注データを読込");
     for(const f of planF){
       try{
         const p=readPlanFile(await readBuf(f), f.path);
@@ -1223,6 +1250,7 @@ async function runOnce(trigger){
         N.plans.push(p);
       }catch(e){ notes.push(`${f.path}：読めませんでした（${e.message}）`); }
     }
+    setStep("照合データを読込");
     for(const f of scanF){
       let buf; try{ buf=await readBuf(f); }catch(e){ skipped.push(f.path); continue; }
       const text=decodeText(buf); const h=hash(text);
@@ -1242,11 +1270,17 @@ async function runOnce(trigger){
     const okAll = rem===0 && over===0 && !R.unplanned.length && !R.ngs.length;
     const outName=`出荷漏れ照合_${stamp(t0)}.xlsx`;
     if(GAS){ notes.push(...GAS_NOTE); }
-    else { await writeExcel(outName, t0, {tot, rem, over, okAll}, planF, notes); await writeShare(true); }
-    if(!GAS) try{ SNAP_TOT={t0, tot:{tot, rem, over, okAll}}; await writeSnapshot(t0, SNAP_TOT.tot); }catch(e){ notes.push("閲覧用ページを保存できませんでした："+e.message); }
+    else {
+      setStep("結果Excelを保存");
+      try{ await tmo(writeExcel(outName, t0, {tot, rem, over, okAll}, planF, notes),120e3,"結果Excelの保存"); }catch(e){ notes.push("結果Excelを保存できませんでした："+e.message); entry.saveFail=true; }
+      try{ await tmo(writeShare(true),30e3,"設定の保存"); }catch(e){}
+      setStep("閲覧用ページを保存");
+      try{ SNAP_TOT={t0, tot:{tot, rem, over, okAll}}; await tmo(writeSnapshot(t0, SNAP_TOT.tot),60e3,"閲覧用ページの保存"); }catch(e){ notes.push("閲覧用ページを保存できませんでした："+e.message); }
+    }
     entry.ok=okAll;
     entry.text = okAll ? `OK：${tot}枚すべて照合済み` : `NG：残り${rem}枚${over?`・過剰${over}枚`:""}${R.unplanned.length?`・受注にないスキャン${R.unplanned.length}枚`:""}${R.ngs.length?`・NG${R.ngs.length}件`:""}`;
-    entry.text += `（受注${N.plans.length}件・照合${N.files.length}ファイル → ${GAS?"この端末に表示（GoogleドライブからGAS経由で読込。結果Excelは職場PCが保存）":outName}）`;
+    entry.text += `（受注${N.plans.length}件・照合${N.files.length}ファイル${GAS?" → この端末に表示（GoogleドライブからGAS経由で読込。結果Excelは職場PCが保存）":entry.saveFail?"・※結果Excelは保存できず":` → ${outName}`}）`;
+    if(entry.saveFail) entry.ok=false;
     const lost=FRESH.filter(x=>x.lost);
     if(lost.length){ entry.text += `　※届いていない読取があります：${lost.map(x=>`${x.name} 通し番号${x.gaps.map(g=>g.from===g.to?g.from:`${g.from}～${g.to}`).join("、")}（${x.lost}件・${x.gaps.map(g=>`${g.after}～${g.before}頃`).join("、")}）`).join("／")}。その端末から全データを書き出してDriveへ送ってください`; entry.ok=false; }
     const stale=FRESH.filter(x=>x.stale);
@@ -1294,7 +1328,7 @@ async function listResultFiles(){
 }
 // Googleドライブはアップロード中にファイルを差し替えることがあり、そのとき一時的に「見つからない」になる。少し待って読み直す
 async function readBuf(f){
-  for(let i=0;i<3;i++){ try{ return await f.file.arrayBuffer(); }catch(e){ if(i===2) throw e; await sleep(1500); f.file=await f.h.getFile(); } }
+  for(let i=0;i<3;i++){ try{ return await tmo(f.file.arrayBuffer(),30e3,"ファイルの読込"); }catch(e){ if(i===2) throw e; await sleep(1500); f.file=await tmo(f.h.getFile(),20e3,"ファイルを開く"); } }
 }
 
 /* ---------- スキャナーのRESULT → マイドライブへ自動コピー ----------
@@ -1533,7 +1567,13 @@ async function mergeFolder(src, dst){
 async function archiveOld(trigger){
   if(GAS) return;
   if(ARCHIVING || !DIR || PERM!=="granted") return;
-  ARCHIVING=true;
+  ARCHIVING=true; const aid=++ARCH_ID;
+  const lim=setTimeout(()=>{ if(ARCHIVING && aid===ARCH_ID){ ARCHIVING=false; A.log.unshift({at:new Date().toISOString(), trigger:`日付フォルダーへ整理（${trigger}）`, ok:false, text:"整理が5分たっても終わらなかったため止めました（Googleドライブの同期待ちの可能性）。次の機会にやり直します"}); A.log=A.log.slice(0,60); saveA(); paintAuto(); } }, 5*60e3);
+  try{ await archiveOldBody(trigger); } finally { clearTimeout(lim); }
+}
+let ARCH_ID=0;
+async function archiveOldBody(trigger){
+  const aid=ARCH_ID;
   const today=ymdOf(new Date()); const moved=[], errs=[];
   try{
     const ad=await DIR.getDirectoryHandle(A.archDir,{create:true});
@@ -1597,7 +1637,7 @@ async function archiveOld(trigger){
       text:`${moved.length}件（ファイル・日付フォルダー）を「${A.archDir}」へまとめました${errs.length?`・${errs.length}件は移動できず`:""}`, notes:[...moved, ...errs]});
     A.log=A.log.slice(0,60);
   }
-  saveA(); ARCHIVING=false; paintAuto();
+  saveA(); if(aid===ARCH_ID) ARCHIVING=false; paintAuto();
 }
 
 /* ---------- 結果をExcelで保存 ---------- */
@@ -1702,7 +1742,7 @@ function alarm(text, ok){
 }
 function paintAuto(){
   const st=$("runState");
-  if(RUNNING){ st.textContent="照合中…"; st.className="runstate busy"; }
+  if(RUNNING){ st.textContent="照合中…"+(STEP?`（${STEP}）`:""); st.className="runstate busy"; }
   else if(A.auto && PERM!=="granted"){ st.textContent="停止（許可待ち）"; st.className="runstate stop"; }
   else if(A.auto){ st.textContent=GAS?"自動（読むだけ）":"自動運転中"; st.className="runstate on"; }
   else { st.textContent="停止中"; st.className="runstate"; }
