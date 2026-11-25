@@ -400,20 +400,30 @@ function renderMap(){
   var labels='';
   LINKS.forEach(function(L,i){
     var A=AREA[L.from], B=AREA[L.to]; if(!A||!B) return;
-    var ca=center(A), cb=center(B), info=L.type==='info', d;
+    var info=L.type==='info', d, p0, p1, cx, cy, c2=null;
+    if(L.pts){ /* 線の通り道を座標で決める（6つ＝曲線1点、8つ＝曲線2点）。交差・重なりを避けたいときに使う */
+      var q=L.pts; p0={x:q[0],y:q[1]};
+      if(q.length>=8){ cx=q[2]; cy=q[3]; c2={x:q[4],y:q[5]}; p1={x:q[6],y:q[7]}; }
+      else { cx=q[2]; cy=q[3]; p1={x:q[4],y:q[5]}; }
+      d='M'+p0.x+','+p0.y+(c2?' C'+cx+','+cy+' '+c2.x+','+c2.y+' '+p1.x+','+p1.y:' Q'+cx+','+cy+' '+p1.x+','+p1.y);
+    } else {
+    var ca=center(A), cb=center(B);
     var mx=(ca.x+cb.x)/2, my=(ca.y+cb.y)/2, dx=cb.x-ca.x, dy=cb.y-ca.y, len=Math.sqrt(dx*dx+dy*dy)||1;
-    var k=(L.bend!=null?L.bend:(info?0.4:0))*len*0.5, cx=mx-dy/len*k, cy=my+dx/len*k;
-    var p0=edge(A,{x:cx,y:cy},6), p1=edge(B,{x:cx,y:cy},10);
+    var k=(L.bend!=null?L.bend:(info?0.4:0))*len*0.5; cx=mx-dy/len*k; cy=my+dx/len*k;
+    p0=edge(A,{x:cx,y:cy},6); p1=edge(B,{x:cx,y:cy},10);
     if(Math.hypot(p1.x-p0.x,p1.y-p0.y)<40){ // となり合うエリアは、矢印が見えるよう内側から出す
       p0=edge(A,{x:cx,y:cy},-34); p1=edge(B,{x:cx,y:cy},6);
       if(!info){ cx=(p0.x+p1.x)/2; cy=(p0.y+p1.y)/2; }
-      d=''; L._short=true;
+      L._short=true;
     }
     d='M'+p0.x.toFixed(1)+','+p0.y.toFixed(1)+' Q'+cx.toFixed(1)+','+cy.toFixed(1)+' '+p1.x.toFixed(1)+','+p1.y.toFixed(1);
+    }
     s+='<path id="lk'+i+'" class="link '+(info?'info':'mono')+'" d="'+d+'" marker-end="url(#'+(info?'ai':'am')+')"/>';
     if(!info) s+='<circle r="4" class="pulse"><animateMotion dur="2.6s" repeatCount="indefinite" begin="'+(i*0.4)+'s"><mpath href="#lk'+i+'"/></animateMotion></circle>';
     if(L.label){
-      var lx=.25*p0.x+.5*cx+.25*p1.x, ly=.25*p0.y+.5*cy+.25*p1.y-(L._short?20:0), w=tw(L.label,12)+20;
+      var lt=(L.lt!=null?L.lt:.5), u=1-lt, lx, ly, w=tw(L.label,12)+20;   // 名札を置く位置（線の上の 0〜1）
+      if(c2){ lx=u*u*u*p0.x+3*u*u*lt*cx+3*u*lt*lt*c2.x+lt*lt*lt*p1.x; ly=u*u*u*p0.y+3*u*u*lt*cy+3*u*lt*lt*c2.y+lt*lt*lt*p1.y; }
+      else  { lx=u*u*p0.x+2*u*lt*cx+lt*lt*p1.x; ly=u*u*p0.y+2*u*lt*cy+lt*lt*p1.y-(L._short?20:0); }
       labels+='<g><rect class="lblbg" x="'+(lx-w/2)+'" y="'+(ly-11)+'" width="'+w+'" height="22" rx="11"/>'+
               '<text class="lbl" x="'+lx+'" y="'+(ly+4)+'" text-anchor="middle">'+esc(L.label)+'</text></g>';
     }
