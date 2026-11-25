@@ -199,6 +199,21 @@
   #cfgBox .row .btn{flex:none;white-space:nowrap}
   #cfgBox .err{color:#ff8080;font-size:13px;font-weight:700;min-height:1em;margin:4px 0 0}
   #cfgBox .ft{display:flex;gap:8px;justify-content:flex-end;margin-top:6px}
+  #tplBg{position:fixed;inset:0;z-index:45;background:rgba(0,0,0,.55);display:none;align-items:center;justify-content:center;padding:16px}
+  #tplBg.show{display:flex}
+  #tplBox{width:min(620px,100%);max-height:90vh;overflow:auto;border-radius:22px;border:1px solid var(--edge);background:rgba(12,19,36,.97);box-shadow:0 30px 80px rgba(0,0,0,.6);padding:18px}
+  #tplBox h2{margin:0 0 6px;font-size:18px}
+  #tplBox .note{font-size:12.5px;color:var(--sub);margin:0 0 12px;word-break:auto-phrase}
+  #tplBox .msg{padding:18px;border-radius:14px;border:1px dashed rgba(255,255,255,.18);color:var(--sub);text-align:center;font-size:14px;word-break:auto-phrase}
+  #tplBox .msg.err{border-color:rgba(255,107,107,.6);color:#ff8080;font-weight:700}
+  #tplBox .it{display:flex;align-items:center;gap:12px;padding:12px 14px;margin:0 0 10px;border-radius:14px;border:1px solid var(--edge);background:var(--glass)}
+  #tplBox .it .nm{flex:1;min-width:0;font-size:15px;font-weight:700;overflow-wrap:anywhere}
+  #tplBox .it .mt{display:block;font-family:var(--mono);font-size:11px;font-weight:500;color:var(--sub);margin-top:3px}
+  #tplBox .it .btn{flex:none;white-space:nowrap;min-height:44px;background:var(--grad);color:#0b1020;font-weight:700;border:0}
+  #tplBox .it .btn:disabled{opacity:.5}
+  #tplBox input{width:100%;box-sizing:border-box;padding:10px 12px;border-radius:10px;border:1px solid var(--edge);background:rgba(255,255,255,.06);color:var(--ink);font:inherit;font-size:14px;margin:0 0 8px}
+  #tplBox input.ng{border-color:#ff6b6b;background:rgba(255,107,107,.12)}
+  #tplBox .ft{display:flex;gap:8px;justify-content:flex-end;margin-top:6px}
   #sheetBg{position:fixed;inset:0;z-index:40;background:rgba(0,0,0,.55);display:none;align-items:center;justify-content:center;padding:16px}
   #sheetBg.show{display:flex}
   #sheet{width:min(560px,100%);max-height:88vh;overflow:auto;border-radius:22px;border:1px solid var(--edge);
@@ -246,6 +261,7 @@
     <div class="seg view" id="views"></div>
     <div class="seg" id="langs"></div>
     <button class="btn" id="cfgBtn" title="接続の設定（Apps Script のURL・合言葉・出荷漏れ照合）" aria-label="接続の設定">⚙</button>
+    <button class="btn" id="tplBtn" title="ひな形（Excel）をダウンロード" aria-label="ひな形ダウンロード"></button>
   </div>
 </header>
 
@@ -266,6 +282,7 @@
 <aside id="panel" aria-hidden="true"></aside>
 <div id="sheetBg"><div id="sheet" role="dialog"></div></div>
 <div id="cfgBg"><div id="cfgBox" role="dialog" aria-label="接続の設定"></div></div>
+<div id="tplBg"><div id="tplBox" role="dialog" aria-label="ひな形ダウンロード"></div></div>
 <div id="toast"></div>
 
 <script>
@@ -313,6 +330,13 @@ var layout = load('layoutOverride', null);
 if(layout){ AREAS.forEach(function(a){ if(layout[a.id]) a.tools = layout[a.id].filter(function(id){ return TOOLS.some(function(t){ return t.id===id; }); }); }); }
 var seen = load('seenVer', null);
 if(!seen){ seen={}; TOOLS.forEach(function(t){ seen[t.id]=t.ver; }); save('seenVer',seen); }
+/* ひな形ダウンロードの表示ことば（render より先に必要） */
+var TPLT={
+  ja:{btn:'ひな形', ttl:'📥 ひな形ダウンロード', note:'各ツールで使う Excel のひな形です。押すと、ドライブにある最新版が保存されます。', dl:'⤓ ダウンロード', loading:'一覧を読み込み中…', none:'ひな形はまだ入っていません', needUrl:'Apps Script のURLを入れてください（⚙ で入れたものと同じ）', save:'保存して一覧を出す', offline:'Wi-Fiにつないでから開いてください', err:'読み込めませんでした。URL とネットを確かめてください', nofolder:'ドライブにフォルダ「ひな形配布」がありません', old:'Apps Script が古い版です（Code.gs ver 2026-11-25 を「新バージョン」でデプロイしてください）', big:'ファイルが大きすぎて取れません', done:'ダウンロードしました', close:'閉じる', change:'URLを変える', badUrl:'URLの形がちがいます（https://script.google.com/macros/s/…/exec）', upd:'更新'},
+  id:{btn:'Template', ttl:'📥 Unduh Template', note:'Template Excel yang dipakai tiap alat. Tekan untuk menyimpan versi terbaru di Drive.', dl:'⤓ Unduh', loading:'Memuat daftar…', none:'Belum ada template', needUrl:'Masukkan URL Apps Script (sama dengan di ⚙)', save:'Simpan dan tampilkan daftar', offline:'Sambungkan Wi-Fi dulu', err:'Gagal memuat. Periksa URL dan jaringan', nofolder:'Folder “ひな形配布” tidak ada di Drive', old:'Apps Script versi lama (deploy Code.gs ver 2026-11-25 sebagai versi baru)', big:'File terlalu besar', done:'Terunduh', close:'Tutup', change:'Ubah URL', badUrl:'Format URL salah (https://script.google.com/macros/s/…/exec)', upd:'Diperbarui'},
+  tl:{btn:'Template', ttl:'📥 I-download ang Template', note:'Mga Excel template na ginagamit ng bawat tool. Pindutin para i-save ang pinakabago sa Drive.', dl:'⤓ I-download', loading:'Nilo-load ang listahan…', none:'Wala pang template', needUrl:'Ilagay ang URL ng Apps Script (kapareho ng nasa ⚙)', save:'I-save at ipakita ang listahan', offline:'Kumonekta muna sa Wi-Fi', err:'Hindi ma-load. Tingnan ang URL at network', nofolder:'Walang folder na “ひな形配布” sa Drive', old:'Luma ang Apps Script (i-deploy ang Code.gs ver 2026-11-25 bilang bagong bersyon)', big:'Masyadong malaki ang file', done:'Na-download', close:'Isara', change:'Palitan ang URL', badUrl:'Mali ang anyo ng URL (https://script.google.com/macros/s/…/exec)', upd:'Na-update'},
+  en:{btn:'Templates', ttl:'📥 Download Templates', note:'Excel templates used by each tool. Tap to save the latest version from Drive.', dl:'⤓ Download', loading:'Loading list…', none:'No templates yet', needUrl:'Enter the Apps Script URL (same as in ⚙)', save:'Save and show list', offline:'Connect to Wi-Fi first', err:'Could not load. Check the URL and network', nofolder:'Folder “ひな形配布” not found in Drive', old:'Apps Script is outdated (deploy Code.gs ver 2026-11-25 as a new version)', big:'File too large', done:'Downloaded', close:'Close', change:'Change URL', badUrl:'URL format is wrong (https://script.google.com/macros/s/…/exec)', upd:'Updated'}
+};
 var savedSet = {}, swReg = null, newSiteVer = '', openArea = null;
 
 var TOOL = {}; TOOLS.forEach(function(t){ TOOL[t.id]=t; });
@@ -460,6 +484,7 @@ function render(){
   document.getElementById('titleSub').textContent=t.titleSub;
   document.getElementById('siteVer').textContent='ver '+SITE_VER;
   document.getElementById('checkBtn').textContent=t.check;
+  document.getElementById('tplBtn').textContent='📥 '+TPLT[lang].btn;
   document.getElementById('andonTxt').textContent=t.newVer+(newSiteVer?'（ver '+newSiteVer+'）':'');
   document.getElementById('andonBtn').textContent=t.update;
   document.getElementById('langs').innerHTML=LANGS.map(function(l){
@@ -758,6 +783,74 @@ document.getElementById('cfgBg').addEventListener('click',function(e){
   if(e.target.closest('#cfSameM')){ document.getElementById('cfM').value=document.getElementById('cfV').value; document.getElementById('cfMK').value=document.getElementById('cfVK').value; return; }
   if(e.target.closest('#cfSame')){ document.getElementById('cfG').value=document.getElementById('cfV').value; document.getElementById('cfGK').value=document.getElementById('cfVK').value; return; }
   if(e.target.closest('#cfEye')){ var k=document.getElementById('cfK'); k.type=k.type==='password'?'text':'password'; e.target.textContent=k.type==='password'?'表示':'かくす'; }
+});
+
+/* ================= ひな形ダウンロード（2026-11-25） =================
+   ドライブ（出荷用アカウント）のフォルダ「ひな形配布」の Excel を、Apps Script（Code.gs ④ ?template=）から取る。
+   ・URL は公開ページに入れない。表紙 ⚙ で入れた Apps Script のURL（閲覧用・三五・自動照合）をそのまま使う。
+     どれも未設定のときは、ここで1回だけ入れる（localStorage 'hinagataCfg' の gas）。合言葉はいらない。
+   ・ひな形の差し替えはドライブのフォルダだけ。表紙の直し・push はいらない。 */
+function tplUrl(){
+  var c=[lsGet('hinagataCfg').gas, lsGet('shukkaMoreViewCfg').gas, lsGet('sangoZaikoCfg').gas, lsGet('shukkaAutoGas').gas, lsGet('zaikoCountCfg').gas];
+  for(var i=0;i<c.length;i++) if(c[i] && CFG_RE.test(c[i])) return c[i];
+  return '';
+}
+function tplBox(h){ document.getElementById('tplBox').innerHTML=h; }
+function closeTpl(){ document.getElementById('tplBg').classList.remove('show'); tplBox(''); }
+function tplFoot(t,withChange){ return '<div class="ft">'+(withChange?'<button class="btn" id="tplChg" type="button">'+t.change+'</button>':'')+'<button class="btn" id="tplNo" type="button">'+t.close+'</button></div>'; }
+function tplAsk(t, errTxt){
+  tplBox('<h2>'+t.ttl+'</h2><p class="note">'+esc(t.needUrl)+'</p>'+
+    '<input id="tplU" type="url" autocomplete="off" spellcheck="false" placeholder="https://script.google.com/macros/s/…/exec"'+(errTxt?' class="ng"':'')+'>'+
+    (errTxt?'<div class="msg err">'+esc(errTxt)+'</div>':'')+
+    '<div class="ft"><button class="btn" id="tplNo" type="button">'+t.close+'</button><button class="btn" id="tplSv" type="button" style="background:var(--grad);color:#0b1020;font-weight:700">'+t.save+'</button></div>');
+}
+function tplFmt(ms){ var d=new Date(ms), z=function(n){ return (n<10?'0':'')+n; }; return (d.getMonth()+1)+'/'+d.getDate()+' '+z(d.getHours())+':'+z(d.getMinutes()); }
+function tplSize(b){ return b>=1048576 ? (b/1048576).toFixed(1)+' MB' : Math.max(1,Math.round(b/1024))+' KB'; }
+function openTpl(){
+  var t=TPLT[lang], u=tplUrl();
+  document.getElementById('tplBg').classList.add('show');
+  if(!u){ tplAsk(t,''); return; }
+  tplBox('<h2>'+t.ttl+'</h2><p class="note">'+esc(t.note)+'</p><div class="msg">'+(navigator.onLine?t.loading:esc(t.offline))+'</div>'+tplFoot(t,true));
+  if(!navigator.onLine) return;
+  fetch(u+'?template=list',{cache:'no-store'}).then(function(r){ return r.json(); }).then(function(j){
+    var h='<h2>'+t.ttl+'</h2><p class="note">'+esc(t.note)+'</p>';
+    if(!j.ok){
+      /* あんどん：原因をことばで出す（古い Code.gs は err=key を返す） */
+      h+='<div class="msg err">'+esc(j.err==='nofolder'?t.nofolder:j.err==='key'?t.old:t.err)+'</div>';
+    } else if(!j.files.length){ h+='<div class="msg">'+esc(t.none)+'</div>'; }
+    else h+=j.files.map(function(f,i){
+      return '<div class="it"><div class="nm">'+esc(f.name)+'<span class="mt">'+esc(t.upd)+' '+tplFmt(f.mtime)+' ・ '+tplSize(f.size)+'</span></div>'+
+             '<button class="btn" type="button" data-tpl="'+i+'">'+t.dl+'</button></div>'; }).join('');
+    tplBox(h+tplFoot(t,true));
+    window.tplFiles=j.files||[];
+  }).catch(function(){ tplBox('<h2>'+t.ttl+'</h2><div class="msg err">'+esc(t.err)+'</div>'+tplFoot(t,true)); });
+}
+function tplGet(i, btn){
+  var t=TPLT[lang], f=(window.tplFiles||[])[i], u=tplUrl(); if(!f||!u) return;
+  var old=btn.textContent; btn.disabled=true; btn.textContent='…';
+  fetch(u+'?template='+encodeURIComponent(f.name),{cache:'no-store'}).then(function(r){ return r.json(); }).then(function(j){
+    if(!j.ok){ toast(j.err==='big'?t.big:t.err); return; }
+    var bin=atob(j.b64), a=new Uint8Array(bin.length); for(var k=0;k<bin.length;k++) a[k]=bin.charCodeAt(k);
+    var url=URL.createObjectURL(new Blob([a],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}));
+    var l=document.createElement('a'); l.href=url; l.download=j.name; document.body.appendChild(l); l.click(); l.remove();
+    setTimeout(function(){ URL.revokeObjectURL(url); },5000);
+    toast(j.name+' — '+t.done);
+  }).catch(function(){ toast(t.err); }).then(function(){ btn.disabled=false; btn.textContent=old; });
+}
+document.getElementById('tplBtn').addEventListener('click',openTpl);
+var tplDownBg=false;
+document.getElementById('tplBg').addEventListener('pointerdown',function(e){ tplDownBg=(e.target.id==='tplBg'); });
+document.getElementById('tplBg').addEventListener('click',function(e){
+  var t=TPLT[lang], el;
+  if((e.target.id==='tplBg'&&tplDownBg)||e.target.closest('#tplNo')){ closeTpl(); return; }
+  if((el=e.target.closest('[data-tpl]'))){ tplGet(+el.getAttribute('data-tpl'), el); return; }
+  if(e.target.closest('#tplChg')){ tplAsk(t,''); var c=lsGet('hinagataCfg'); if(c.gas) document.getElementById('tplU').value=c.gas; return; }
+  if(e.target.closest('#tplSv')){
+    var i=document.getElementById('tplU'), v=fixUrl(i);
+    if(!CFG_RE.test(v)){ tplAsk(t,t.badUrl); document.getElementById('tplU').value=v; return; }
+    if(!lsSet('hinagataCfg',{gas:v})){ tplAsk(t,t.err); return; }
+    openTpl();
+  }
 });
 </script>
 </body>
