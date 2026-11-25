@@ -9,7 +9,7 @@
      「新しい版があります」と表示されます
    ========================================================= */
 
-var SITE_VER = '2026-11-25c';
+var SITE_VER = '2026-11-25d';
 
 /* GitHub Pages の場所（各ツールのリポジトリはここの下にある） */
 var BASE = 'https://overbridge038-lnk.github.io/';
@@ -20,7 +20,7 @@ var BASE = 'https://overbridge038-lnk.github.io/';
 var MAP_IMAGE = '';
 
 /* マップの表示範囲（左, 上, 幅, 高さ） */
-var MAP_VIEW = '20 30 970 560';   /* 内容の範囲（x40〜970・y50〜530）に合わせて余白を詰め、大きく表示 */
+var MAP_VIEW = '20 30 990 560';   /* 内容の範囲（x40〜970・y50〜530）に合わせて余白を詰め、大きく表示 */
 
 /* 建物の外形線（物と情報の流れ図では使わない） */
 var MAP_WALLS = [];
@@ -61,7 +61,7 @@ var AREAS = [
 
   { id: 'shukka', icon: '🚚', name: '出荷場',
     names: { id: 'Pengiriman', tl: 'Shipping', en: 'Shipping' },
-    x: 850, y: 210, w: 120, h: 320,
+    x: 890, y: 210, w: 110, h: 320,
     tools: ['gohin', 'gohin-fts', 'sekisai', 'zaiko-count', 'shukka-more-auto', 'shukka-more-view', 'hayami', 'sango', 'furidashi', 'tsumitsuke', 'shogo-matome', 'rinkan-yama', 'kanri-sheet'] }
 ];
 
@@ -76,15 +76,16 @@ var LINKS = [
   { from: 'tosou',  to: 'kensa',  type: 'mono' },
   { from: 'kensa',  to: 'store',  type: 'mono' },
   { from: 'store',  to: 'shukka', type: 'mono' },
-  { from: 'dasshi', to: 'shukka', type: 'mono', bend: 0.25 },
+  /* 脱脂→出荷場：ストアの上を通る（ストア・検査の矢印と交差させない） */
+  { from: 'dasshi', to: 'shukka', type: 'mono', pts: [545, 216, 545, 168, 900, 168, 900, 205] },
   /* 情報の流れは pts で通り道を決める（交差させない・矢印が重ならない）
      pts: [始点x, 始点y, 曲がりx, 曲がりy, 終点x, 終点y]（6つ）／ 8つなら曲がりを2か所。lt: 名札の位置（0〜1） */
   /* 事務所 ⇄ 出荷場：上を3本の入れ子の線で通す（外側ほど高く・右に着く）。始点・終点は30ずつずらす */
-  { from: 'office', to: 'shukka', type: 'info', label: '受注・指示',   pts: [322, 65, 945, 65, 945, 204], lt: 0.3 },
-  { from: 'office', to: 'shukka', type: 'info', label: '発注・振出し', pts: [322, 100, 915, 100, 915, 204], lt: 0.3 },
-  { from: 'shukka', to: 'office', type: 'info', label: '出荷実績',     pts: [885, 208, 885, 135, 326, 135], lt: 0.7 },
+  { from: 'office', to: 'shukka', type: 'info', label: '受注・指示',   pts: [322, 65, 985, 65, 985, 204], lt: 0.3 },
+  { from: 'office', to: 'shukka', type: 'info', label: '発注・振出し', pts: [322, 100, 955, 100, 955, 204], lt: 0.3 },
+  { from: 'shukka', to: 'office', type: 'info', label: '出荷実績',     pts: [925, 208, 925, 135, 326, 135], lt: 0.7 },
   /* 出荷場 → 塗装：全部の箱の下を回り込む（ほかの線と交差しない） */
-  { from: 'shukka', to: 'tosou',  type: 'info', label: '塗装数',       pts: [910, 534, 910, 585, 545, 585, 545, 536] }
+  { from: 'shukka', to: 'tosou',  type: 'info', label: '塗装数',       pts: [945, 534, 945, 585, 545, 585, 545, 536] }
 ];
 
 /* ---------------------------------------------------------
