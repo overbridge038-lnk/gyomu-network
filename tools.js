@@ -9,7 +9,7 @@
      「新しい版があります」と表示されます
    ========================================================= */
 
-var SITE_VER = '2026-11-25';
+var SITE_VER = '2026-11-25b';
 
 /* GitHub Pages の場所（各ツールのリポジトリはここの下にある） */
 var BASE = 'https://overbridge038-lnk.github.io/';
@@ -20,7 +20,7 @@ var BASE = 'https://overbridge038-lnk.github.io/';
 var MAP_IMAGE = '';
 
 /* マップの表示範囲（左, 上, 幅, 高さ） */
-var MAP_VIEW = '0 0 1000 600';
+var MAP_VIEW = '20 30 970 520';   /* 内容の範囲（x40〜970・y50〜530）に合わせて余白を詰め、大きく表示 */
 
 /* 建物の外形線（物と情報の流れ図では使わない） */
 var MAP_WALLS = [];
