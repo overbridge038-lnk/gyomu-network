@@ -85,6 +85,7 @@ button:focus-visible,select:focus-visible,label.btn:focus-within,.cell:focus-vis
 .sum .l{font-size:12px;color:var(--muted)}
 .breakdown{font-family:var(--mono);font-size:12px;color:var(--muted);overflow-wrap:anywhere}
 .judge{font-size:12.5px;color:var(--muted);margin:0;border-left:3px solid var(--line);padding-left:10px}
+.judge.andon{border-left-color:var(--warn);color:var(--warn)}
 details.miss summary{cursor:pointer;font-size:13px;color:var(--warn)}
 details.miss .tbl-wrap{max-height:240px;margin-top:8px}
 .tbl-wrap{overflow:auto;max-height:62vh;border:1px solid var(--line);border-radius:5px}
@@ -103,6 +104,22 @@ td.s,th.s{background:var(--accent-soft)}
 details.paste-more summary{cursor:pointer;font-size:13px;color:var(--muted)}
 details.paste-more textarea{margin-top:8px}
 #ediPanel{border-top:3px solid var(--accent)}
+#gPanel{border-top:3px solid var(--accent)}
+#gPrint{display:none}
+#gPrint.measure{display:block;position:absolute;left:-20000px;top:0}
+#gPrint h1{font-size:14px;margin:0 0 2px;font-weight:700}
+#gPrint p{font-size:10px;margin:0 0 6px;color:#333}
+#gPrint table{border-collapse:collapse;font-family:var(--sans);font-size:11px;color:#000;user-select:text}
+#gPrint th,#gPrint td{border:1px solid #555;padding:2px 5px;white-space:nowrap;position:static;background:#fff;color:#000}
+#gPrint thead th{background:#e6eef5;font-weight:700;text-align:center}
+#gPrint td.num{text-align:right}
+#gPrint td.k{font-weight:700}
+#gPrint tr.total td{background:#f2f2f2;font-weight:700}
+@media print{
+  body.printing-g{background:#fff}
+  body.printing-g .wrap{display:none!important}
+  body.printing-g #gPrint{display:block!important;position:static}
+}
 .empty-state{padding:18px 14px;color:var(--muted);font-size:13px;margin:0}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
@@ -110,7 +127,7 @@ details.paste-more textarea{margin-top:8px}
 </head><body style="margin:0">
 <div class="wrap">
   <header>
-    <h1>早見表／eかんばん・EDI受注数の統合 <span class="ver">版 2026-10-29（積み付け表対応）</span></h1>
+    <h1>早見表／eかんばん・EDI受注数の統合 <span class="ver">版 2026-11-26c（⑨脱脂品番の山積み：背番号・A4横1枚印刷）</span></h1>
     <p>早見表（照合元）を「仕入先発ルート日付・仕入先発便＃」の範囲で絞り、受注データ（抽出元）と8項目で照合して、一致した行だけを取り出します。例：10/1 1便 〜 10/2 4便。</p>
   </header>
 
@@ -241,7 +258,44 @@ details.paste-more textarea{margin-top:8px}
     <div class="tbl-wrap" id="tblE"></div>
     <p class="note" id="noteE"></p>
   </section>
+
+  <section class="panel" id="gPanel" aria-labelledby="h-g">
+    <h2 id="h-g">⑨ 脱脂内示×100270×照合_一致　品番別かんばん山積み</h2>
+    <p class="hint">当月の脱脂内示データにある品番だけに絞り込み、照合_一致データから仕入先発ルート日付・仕入先発便＃ごとにかんばん枚数を山積みします。照合_一致データは、③で照合結果を出すと自動で入ります（保存済みの「…照合_一致.xlsx」をドラッグ＆ドロップしても可）。脱脂内示データと100270データは記憶するので、品番一覧が変わった時だけ読み込み直してください。<br>対応の流れ：脱脂内示の「背番」＝100270の「整理番号」で社内品番を特定 → ハイフンを除き末尾に「00」を付けた形で照合_一致の「品番類別」と突き合わせ → 日付・便ごとに「かんばん枚数」を合計。</p>
+
+    <h3 class="sub">⑩ ファイル</h3>
+    <div class="drop" id="gDrop">
+      <div class="slots">
+        <div class="slot emptyslot" id="slotDAS"><button class="slot-x" type="button" hidden aria-label="読み込んだデータを消す" title="読み込んだデータを消す">×</button><span class="role">脱脂内示データ（背番の一覧）</span><span class="fname">未読み込み</span><span class="meta"></span><div class="restore" hidden></div></div>
+        <div class="slot emptyslot" id="slotP70"><button class="slot-x" type="button" hidden aria-label="読み込んだデータを消す" title="読み込んだデータを消す">×</button><span class="role">100270データ（整理番号・社内品番）</span><span class="fname">未読み込み</span><span class="meta"></span><div class="restore" hidden></div></div>
+        <div class="slot emptyslot" id="slotMT"><button class="slot-x" type="button" hidden aria-label="読み込んだデータを消す" title="読み込んだデータを消す">×</button><span class="role">照合_一致データ（③の結果／ファイル）</span><span class="fname">未読み込み</span><span class="meta"></span></div>
+      </div>
+      <div class="row">
+        <label class="btn primary" for="gFile">ファイルを選ぶ<input type="file" id="gFile" accept=".xlsx,.xls,.xlsm" multiple hidden></label>
+        <span class="note">まとめて選んでも、この枠へのドラッグ＆ドロップでも可。どのファイルかは中身の見出し（背番／整理番号・社内品番／品番類別）で自動判定します。照合_一致データは③の結果と、あとから入れたファイルのうち新しい方を使います。</span>
+      </div>
+      <div class="toast" id="toastGF" role="status"></div>
+    </div>
+
+    <h3 class="sub">⑪ 結果（品番別・日付×便のかんばん枚数）</h3>
+    <div class="sum" id="sumG"></div>
+    <p class="judge andon" id="gZeroHint" hidden></p>
+    <details class="miss" id="gZeroBox" hidden><summary id="gZeroSum"></summary><div class="tbl-wrap" id="gZeroWrap"></div></details>
+
+    <h3 class="sub">⑫ 結果のコピー・ダウンロード</h3>
+    <div class="row">
+      <button id="copyAllG" class="primary">結果をすべてコピー</button>
+      <button id="copySelG" disabled>選択範囲をコピー</button>
+      <button id="dlG" class="dl-btn" hidden>Excel（.xlsx）で保存（A4横1枚）</button>
+      <button id="prG" disabled>山積み表を印刷（A4横1枚）</button>
+      <label class="opts"><input type="checkbox" id="withHeadG" checked> 見出しも一緒にコピー</label>
+    </div>
+    <div class="toast" id="toastG" role="status"></div>
+    <div class="tbl-wrap" id="tblG"></div>
+    <p class="note" id="noteG"></p>
+  </section>
 </div>
+<div id="gPrint" aria-hidden="true"></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
@@ -249,7 +303,7 @@ details.paste-more textarea{margin-top:8px}
 <script>
 (function(){
 const $=id=>document.getElementById(id);
-const TOOL_VER='版 2026-10-29';
+const TOOL_VER='版 2026-11-26c';
 const DATE_H='仕入先発ルート日付', BIN_H='仕入先発便＃';
 const RENDER_MAX=1500;
 const A_KEYS=['仕入先','仕入先工区','仕入先出荷場','納入先','納入先工区','受入','オーダー日付','オーダーSeq'];
@@ -291,7 +345,7 @@ const memoInfo={};   // k -> {name,at} 記憶済みの前回データ
 async function refreshMemo(k){const v=await memo.get(k);memoInfo[k]=v?{name:v.name,at:v.at,hash:v.hash}:null;renderRestore(k);}
 function renderRestore(k){
   const slot=$('slot'+k);if(!slot)return;const box=slot.querySelector('.restore');const mi=memoInfo[k];
-  const cur=k==='A'?A:k==='B'?B:(window.__ediState||{});
+  const cur=k==='A'?A:k==='B'?B:k==='E'?(window.__ediState||{}):((window.__extState&&window.__extState[k]&&window.__extState[k]())||{});
   box.innerHTML='';
   if(!mi||(cur.name&&cur.memoAt===mi.at)){box.hidden=true;return;}
   box.hidden=false;
@@ -311,7 +365,8 @@ async function restore(k){
   const v=await memo.get(k);if(!v){memoInfo[k]=null;renderRestore(k);return;}
   if(k==='A')loadA(v.name,v.sheet||'',v.aoa,0,v.hash||'',{memoAt:v.at});
   else if(k==='B')loadB(v.name,v.aoa,0,v.hash||'',{memoAt:v.at});
-  else if(window.__edi)window.__edi.load(v.name,v.aoa,v.hash||'',{memoAt:v.at});
+  else if(k==='E'){if(window.__edi)window.__edi.load(v.name,v.aoa,v.hash||'',{memoAt:v.at});}
+  else if(window.__extLoad&&window.__extLoad[k])window.__extLoad[k](v.name,v.aoa,v.hash||'',{memoAt:v.at});
 }
 let ranges=[],pending=null,aIdx=[];
 
@@ -699,6 +754,7 @@ $('sortKey').onchange=()=>{renderA();};
 
 /* ===== 照合 ===== */
 let matchOut={header:[],rows:[]};
+const matchHooks=[];const fireMatch=()=>matchHooks.forEach(fn=>{try{fn();}catch(e){}});
 const Ak=r=>A.kI.map(i=>kn(r[i])).join('\u0001');
 function Bk(r){const on=norm(r[13]);return [r[9],r[10],r[11],r[4],r[5],r[6],on.slice(0,8),on.slice(8)].map(kn).join('\u0001');}
 function renderMatch(){
@@ -712,7 +768,7 @@ function renderMatch(){
   if(!A.name||!B.name){
     setSum('sumM',[]);$('missBox').hidden=true;$('badgeM').textContent='';
     gridM.emptyMsg=!A.name&&!B.name?'早見表と受注データを読み込むと、一致した受注データの行がここに表示されます。':!B.name?'受注データ（抽出元：「オーダーNo」列がある39列のタブ区切りtxt）を①で読み込むと、②の範囲の早見表と照合します。':'早見表を読み込んでください。';
-    gridM.set([],[]);$('dlM').disabled=true;return;
+    gridM.set([],[]);$('dlM').disabled=true;matchOut={header:[],rows:[]};fireMatch();return;
   }
   const useAll=$('optAll').checked;
   const srcIdx=useAll?A.rows.map((_,i)=>i):aIdx;
@@ -743,6 +799,7 @@ function renderMatch(){
   gridM.emptyMsg=Amap.size?'一致する行がありません。範囲や追加条件を確認してください。':'照合元が0行です。②で範囲を指定してください。';
   gridM.set(header,rows,[header.length-2,header.length-1]);
   $('dlM').disabled=!rows.length;
+  fireMatch();
 }
 $('optAll').onchange=renderMatch;$('optToday').onchange=renderMatch;$('todayDate').onchange=()=>{if($('optToday').checked)renderMatch();};
 $('todayDate').value=todayStr();
@@ -798,7 +855,7 @@ window.addEventListener('drop',e=>{e.preventDefault();const fs=dropFiles(e);if(f
 function renderAll(){renderRanges();renderMatrix();renderA();renderMatch();}
 
 /* ===== 初期表示 ===== */
-window.__lib={readMain:f=>handle([f]),isMain:aoa=>!!classify(aoa),dropFiles,memo,remember,refreshMemo,renderRestore,Grid,GRIDS,setSum,toast,buildXlsx,sha,seenCheck,norm,colName,WD,wd,fmtD,getDownloads:()=>downloads};
+window.__lib={getMatchOut:()=>matchOut,onMatchUpdate:fn=>matchHooks.push(fn),readMain:f=>handle([f]),isMain:aoa=>!!classify(aoa),dropFiles,memo,remember,refreshMemo,renderRestore,Grid,GRIDS,setSum,toast,buildXlsx,sha,seenCheck,norm,colName,WD,wd,fmtD,getDownloads:()=>downloads};
 window.__test={loadA,loadB,renderAll,setRange:(r)=>{ranges=r;renderAll();},get out(){return matchOut;}};
 try{const d=JSON.parse($('sample').textContent);if(d)loadA(d.name+'（添付分を同梱）',d.sheet,d.rows,0,'',{sample:true});else renderAll();}
 catch(e){renderAll();}
@@ -1008,4 +1065,280 @@ renderAll();L.refreshMemo('E');
 })();
 </script>
 
+<script>
+/* ===== ⑨ 脱脂内示×100270×照合_一致 品番別かんばん山積み ===== */
+(function(){
+const L=window.__lib;if(!L)return;
+const $=id=>document.getElementById(id);
+const norm=L.norm;
+const DATE_H='仕入先発ルート日付', BIN_H='仕入先発便＃';
+const binLabel=b=>b===''?'便なし':(+b||b)+'便';
+function normBin(v){v=norm(v);if(/^\d+$/.test(v))v=String(parseInt(v,10)).padStart(2,'0');return v;}
+function normDate(v){
+  v=norm(v);if(!v)return '';
+  if(/^\d{8}$/.test(v))return v;
+  let m=v.match(/^(\d{4})[\/\-.](\d{1,2})[\/\-.](\d{1,2})/);if(m)return m[1]+m[2].padStart(2,'0')+m[3].padStart(2,'0');
+  if(/^\d{5}(\.\d+)?$/.test(v)){const d=new Date(Math.round((parseFloat(v)-25569)*864e5));return d.getUTCFullYear()+String(d.getUTCMonth()+1).padStart(2,'0')+String(d.getUTCDate()).padStart(2,'0');}
+  return v;
+}
+function cmpBin(a,b){const x=parseInt(a,10),y=parseInt(b,10);if(!isNaN(x)&&!isNaN(y)&&x!==y)return x-y;return a<b?-1:a>b?1:0;}
+// 品番の対応ルール：社内品番のハイフンを除き、末尾に「00」を付けると「品番類別」になる（例：G963E-47010 → G963E4701000）
+const toKey=hin=>norm(hin).replace(/-/g,'')+'00';
+
+const G={
+  DAS:{name:'',hash:'',seen:null,header:[],rows:[],backCol:-1,memoAt:null},
+  P70:{name:'',hash:'',seen:null,header:[],rows:[],seiriCol:-1,hinCol:-1,nameCol:-1,memoAt:null},
+  MT:{name:'',src:'',hash:'',seen:null,header:[],rows:[],clsCol:-1,qtyCol:-1,dateCol:-1,binCol:-1}
+};
+let out={header:[],rows:[]};
+const TYPE_LABEL={DAS:'脱脂内示データ',P70:'100270データ',MT:'照合_一致データ'};
+
+/* ---- 前回データの記憶（脱脂内示・100270の2つだけ。品番一覧が変わった時だけ読み直す） ---- */
+window.__extState=window.__extState||{};
+window.__extLoad=window.__extLoad||{};
+['DAS','P70'].forEach(k=>{
+  window.__extState[k]=()=>G[k];
+  window.__extLoad[k]=(name,aoa,hash,opts)=>loadG(k,name,aoa,0,(aoa[0]||[]).map(norm),hash,opts);
+});
+
+/* ---- 読み込み・判定 ---- */
+async function readAoa(buf){
+  const wb=XLSX.read(buf,{type:'array',raw:true,cellText:true});
+  let best=null;
+  for(const n of wb.SheetNames){
+    const aoa=XLSX.utils.sheet_to_json(wb.Sheets[n],{header:1,raw:false,defval:''});
+    if(aoa.length>1&&(!best||aoa.length>best.aoa.length))best={sheet:n,aoa};
+  }
+  return best||{sheet:wb.SheetNames[0]||'',aoa:[]};
+}
+function findHeader(aoa,need){
+  for(let i=0;i<Math.min(aoa.length,8);i++){
+    const r=(aoa[i]||[]).map(norm);
+    if(need.every(h=>r.includes(h)))return {hr:i,header:r};
+  }
+  return null;
+}
+function classifyG(aoa){
+  let f=findHeader(aoa,['背番']);if(f)return {type:'DAS',...f};
+  f=findHeader(aoa,['整理番号','社内品番']);if(f)return {type:'P70',...f};
+  f=findHeader(aoa,['品番類別','かんばん枚数',DATE_H,BIN_H]);if(f)return {type:'MT',...f};
+  return null;
+}
+async function readFileG(f){
+  if(typeof XLSX==='undefined'){L.toast('GF','Excelを読む部品が読み込まれていません。ネットにつながる状態でページを開き直してください。',true);return;}
+  const buf=await f.arrayBuffer();const hash=await L.sha(buf.slice(0));
+  const {aoa}=await readAoa(buf);
+  const c=classifyG(aoa);
+  if(!c){L.toast('GF',f.name+'：脱脂内示データ（「背番」）、100270データ（「整理番号」「社内品番」）、照合_一致データ（「品番類別」「かんばん枚数」「'+DATE_H+'」「'+BIN_H+'」）のどれとも判定できませんでした。見出しを確認してください。',true);return;}
+  if(c.type==='MT'){setMT('file',f.name,c.header,aoa.slice(c.hr+1),hash);L.toast('GF',f.name+' を照合_一致データとして読み込みました。');return;}
+  loadG(c.type,f.name,aoa,c.hr,c.header,hash);
+}
+function loadG(type,name,aoa,hr,header,hash,opts){
+  opts=opts||{};
+  const rows=aoa.slice(hr+1).filter(r=>r&&r.some(c=>norm(c)!==''));
+  const st=G[type];
+  Object.assign(st,{name,hash,header,rows,memoAt:opts.memoAt||null});
+  st.seen=hash&&!opts.memoAt?L.seenCheck(hash,name):null;
+  if(type==='DAS'){st.backCol=header.indexOf('背番');}
+  else{st.seiriCol=header.indexOf('整理番号');st.hinCol=header.indexOf('社内品番');st.nameCol=header.indexOf('部品名称');}
+  renderSlotsG();computeG();
+  if(!opts.memoAt)L.remember(type,name,aoa,hr,{hash}).then(at=>{st.memoAt=at;L.refreshMemo(type);});
+  else L.renderRestore(type);
+  L.toast('GF',name+' を'+TYPE_LABEL[type]+'として読み込みました'+(opts.memoAt?'（前回の記憶から）':'（次回から「前回のデータを再読み込み」で使えます）')+'。');
+}
+/* 照合_一致データ：③の結果（自動）か、ドラッグ＆ドロップしたファイル。新しく来た方を使う */
+function setMT(src,name,header,rows,hash){
+  header=(header||[]).map(norm);
+  rows=(rows||[]).filter(r=>r&&r.some(c=>norm(c)!==''));
+  Object.assign(G.MT,{src,name,header,rows,hash:hash||'',
+    clsCol:header.indexOf('品番類別'),qtyCol:header.indexOf('かんばん枚数'),dateCol:header.indexOf(DATE_H),binCol:header.indexOf(BIN_H)});
+  G.MT.seen=src==='file'&&hash?L.seenCheck(hash,name):null;
+  renderSlotsG();computeG();
+}
+function pullMatchOut(){
+  const mo=L.getMatchOut?L.getMatchOut():{header:[],rows:[]};
+  if(mo.rows&&mo.rows.length){setMT('auto','③の照合結果（自動反映）',mo.header,mo.rows);}
+  else if(G.MT.src==='auto'){clearG('MT',true);}
+}
+function clearG(type,silent){
+  const st=G[type];
+  Object.assign(st,{name:'',hash:'',seen:null,header:[],rows:[],memoAt:null});
+  if(type==='MT')st.src='';
+  renderSlotsG();computeG();
+  if(type!=='MT')L.renderRestore(type);
+  if(!silent)L.toast('GF',TYPE_LABEL[type]+'を消しました。'+(type!=='MT'?'記憶は残っているので「前回のデータを再読み込み」で戻せます。':''));
+}
+function renderSlotsG(){
+  const put=(id,st,metaFn)=>{
+    const el=$(id);el.classList.toggle('emptyslot',!st.name);el.querySelector('.slot-x').hidden=!st.name;
+    el.querySelector('.fname').textContent=st.name||(id==='slotMT'?'未読み込み（③で結果を出すと自動で入ります）':'未読み込み');
+    const m=el.querySelector('.meta');m.textContent='';if(!st.name)return;
+    m.append(document.createTextNode(metaFn()+(st.hash?'　SHA-256 '+st.hash.slice(0,10):'')));
+    if(st.seen){const s=document.createElement('div');s.className='same';s.textContent='以前読み込んだファイルと同じ内容です（'+st.seen.at+'「'+st.seen.name+'」）';m.append(s);}
+  };
+  put('slotDAS',G.DAS,()=>G.DAS.rows.length.toLocaleString()+'行'+(G.DAS.memoAt?'　記憶 '+G.DAS.memoAt:''));
+  put('slotP70',G.P70,()=>G.P70.rows.length.toLocaleString()+'行'+(G.P70.memoAt?'　記憶 '+G.P70.memoAt:''));
+  put('slotMT',G.MT,()=>G.MT.rows.length.toLocaleString()+'行　'+(G.MT.src==='auto'?'③の結果から自動反映':'ドラッグ＆ドロップしたファイル'));
+}
+['DAS','P70','MT'].forEach(k=>{$('slot'+k).querySelector('.slot-x').onclick=()=>clearG(k);});
+
+/* ---- 突き合わせ・山積み ---- */
+function computeG(){
+  const miss=[];if(!G.DAS.name)miss.push('脱脂内示データ');if(!G.P70.name)miss.push('100270データ');if(!G.MT.name)miss.push('照合_一致データ');
+  const mtCols=G.MT.name?[['品番類別',G.MT.clsCol],['かんばん枚数',G.MT.qtyCol],[DATE_H,G.MT.dateCol],[BIN_H,G.MT.binCol]].filter(x=>x[1]<0).map(x=>x[0]):[];
+  if(miss.length||mtCols.length){
+    L.setSum('sumG',[]);$('gZeroBox').hidden=true;
+    if(mtCols.length){$('gZeroHint').hidden=false;$('gZeroHint').textContent='照合_一致データに次の列がないため計算できません：'+mtCols.join('・')+'（EDI形式の受注データで照合した結果か確認してください）';}
+    else $('gZeroHint').hidden=true;
+    grid.emptyMsg=miss.length?'あと「'+miss.join('」「')+'」がそろうと、品番別の山積み表をここに出します。':'';
+    grid.set([],[]);$('dlG').disabled=true;$('prG').disabled=true;out={header:[],rows:[]};return;
+  }
+  // STEP1：脱脂内示データの背番
+  const backSet=new Set(G.DAS.rows.map(r=>norm(r[G.DAS.backCol])).filter(Boolean));
+  // STEP2：100270データで整理番号が一致した社内品番
+  const matched=[];const seenHin=new Set();
+  G.P70.rows.forEach(r=>{
+    const seiri=norm(r[G.P70.seiriCol]);if(!seiri||!backSet.has(seiri))return;
+    const hin=norm(r[G.P70.hinCol]);if(!hin||seenHin.has(hin))return;
+    seenHin.add(hin);matched.push({hin,se:seiri,name:G.P70.nameCol>=0?norm(r[G.P70.nameCol]):''});
+  });
+  const keyMap=new Map();matched.forEach(x=>keyMap.set(toKey(x.hin),x));
+  // STEP3：照合_一致データの品番類別と突き合わせ、品番・日付・便ごとにかんばん枚数を合計
+  const sums=new Map();const datesSet=new Set(),binsSet=new Set();const foundHin=new Set();let matchedRows=0;
+  G.MT.rows.forEach(r=>{
+    const hit=keyMap.get(norm(r[G.MT.clsCol]));if(!hit)return;
+    matchedRows++;foundHin.add(hit.hin);
+    const d=normDate(r[G.MT.dateCol]),b=normBin(r[G.MT.binCol]);
+    const qty=parseFloat(norm(r[G.MT.qtyCol]))||0;
+    const k=hit.hin+'|'+d+'|'+b;sums.set(k,(sums.get(k)||0)+qty);
+    datesSet.add(d);binsSet.add(b);
+  });
+  const dates=[...datesSet].sort();const bins=[...binsSet].sort(cmpBin);
+  const zeroHin=matched.filter(x=>!foundHin.has(x.hin));
+  const hins=matched.filter(x=>foundHin.has(x.hin)).map(x=>x.hin).sort();
+  const infoOf=hin=>matched.find(x=>x.hin===hin)||{se:'',name:''};
+  const header=['背番号','品番','部品名称'].concat(dates.flatMap(d=>bins.map(b=>(L.fmtD(d)||d)+' '+binLabel(b))),['合計']);
+  const rows=hins.map(hin=>{
+    let total=0;
+    const cells=dates.flatMap(d=>bins.map(b=>{const v=sums.get(hin+'|'+d+'|'+b);if(v){total+=v;return v;}return '';}));
+    const inf=infoOf(hin);return [inf.se,hin,inf.name].concat(cells,[total]);
+  });
+  out={header,rows};
+  L.setSum('sumG',[
+    [backSet.size.toLocaleString(),'脱脂内示の背番'],
+    [matched.length.toLocaleString(),'100270で一致した品番'],
+    [matchedRows.toLocaleString(),'照合_一致で一致した行'],
+    [hins.length.toLocaleString(),'山積み表の品番'],
+    [rows.reduce((s,r)=>s+(+r[r.length-1]||0),0).toLocaleString(),'かんばん枚数の合計']
+  ]);
+  // アンドン：100270で一致したのに照合_一致に出てこない品番
+  if(zeroHin.length){
+    $('gZeroHint').hidden=false;
+    $('gZeroHint').textContent='100270で一致したのに、照合_一致データに1件も出てこない品番が'+zeroHin.length+'件あります（今回の範囲に納入がない／型式のずれ、などを確認してください）';
+    $('gZeroBox').hidden=false;$('gZeroSum').textContent='出てこなかった品番 '+zeroHin.length+'件を見る';
+    const t=document.createElement('table');t.style.userSelect='text';
+    const th=document.createElement('thead');const hr=document.createElement('tr');
+    ['背番号','品番','部品名称'].forEach(h=>{const c=document.createElement('th');c.textContent=h;hr.appendChild(c);});th.appendChild(hr);t.appendChild(th);
+    const tb=document.createElement('tbody');zeroHin.forEach(x=>{const tr=document.createElement('tr');[x.se,x.hin,x.name].forEach(v=>{const td=document.createElement('td');td.textContent=v;tr.appendChild(td);});tb.appendChild(tr);});
+    t.appendChild(tb);const w=$('gZeroWrap');w.innerHTML='';w.appendChild(t);
+  }else{$('gZeroHint').hidden=true;$('gZeroBox').hidden=true;}
+  grid.emptyMsg='一致する品番がありませんでした。ファイルの内容を確認してください。';
+  grid.set(header,rows,[0,1]);
+  $('dlG').disabled=!rows.length;$('prG').disabled=!rows.length;
+}
+const grid=L.Grid({wrap:'tblG',note:'noteG',copySel:'copySelG',copyAll:'copyAllG',withHead:'withHeadG',toastKey:'G'});L.GRIDS.push(grid);
+
+/* ---- 見出し・合計行（Excelと印刷で共通） ---- */
+function todayTagG(){const t=new Date();return t.getFullYear()+String(t.getMonth()+1).padStart(2,'0')+String(t.getDate()).padStart(2,'0');}
+function titleG(){
+  const t=new Date();const ts=t.getFullYear()+'/'+(t.getMonth()+1)+'/'+t.getDate()+' '+String(t.getHours()).padStart(2,'0')+':'+String(t.getMinutes()).padStart(2,'0');
+  return {title:'脱脂品番　かんばん山積み表（仕入先発ルート日付・便ごと）',
+    sub:'作成 '+ts+'　／　照合_一致：'+(G.MT.name||'')+'　／　脱脂内示：'+(G.DAS.name||'')+'　／　ツール '+TOOL_VER_G};
+}
+const TOOL_VER_G=(document.querySelector('header .ver')||{}).textContent||'';
+function totalRowG(){
+  const n=out.header.length;const r=new Array(n).fill('');r[0]='合計';
+  for(let j=3;j<n;j++){const s=out.rows.reduce((a,x)=>a+(typeof x[j]==='number'?x[j]:0),0);r[j]=s||'';}
+  return r;
+}
+
+/* ---- Excel出力：A4横・1ページに収める設定つき ---- */
+async function buildXlsxG(){
+  if(typeof ExcelJS==='undefined')return await L.buildXlsx('山積み',out.header,out.rows); // 部品がない時は印刷設定なしで保存
+  const {title,sub}=titleG();const n=out.header.length;
+  const wb=new ExcelJS.Workbook();
+  const ws=wb.addWorksheet('山積み',{
+    pageSetup:{paperSize:9,orientation:'landscape',fitToPage:true,fitToWidth:1,fitToHeight:1,horizontalCentered:true,
+      margins:{left:0.3,right:0.3,top:0.4,bottom:0.4,header:0.2,footer:0.2}},
+    views:[{state:'frozen',ySplit:3,xSplit:3}]});
+  ws.addRow([title]);ws.addRow([sub]);
+  ws.mergeCells(1,1,1,n);ws.mergeCells(2,1,2,n);
+  ws.getRow(1).font={bold:true,size:14};ws.getRow(2).font={size:9,color:{argb:'FF444444'}};
+  ws.addRow(out.header);out.rows.forEach(r=>ws.addRow(r));ws.addRow(totalRowG());
+  const last=3+out.rows.length+1;
+  const thin={style:'thin',color:{argb:'FF555555'}};
+  for(let r=3;r<=last;r++){const row=ws.getRow(r);for(let c=1;c<=n;c++){const cell=row.getCell(c);cell.border={top:thin,left:thin,bottom:thin,right:thin};
+    if(r===3){cell.font={bold:true};cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFDDEBF7'}};cell.alignment={horizontal:'center',vertical:'middle',wrapText:true};}
+    else if(c>3){cell.alignment={horizontal:'right'};cell.numFmt='0';}
+    if(r===last){cell.font={bold:true};cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFF2F2F2'}};}
+    if(r>3&&r<last&&c<=2)cell.font={bold:true};}}
+  ws.getColumn(1).width=8;ws.getColumn(2).width=15;
+  let w3=8;out.rows.forEach(r=>{w3=Math.max(w3,String(r[2]||'').length);});ws.getColumn(3).width=Math.min(w3+2,34);
+  for(let c=4;c<=n;c++)ws.getColumn(c).width=c===n?7:8;
+  ws.pageSetup.printTitlesRow='3:3';
+  ws.headerFooter={oddFooter:'&L&8'+TOOL_VER_G+'&R&8&P / &N'};
+  return await wb.xlsx.writeBuffer();
+}
+$('dlG').onclick=async()=>{
+  const d=L.getDownloads();if(!d||!out.rows.length)return;
+  const name='脱脂品番_かんばん山積み_'+todayTagG()+'.xlsx';
+  try{const buf=await buildXlsxG();await d.save({filename:name,data:new Uint8Array(buf)});L.toast('G',name+' を保存しました（Excelで印刷するとA4横1枚に収まります）。');}
+  catch(e){if(e&&e.code==='declined')return;L.toast('G','保存できませんでした（'+(e&&(e.code||e.message)||'unknown')+'）。「結果をすべてコピー」をお使いください。',true);}
+};
+
+/* ---- ツール画面から印刷：A4横1枚に縮めて印刷 ---- */
+const PAGE_W=1060,PAGE_H=715; // A4横（余白8mm）の印刷範囲：およそ 281mm×194mm を画面の大きさに直した値
+function buildPrintG(){
+  const box=$('gPrint');box.innerHTML='';box.style.zoom='';
+  const {title,sub}=titleG();
+  const inner=document.createElement('div');
+  const h=document.createElement('h1');h.textContent=title;const p=document.createElement('p');p.textContent=sub;
+  const t=document.createElement('table');const th=document.createElement('thead');const tr=document.createElement('tr');
+  out.header.forEach(x=>{const c=document.createElement('th');c.textContent=x;tr.appendChild(c);});th.appendChild(tr);t.appendChild(th);
+  const tb=document.createElement('tbody');
+  out.rows.concat([totalRowG()]).forEach((r,i,arr)=>{const tr=document.createElement('tr');if(i===arr.length-1)tr.className='total';
+    r.forEach((v,j)=>{const td=document.createElement('td');td.textContent=v==null?'':v;if(j>2)td.className='num';else if(j<2)td.className='k';tr.appendChild(td);});tb.appendChild(tr);});
+  t.appendChild(tb);inner.append(h,p,t);box.appendChild(inner);
+  box.classList.add('measure');const w=inner.scrollWidth,hh=inner.scrollHeight;box.classList.remove('measure');
+  const z=Math.min(1,PAGE_W/w,PAGE_H/hh);box.style.zoom=String(Math.floor(z*1000)/1000);
+  return z;
+}
+$('prG').onclick=()=>{
+  if(!out.rows.length)return;
+  const z=buildPrintG();
+  const ps=document.createElement('style');ps.id='gPageStyle';ps.textContent='@page{size:A4 landscape;margin:8mm}';document.head.appendChild(ps);
+  document.body.classList.add('printing-g');
+  const done=()=>{document.body.classList.remove('printing-g');ps.remove();window.removeEventListener('afterprint',done);};
+  window.addEventListener('afterprint',done);
+  if(z<0.55)L.toast('G','品番や便が多いため、かなり小さく縮めて印刷します（'+Math.round(z*100)+'%）。');
+  setTimeout(()=>{window.print();setTimeout(done,500);},50);
+};
+
+/* ---- 入力 ---- */
+async function handleG(files){
+  if(!files.length){L.toast('GF','ファイルを受け取れませんでした。いったんデスクトップなどに保存してからドロップするか、「ファイルを選ぶ」をお使いください。',true);return;}
+  for(const f of files){L.toast('GF',f.name+' を読み込み中…');try{await readFileG(f);}catch(err){L.toast('GF',f.name+' を読み込めませんでした：'+err.message,true);}}
+}
+$('gFile').onchange=e=>{handleG([...e.target.files]);e.target.value='';};
+const gDrop=$('gDrop');
+['dragenter','dragover'].forEach(t=>gDrop.addEventListener(t,e=>{e.preventDefault();e.stopPropagation();if(e.dataTransfer)e.dataTransfer.dropEffect='copy';gDrop.classList.add('over');}));
+gDrop.addEventListener('dragleave',e=>{if(!gDrop.contains(e.relatedTarget))gDrop.classList.remove('over');});
+gDrop.addEventListener('drop',e=>{e.preventDefault();e.stopPropagation();gDrop.classList.remove('over');handleG(L.dropFiles(e));});
+['slotDAS','slotP70','slotMT'].forEach(id=>$(id).addEventListener('click',e=>{if(e.target.closest('button'))return;if($(id).classList.contains('emptyslot'))$('gFile').click();}));
+
+if(L.onMatchUpdate)L.onMatchUpdate(pullMatchOut);
+renderSlotsG();pullMatchOut();computeG();
+L.refreshMemo('DAS');L.refreshMemo('P70');
+})();
+</script>
 </body></html>

@@ -9,7 +9,7 @@
      「新しい版があります」と表示されます
    ========================================================= */
 
-var SITE_VER = '2026-11-26e';
+var SITE_VER = '2026-11-26f';
 
 /* GitHub Pages の場所（各ツールのリポジトリはここの下にある） */
 var BASE = 'https://overbridge038-lnk.github.io/';
@@ -126,7 +126,7 @@ var TOOLS = [
 
   { id: 'hayami', icon: '📊', name: '早見表（eかんばん・EDI受注数の統合）',
     desc: 'eかんばん・EDIの受注数をひとつに',
-    file: 'tools/hayamihyo.html', ver: '2026-10-29' },
+    file: 'tools/hayamihyo.html', ver: '2026-11-26c' },
 
   { id: 'sekisai', icon: '🚛', name: '積載効率プランナー',
     desc: '便別の積載を算出してExcel出力',
