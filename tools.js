@@ -9,7 +9,7 @@
      「新しい版があります」と表示されます
    ========================================================= */
 
-var SITE_VER = '2026-11-26d';
+var SITE_VER = '2026-11-26e';
 
 /* GitHub Pages の場所（各ツールのリポジトリはここの下にある） */
 var BASE = 'https://overbridge038-lnk.github.io/';
@@ -195,7 +195,7 @@ var TOOLS = [
     desc: '臨かんだけを品番・日付ごとにかんばん枚数で山積みしてExcel出力',
     file: 'tools/rinkan-yamazumi.html', ver: '2026-11-17' },
 
-  { id: 'kanri-sheet', icon: '🗒️', name: '管理シート作成ツール（協豊・FTS広田・三五）',
-    desc: '内示から週ごとの管理シートと塗装管理表を作る',
-    file: 'tools/kanri-sheet.html', ver: '2026-11-17' }
+  { id: 'kanri-sheet', icon: '🗒️', name: '管理シート作成ツール（協豊・FTS広田・三五・協豊塗装数算出・翌週出荷チェック）',
+    desc: '内示から週ごとの管理シートと塗装管理表を作る。協豊の塗装数算出・振出し指示表、翌週出荷チェック（土曜補充ストップ）も',
+    file: 'tools/kanri-sheet.html', ver: '2026-11-26' }
 ];
