@@ -9,7 +9,7 @@
      「新しい版があります」と表示されます
    ========================================================= */
 
-var SITE_VER = '2026-11-28c';
+var SITE_VER = '2026-11-28d';
 
 /* GitHub Pages の場所（各ツールのリポジトリはここの下にある） */
 var BASE = 'https://overbridge038-lnk.github.io/';
@@ -134,7 +134,7 @@ var TOOLS = [
 
   { id: 'sango', icon: '🏭', name: '三五在庫管理',
     desc: '在庫管理表・内示PDF・受注CSVから在庫と素材発注を算出（ドライブで2台のPCが同じデータ）',
-    file: 'tools/sango-zaiko.html', ver: '2026-11-26.8' },
+    file: BASE + 'sango-zaiko/', ver: '2026-11-26.8' },
 
   { id: 'furidashi', icon: '🧾', name: '購入かんばん振出しチェック',
     desc: '振出し表と読取データを照合',
@@ -180,16 +180,16 @@ var TOOLS = [
 
   { id: 'shogo-matome', icon: '🧮', name: '照合結果まとめ',
     desc: '誤品照合・ハンディの照合をドライブから自動で読み、日付・時間を選んで未処置NGを見つける',
-    file: 'tools/shogo-matome.html', ver: '2026-11-18' },
+    file: BASE + 'shogo-matome/', ver: '2026-11-18' },
 
   { id: 'shukka-more-auto', icon: '⏰', name: '出荷漏れ自動照合',
     desc: '受注データと照合記録を決めた時刻に自動で照合して残す',
-    file: 'tools/shukka-more-auto.html', ver: '2026-11-23' },
+    file: BASE + 'shukka-more-auto/', ver: '2026-11-23' },
 
   { id: 'shukka-more-view', icon: '👀', name: '出荷漏れ照合（閲覧用）',
     desc: '照合PCの最新の照合結果を表で見る（60秒ごとに読み直し。⚙ で接続を設定）',
     names: { id: 'Cek Kebocoran (Lihat)', tl: 'Shipping Miss Check (View)', en: 'Shipping Miss Check (View)' },
-    file: 'tools/shukka-more-view.html', ver: '2026-11-18b' },
+    file: BASE + 'shukka-more-view/', ver: '2026-11-18b' },
 
   { id: 'rinkan-yama', icon: '📚', name: '臨かん かんばん山積み',
     desc: '臨かんだけを品番・日付ごとにかんばん枚数で山積みしてExcel出力',

@@ -16,6 +16,16 @@ GitHub Pages（main / root）で公開：https://overbridge038-lnk.github.io/gyo
 | `offline-kit/sw.js` | ほかのツールにオフライン保存を足すときのひな形（ネット優先） |
 | `tools/` | このリポジトリの中に置くツール（PCの中のツールを入れる予定） |
 
+## Claude Code に移したツール（2026-11-28・ユーザー決定）
+次の4つは、別リポジトリ（Public・GitHub Pages）に移した。足した機能の経緯は、各リポジトリの `CLAUDE.md` に移してある。直すのは Claude Code 側（直すと自動で反映）。表紙は `BASE + 'リポジトリ名/'` でつなぎ、ver は各ツールの画面から自動で読む。
+| ツール | リポジトリ |
+|---|---|
+| 三五 在庫管理 | overbridge038-lnk/sango-zaiko |
+| 出荷漏れ自動照合 | overbridge038-lnk/shukka-more-auto |
+| 照合結果まとめ | overbridge038-lnk/shogo-matome |
+| 出荷漏れ照合（閲覧用） | overbridge038-lnk/shukka-more-view |
+以下の表の4行（sango-zaiko・shukka-more-auto・shogo-matome・shukka-more-view）は、移す前の経緯の記録。ファイルはこのリポジトリの tools/ から消した。
+
 ## tools/ に入れたツール（2026-11-17）
 | ファイル | ツール | 元 |
 |---|---|---|
