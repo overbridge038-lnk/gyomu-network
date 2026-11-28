@@ -9,7 +9,7 @@
      「新しい版があります」と表示されます
    ========================================================= */
 
-var SITE_VER = '2026-11-28';
+var SITE_VER = '2026-11-28b';
 
 /* GitHub Pages の場所（各ツールのリポジトリはここの下にある） */
 var BASE = 'https://overbridge038-lnk.github.io/';
@@ -202,5 +202,5 @@ var TOOLS = [
   { id: 'dasshi-layout', icon: '🧱', name: '脱脂レイアウト図',
     desc: '脱脂エリアの配置図。ドラッグ＆ドロップで配置を変え、作業者が動く様子を見る',
     names: { id: 'Tata Letak Degreasing', tl: 'Layout ng Degreasing', en: 'Degreasing Layout' },
-    file: 'tools/dasshi-layout.html', ver: '2026-11-28' }
+    file: 'tools/dasshi-layout.html', extra: ['tools/tejun.html'], ver: '2026-11-28' }
 ];

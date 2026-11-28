@@ -15,6 +15,8 @@ self.addEventListener('install', function (e) {
     // このリポジトリの中のツールだけ保存する（別リポジトリのツールは、それぞれが自分で保存する）
     var urls = CORE.concat(TOOLS.filter(function (t) { return !/^https?:/.test(t.file); })
                                 .map(function (t) { return './' + t.file; }));
+    // ツールに付いてくる別ファイル（tools.js の extra）も保存する（例：脱脂レイアウト図の手順書）
+    TOOLS.forEach(function (t) { (t.extra || []).forEach(function (f) { urls.push('./' + f); }); });
     if (typeof MAP_IMAGE !== 'undefined' && MAP_IMAGE) urls.push('./' + MAP_IMAGE);
     return Promise.all(urls.map(function (u) {
       return fetch(u, { cache: 'no-store' })

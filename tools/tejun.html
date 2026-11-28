@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>作業手順</title>
+<!-- 作業手順書。画面はネット不要の1ファイル。手順書の中身だけ GAS（パスワード付き）から読み、このタブレットに保存する。
+     外部CDN・外部フォントは使わない。パスワード・URL・手順の中身はこのファイルに書かない（Public のため） -->
+<style>
+  * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  body { margin:0; min-height:100vh; color:#f8fafc; background:#0b1020;
+         font-family:"Hiragino Maru Gothic ProN","BIZ UDPGothic","Meiryo",sans-serif; }
+  header { position:sticky; top:0; z-index:20; display:flex; align-items:center; gap:8px; flex-wrap:wrap; padding:8px 12px;
+           background:linear-gradient(90deg,#6d28d9,#db2777 60%,#f59e0b); box-shadow:0 3px 12px rgba(0,0,0,.4); }
+  header h1 { margin:0 6px 0 0; font-size:20px; white-space:nowrap; text-shadow:0 2px 0 rgba(0,0,0,.25); }
+  .ver { font-size:11px; font-weight:normal; opacity:.85; margin-left:6px; }
+  .sp { flex:1; }
+  .btn { border:0; border-radius:12px; padding:9px 13px; font-size:15px; font-weight:bold; cursor:pointer; color:#fff; text-decoration:none;
+         background:rgba(255,255,255,.18); box-shadow:inset 0 -3px 0 rgba(0,0,0,.2); white-space:nowrap; font-family:inherit; display:inline-block; }
+  .btn:active { transform:translateY(2px); box-shadow:none; }
+  .btn:disabled { opacity:.4; }
+  select.btn { appearance:none; }
+  select.btn option { color:#111; }
+  /* 工程のタブ（4つ） */
+  #tabs { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; padding:10px 12px; background:#111827; border-bottom:1px solid #1f2937; }
+  #tabs button { border:3px solid transparent; border-radius:14px; padding:8px 4px; color:#fff; font-weight:bold; font-size:16px; cursor:pointer;
+                 font-family:inherit; opacity:.55; box-shadow:inset 0 -4px 0 rgba(0,0,0,.25); }
+  #tabs button b { display:block; font-size:26px; line-height:1.1; }
+  #tabs button.on { opacity:1; border-color:#fff; }
+  /* 古いときのアンドン（黄色） */
+  #old { display:none; margin:10px 12px 0; padding:8px 12px; border-radius:10px; font-weight:bold;
+         background:repeating-linear-gradient(45deg,#facc15 0 14px,#fde047 14px 28px); color:#422006; }
+  main { max-width:900px; margin:0 auto; padding:12px 12px 40px; }
+  h2 { margin:6px 0 12px; font-size:22px; text-wrap:balance; }
+  .msg { text-align:center; padding:40px 12px; font-size:18px; color:#cbd5e1; text-wrap:balance; }
+  /* 手順書の一覧 */
+  .card { display:block; width:100%; text-align:left; margin-bottom:10px; padding:16px; border-radius:14px; border:0; cursor:pointer;
+          background:#1f2937; color:#fff; font-size:18px; font-weight:bold; font-family:inherit; box-shadow:inset 0 -4px 0 rgba(0,0,0,.3); }
+  .card small { display:block; font-size:13px; font-weight:normal; color:#94a3b8; margin-top:4px; }
+  /* 手順（標準作業：主なステップ＋急所） */
+  .step { display:flex; gap:12px; background:#1f2937; border-radius:14px; padding:12px; margin-bottom:10px; }
+  .no { flex:0 0 44px; height:44px; border-radius:50%; background:#db2777; display:flex; align-items:center; justify-content:center;
+        font-size:22px; font-weight:bold; box-shadow:inset 0 -3px 0 rgba(0,0,0,.25); }
+  .body { flex:1; min-width:0; }
+  .tx { font-size:18px; line-height:1.55; white-space:pre-wrap; }
+  .pt { margin-top:8px; padding:8px 10px; border-radius:10px; background:#422006; border-left:6px solid #facc15; color:#fef08a;
+        font-size:16px; line-height:1.5; white-space:pre-wrap; }
+  .pt b { color:#facc15; }
+  .ph { display:flex; flex-wrap:wrap; gap:8px; margin-top:8px; }
+  .ph img { max-width:100%; max-height:260px; border-radius:10px; cursor:zoom-in; background:#000; }
+  /* 写真を大きく */
+  #big { display:none; position:fixed; inset:0; z-index:50; background:rgba(0,0,0,.92); align-items:center; justify-content:center; }
+  #big img { max-width:100%; max-height:100%; }
+  /* 設定（読込） */
+  #dlg { display:none; position:fixed; inset:0; z-index:40; background:rgba(0,0,0,.6); align-items:center; justify-content:center; padding:12px; }
+  #dlg > div { width:100%; max-width:480px; max-height:100%; overflow:auto; background:#1f2937; border:3px solid #f472b6; border-radius:16px; padding:16px; }
+  #dlg h3 { margin:0 0 12px; color:#f9a8d4; }
+  #dlg label { display:block; font-size:14px; color:#cbd5e1; margin:10px 0 4px; }
+  #dlg input { width:100%; font-size:16px; padding:9px 10px; border-radius:8px; border:1px solid #374151; background:#0b1020; color:#fff; font-family:inherit; }
+  .row { display:flex; gap:8px; margin-top:14px; flex-wrap:wrap; }
+  .mini { border:0; border-radius:10px; padding:10px 14px; font-size:15px; cursor:pointer; font-weight:bold; font-family:inherit; color:#fff; }
+  .mini.go { background:#10b981; } .mini.del { background:#e11d48; } .mini.gray { background:#374151; }
+  .hint { font-size:13px; color:#94a3b8; line-height:1.5; }
+  #info { font-size:14px; margin-top:10px; }
+  #warn { font-size:13px; color:#fde047; white-space:pre-wrap; margin-top:8px; }
+  #toast { position:fixed; left:50%; bottom:24px; transform:translateX(-50%); background:#111827; border:2px solid #f472b6; z-index:100;
+           padding:10px 18px; border-radius:14px; font-weight:bold; font-size:16px; display:none; box-shadow:0 6px 20px rgba(0,0,0,.5); max-width:90vw; }
+  @media (max-width:760px) {
+    header { padding:5px 6px; gap:4px; }
+    header h1 { font-size:15px; margin-right:0; }
+    header h1 { font-size:14px; white-space:normal; text-wrap:balance; min-width:0; flex:1; line-height:1.2; }
+    .bk { display:none; }
+    .ver { font-size:9px; margin-left:4px; }
+    .btn { padding:6px 7px; font-size:12px; border-radius:9px; }
+    .sp { display:none; }
+    header { flex-wrap:nowrap; }
+    #tabs { gap:5px; padding:8px; }
+    #tabs button { font-size:12px; }
+    #tabs button b { font-size:22px; }
+    .tx { font-size:16px; }
+  }
+  @media print { header, #tabs, #old, #toast, #dlg { display:none !important; } body { background:#fff; color:#000; } .step { background:#fff; border:1px solid #999; } }
+</style>
+</head>
+<body>
+<header>
+  <a class="btn" href="dasshi-layout.html" id="bBack"></a>
+  <h1><span id="t-title"></span><span class="ver">ver 2026-11-28</span></h1>
+  <span class="sp"></span>
+  <button class="btn" onclick="openDlg()">⚙</button>
+  <select class="btn" id="lang" onchange="setLang(this.value)">
+    <option value="ja">🇯🇵 日本語</option>
+    <option value="id">🇮🇩 Indonesia</option>
+    <option value="tl">🇵🇭 Tagalog</option>
+    <option value="en">🇺🇸 English</option>
+  </select>
+</header>
+<div id="tabs"></div>
+<div id="old"></div>
+<main id="main"></main>
+
+<div id="big" onclick="this.style.display='none'"><img id="bigImg" alt=""></div>
+<div id="dlg" onclick="if (event.target === this) closeDlg()">
+  <div>
+    <h3 id="t-setT"></h3>
+    <label for="url" id="t-urlL"></label>
+    <input id="url" type="url" inputmode="url" autocomplete="off" placeholder="https://script.google.com/macros/s/…/exec">
+    <label for="pw" id="t-pwL"></label>
+    <input id="pw" type="password" autocomplete="off" onkeydown="if (event.key === 'Enter') load()">
+    <div class="row"><button class="mini go" id="bLoad" onclick="load()"></button>
+      <button class="mini gray" id="t-close" onclick="closeDlg()"></button></div>
+    <div id="info"></div>
+    <div id="warn"></div>
+    <p class="hint" id="t-hint"></p>
+    <div class="row"><button class="mini del" id="t-clear" onclick="clearData()"></button></div>
+  </div>
+</div>
+<div id="toast"></div>
+
+<script>
+// ===== 言葉（4言語） =====
+const I18N = {
+  ja:{ title:'📋 作業手順', back:'← レイアウト図', kake:'掛け', kensa:'検査', lift:'リフト', shuka:'集荷',
+       none:'まだ手順書がありません', noData:'手順書を読み込んでいません。⚙ から読み込んでください', open:'⚙ 読み込む',
+       pick:'手順書を選んでください', list:'← 一覧', steps:'手順', point:'急所',
+       setT:'⚙ 手順書の読込', urlL:'GAS の URL（はじめに1回だけ）', pwL:'パスワード', load:'⬇ 読み込む', loading:'読み込み中…',
+       close:'閉じる', loaded:'手順書を読み込みました', savedAt:'このタブレットの手順書：', never:'まだ読み込んでいません',
+       count:'（{n}件）', clear:'🗑 保存を消す', clearQ:'このタブレットに保存した手順書を消しますか？', cleared:'消しました',
+       old:'⚠️ {d}日、更新していません。⚙ から読み込んでください', warn:'読めなかったところ（スプレッドシートを直してください）：',
+       hint:'パスワードは、このタブレットに保存しません。読み込んだ手順書はこのタブレットに保存され、ネットなしでも見られます。シークレット（プライベート）モードでは、閉じると消えるので使わないでください。',
+       errUrl:'GAS の URL を入れてください', errPw:'パスワードがちがいます', errLock:'まちがいが多いので、10分ほど待ってください',
+       errNet:'つながりません。Wi-Fi を確かめてください（保存した手順書は見られます）', errNoPw:'GAS にパスワードが設定されていません',
+       errSheet:'「手順」シートがありません', errBad:'手順書を読めませんでした', errSave:'このタブレットに保存できませんでした' },
+  id:{ title:'📋 Prosedur Kerja', back:'← Peta Layout', kake:'Gantung', kensa:'Inspeksi', lift:'Forklift', shuka:'Pengumpulan',
+       none:'Belum ada prosedur', noData:'Prosedur belum dimuat. Muat dari ⚙', open:'⚙ Muat',
+       pick:'Pilih prosedur', list:'← Daftar', steps:'Langkah', point:'Poin penting',
+       setT:'⚙ Muat prosedur', urlL:'URL GAS (cukup sekali di awal)', pwL:'Kata sandi', load:'⬇ Muat', loading:'Memuat…',
+       close:'Tutup', loaded:'Prosedur sudah dimuat', savedAt:'Prosedur di tablet ini: ', never:'Belum dimuat',
+       count:' ({n})', clear:'🗑 Hapus simpanan', clearQ:'Hapus prosedur yang disimpan di tablet ini?', cleared:'Sudah dihapus',
+       old:'⚠️ Tidak diperbarui selama {d} hari. Muat dari ⚙', warn:'Bagian yang tidak terbaca (perbaiki spreadsheet):',
+       hint:'Kata sandi tidak disimpan di tablet ini. Prosedur yang dimuat disimpan di tablet ini dan bisa dilihat tanpa internet. Jangan gunakan mode penyamaran (pribadi), karena data hilang saat ditutup.',
+       errUrl:'Masukkan URL GAS', errPw:'Kata sandi salah', errLock:'Terlalu banyak kesalahan. Tunggu sekitar 10 menit',
+       errNet:'Tidak tersambung. Periksa Wi-Fi (prosedur yang disimpan tetap bisa dilihat)', errNoPw:'Kata sandi belum diatur di GAS',
+       errSheet:'Tidak ada sheet "手順"', errBad:'Prosedur tidak bisa dibaca', errSave:'Tidak bisa menyimpan di tablet ini' },
+  tl:{ title:'📋 Pamamaraan sa Trabaho', back:'← Mapa ng Layout', kake:'Pagsasabit', kensa:'Inspeksyon', lift:'Forklift', shuka:'Pagkolekta',
+       none:'Wala pang pamamaraan', noData:'Hindi pa naka-load ang pamamaraan. I-load mula sa ⚙', open:'⚙ I-load',
+       pick:'Pumili ng pamamaraan', list:'← Listahan', steps:'Hakbang', point:'Mahalagang punto',
+       setT:'⚙ I-load ang pamamaraan', urlL:'URL ng GAS (isang beses lang sa simula)', pwL:'Password', load:'⬇ I-load', loading:'Naglo-load…',
+       close:'Isara', loaded:'Na-load na ang pamamaraan', savedAt:'Pamamaraan sa tablet na ito: ', never:'Hindi pa naka-load',
+       count:' ({n})', clear:'🗑 Burahin ang naka-save', clearQ:'Burahin ang pamamaraang naka-save sa tablet na ito?', cleared:'Nabura na',
+       old:'⚠️ {d} araw nang hindi na-update. I-load mula sa ⚙', warn:'Mga hindi nabasa (ayusin ang spreadsheet):',
+       hint:'Hindi sine-save ang password sa tablet na ito. Ang na-load na pamamaraan ay naka-save sa tablet at makikita kahit walang internet. Huwag gumamit ng incognito (private) mode, dahil mabubura ito kapag isinara.',
+       errUrl:'Ilagay ang URL ng GAS', errPw:'Mali ang password', errLock:'Masyadong maraming mali. Maghintay ng mga 10 minuto',
+       errNet:'Hindi makakonekta. Tingnan ang Wi-Fi (makikita pa rin ang naka-save)', errNoPw:'Walang password na naka-set sa GAS',
+       errSheet:'Walang sheet na "手順"', errBad:'Hindi mabasa ang pamamaraan', errSave:'Hindi ma-save sa tablet na ito' },
+  en:{ title:'📋 Work Steps', back:'← Layout Map', kake:'Hanging', kensa:'Inspection', lift:'Forklift', shuka:'Collection',
+       none:'No work steps yet', noData:'Work steps are not loaded. Load them from ⚙', open:'⚙ Load',
+       pick:'Choose a procedure', list:'← List', steps:'Steps', point:'Key point',
+       setT:'⚙ Load work steps', urlL:'GAS URL (only once at the start)', pwL:'Password', load:'⬇ Load', loading:'Loading…',
+       close:'Close', loaded:'Work steps loaded', savedAt:'Work steps on this tablet: ', never:'Not loaded yet',
+       count:' ({n})', clear:'🗑 Delete saved data', clearQ:'Delete the work steps saved on this tablet?', cleared:'Deleted',
+       old:'⚠️ Not updated for {d} days. Load from ⚙', warn:'Could not read (please fix the spreadsheet):',
+       hint:'The password is not saved on this tablet. Loaded work steps are saved on this tablet and can be viewed without internet. Do not use incognito (private) mode: the data is erased when it is closed.',
+       errUrl:'Enter the GAS URL', errPw:'Wrong password', errLock:'Too many mistakes. Please wait about 10 minutes',
+       errNet:'Cannot connect. Check the Wi-Fi (saved work steps can still be viewed)', errNoPw:'No password is set in GAS',
+       errSheet:'There is no "手順" sheet', errBad:'Could not read the work steps', errSave:'Could not save on this tablet' }
+};
+const PROCS = [['kake','🪝','#16a34a'],['kensa','🔍','#2563eb'],['lift','🚜','#ea580c'],['shuka','📦','#9333ea']];
+const OLD_DAYS = 30;          // これより古い手順書は黄色で知らせる（見える化）
+const PHOTO_MAX = 1280;       // 保存する写真の長い辺（px）。タブレットの保存場所を使いすぎない
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let lang = 'ja';
+try { lang = localStorage.getItem('dasshi_lang') || 'ja'; } catch(e) {}
+if (!I18N[lang]) lang = 'ja';
+const T = () => I18N[lang];
+const tx = o => (o && (o[lang] || o.ja || Object.values(o)[0])) || '';
+const title = d => tx(d.title) || (d.key && d.key !== '-' ? d.key : T()[d.proc]);   // 名前がないときは工程名
+let DATA = null;              // { at, docs:[{proc,key,title,steps}], photos:{id:dataURL}, warn }
+
+function toast(msg) { const t = $('toast'); t.textContent = msg; t.style.display = 'block'; clearTimeout(toast.h); toast.h = setTimeout(() => t.style.display = 'none', 3000); }
+
+// ===== 保存（IndexedDB。写真が入るので localStorage より大きく保存できる方） =====
+function idb() {
+  return new Promise((ok, ng) => {
+    const r = indexedDB.open('dasshi_tejun', 1);
+    r.onupgradeneeded = () => r.result.createObjectStore('kv');
+    r.onsuccess = () => ok(r.result); r.onerror = () => ng(r.error);
+  });
+}
+async function dbDo(mode, fn) {
+  const db = await idb();
+  return new Promise((ok, ng) => {
+    const tr = db.transaction('kv', mode), st = tr.objectStore('kv'), r = fn(st);
+    tr.oncomplete = () => ok(r && r.result); tr.onerror = () => ng(tr.error); tr.onabort = () => ng(tr.error);
+  });
+}
+const dbGet = k => dbDo('readonly', st => st.get(k));
+const dbPut = (k, v) => dbDo('readwrite', st => st.put(v, k));
+const dbDel = k => dbDo('readwrite', st => st.delete(k));
+// 保存は2か所（IndexedDB と localStorage）。片方が消えても、もう片方から出す（消えるムダをふせぐ）
+const LS_KEY = 'dasshi_tejun_data';
+async function saveData(data) {
+  let ok = false;
+  try { await dbPut('data', data); ok = true; } catch(e) {}
+  try { localStorage.setItem(LS_KEY, JSON.stringify(data)); ok = true; }
+  catch(e) {   // 入りきらないときは、写真なしで文だけでも残す
+    try { localStorage.setItem(LS_KEY, JSON.stringify({ ...data, photos: {} })); ok = true; } catch(e2) {}
+  }
+  try { if (navigator.storage && navigator.storage.persist) await navigator.storage.persist(); } catch(e) {}
+  return ok;
+}
+async function loadData() {
+  let d = null, ls = null;
+  try { d = await dbGet('data'); } catch(e) {}
+  try { ls = JSON.parse(localStorage.getItem(LS_KEY) || 'null'); } catch(e) {}
+  if (!d) return ls;
+  if (ls && ls.at > d.at) return { ...ls, photos: Object.keys(ls.photos || {}).length ? ls.photos : d.photos };
+  return d;
+}
+async function clearSaved() {
+  try { await dbDel('data'); } catch(e) {}
+  try { localStorage.removeItem(LS_KEY); } catch(e) {}
+}
+
+// ===== 画面 =====
+function route() {
+  const [p, ...k] = decodeURIComponent(location.hash.slice(1)).split('/');
+  return { proc: PROCS.some(x => x[0] === p) ? p : 'kake', key: k.join('/') || null };
+}
+function go(proc, key) { location.hash = encodeURIComponent(proc) + (key ? '/' + encodeURIComponent(key) : ''); }
+
+function render() {
+  const t = T(), r = route();
+  document.documentElement.lang = lang; document.title = t.title.replace(/^\S+\s/, '');
+  $('lang').value = lang; $('t-title').textContent = t.title; $('bBack').innerHTML = `← <span class="bk">${esc(t.back.replace(/^←\s*/, ''))}</span>`; $('bBack').title = t.back;
+  ['setT','urlL','pwL','close','hint','clear'].forEach(k => $('t-' + k).textContent = t[k]);
+  if (!$('bLoad').disabled) $('bLoad').textContent = t.load;
+  $('tabs').innerHTML = PROCS.map(([k,ic,bg]) =>
+    `<button class="${k === r.proc ? 'on' : ''}" style="background:${bg}" onclick="go('${k}')"><b>${ic}</b>${esc(t[k])}</button>`).join('');
+
+  // 古い手順書は黄色のアンドンで知らせる
+  const days = DATA ? Math.floor((Date.now() - new Date(DATA.at)) / 864e5) : 0;
+  $('old').style.display = DATA && days >= OLD_DAYS ? 'block' : 'none';
+  $('old').textContent = t.old.replace('{d}', days);
+
+  const m = $('main');
+  if (!DATA) { m.innerHTML = `<div class="msg">${esc(t.noData)}<br><br><button class="mini go" onclick="openDlg()">${esc(t.open)}</button></div>`; return; }
+  const docs = DATA.docs.filter(d => d.proc === r.proc);
+  const doc = docs.find(d => d.key === r.key);
+  if (!docs.length) { m.innerHTML = `<div class="msg">${esc(t.none)}</div>`; return; }
+  if (!doc) {   // まず一覧を出し、選んだ手順書を開く（1つだけでも一覧から）
+    m.innerHTML = `<h2>${esc(t.pick)}</h2>` + docs.map(d =>
+      `<button class="card" data-k="${esc(d.key)}">${esc(title(d))}<small>${d.steps.length} ${esc(t.steps)}</small></button>`).join('');
+    m.querySelectorAll('.card').forEach(b => b.onclick = () => go(r.proc, b.dataset.k));
+    return;
+  }
+  m.innerHTML = `<button class="mini gray" onclick="go('${r.proc}')">${esc(t.list)}</button>`
+    + `<h2>${esc(title(doc))}</h2>`
+    + doc.steps.map((s, i) => `<div class="step"><div class="no">${i + 1}</div><div class="body">
+        <div class="tx">${esc(tx(s.text))}</div>
+        ${tx(s.point) ? `<div class="pt"><b>⚠️ ${esc(t.point)}：</b>${esc(tx(s.point))}</div>` : ''}
+        ${s.photos.length ? `<div class="ph">${s.photos.filter(p => DATA.photos[p]).map(p => `<img src="${DATA.photos[p]}" alt="" loading="lazy">`).join('')}</div>` : ''}
+      </div></div>`).join('');
+  m.querySelectorAll('.ph img').forEach(im => im.onclick = () => { $('bigImg').src = im.src; $('big').style.display = 'flex'; });
+}
+function setLang(l) { lang = l; try { localStorage.setItem('dasshi_lang', l); } catch(e) {} render(); renderInfo(); }
+
+// ===== 設定・読込 =====
+function openDlg() {
+  try { $('url').value = localStorage.getItem('dasshi_tejun_url') || ''; } catch(e) {}
+  $('pw').value = ''; renderInfo(); $('dlg').style.display = 'flex';
+  ($('url').value ? $('pw') : $('url')).focus();
+}
+function closeDlg() { $('dlg').style.display = 'none'; $('pw').value = ''; }
+function renderInfo() {
+  const t = T();
+  $('info').textContent = t.savedAt + (DATA ? `${new Date(DATA.at).toLocaleString(lang === 'ja' ? 'ja-JP' : lang)}${t.count.replace('{n}', DATA.docs.length)}` : t.never);
+  $('warn').textContent = DATA && DATA.warn && DATA.warn.length ? t.warn + '\n' + DATA.warn.join('\n') : '';
+}
+async function load() {
+  const t = T(), url = $('url').value.trim(), pw = $('pw').value;
+  if (!/^https:\/\/script\.google(usercontent)?\.com\//.test(url)) { toast(t.errUrl); $('url').focus(); return; }
+  try { localStorage.setItem('dasshi_tejun_url', url); } catch(e) {}
+  const b = $('bLoad'); b.disabled = true; b.textContent = t.loading;
+  try {
+    let res;
+    try {   // パスワードは URL に入れず、本文（POST）で送る
+      const r = await fetch(url, { method:'POST', body: JSON.stringify({ pw }) });
+      res = await r.json();
+    } catch(e) { toast(t.errNet); return; }
+    if (!res.ok) { toast({ pw:t.errPw, locked:t.errLock, nopw:t.errNoPw, nosheet:t.errSheet }[res.err] || t.errBad); return; }
+    const photos = {};
+    for (const [id, src] of Object.entries(res.photos || {})) photos[id] = await shrink(src);
+    const data = { at: res.at || new Date().toISOString(), docs: res.docs || [], photos, warn: res.warn || [] };
+    if (!await saveData(data)) { toast(t.errSave); return; }
+    DATA = data; $('pw').value = ''; render(); renderInfo();
+    toast(t.loaded + (data.warn.length ? ' ⚠️' : ''));
+    if (!data.warn.length) closeDlg();
+  } finally { b.disabled = false; b.textContent = T().load; }
+}
+// 写真を小さくしてから保存する（タブレットの保存場所のムダ取り）
+function shrink(src) {
+  return new Promise(ok => {
+    const im = new Image();
+    im.onload = () => {
+      const k = Math.min(1, PHOTO_MAX / Math.max(im.width, im.height));
+      if (k === 1 && src.length < 600000) return ok(src);
+      const c = document.createElement('canvas');
+      c.width = Math.round(im.width * k); c.height = Math.round(im.height * k);
+      c.getContext('2d').drawImage(im, 0, 0, c.width, c.height);
+      ok(c.toDataURL('image/jpeg', .82));
+    };
+    im.onerror = () => ok(src);
+    im.src = src;
+  });
+}
+async function clearData() {
+  const t = T();
+  if (!confirm(t.clearQ)) return;
+  await clearSaved();
+  DATA = null; render(); renderInfo(); toast(t.cleared);
+}
+
+window.addEventListener('hashchange', () => { render(); scrollTo(0, 0); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') { $('big').style.display = 'none'; closeDlg(); } });
+render();
+loadData().then(d => { if (d) { DATA = d; render(); } });
+// 画面のファイルをタブレットに入れておく（ネットなしでも開ける。sw.js）。https のときだけ
+if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost'))
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+</script>
+</body>
+</html>
