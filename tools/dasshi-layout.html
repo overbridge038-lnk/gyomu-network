@@ -1,0 +1,1617 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>脱脂レイアウト図</title>
+<!-- ネット不要（オフライン）で動く1ファイル。外部CDN・外部フォントは使わない -->
+<style>
+  * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  body { margin:0; height:100vh; height:100dvh; display:flex; flex-direction:column; overflow:hidden; color:#f8fafc;
+         font-family:"Hiragino Maru Gothic ProN","BIZ UDPGothic","Meiryo",sans-serif; background:#0b1020; }
+  /* ===== ヘッダー ===== */
+  header { display:flex; align-items:center; gap:8px; flex-wrap:wrap; padding:8px 12px;
+           background:linear-gradient(90deg,#6d28d9,#db2777 60%,#f59e0b); box-shadow:0 3px 12px rgba(0,0,0,.4); z-index:30; }
+  header h1 { margin:0 6px 0 0; font-size:20px; letter-spacing:.5px; text-shadow:0 2px 0 rgba(0,0,0,.25); white-space:nowrap; }
+  .ver { font-size:11px; font-weight:normal; opacity:.85; margin-left:6px; }
+  .sp { flex:1; }
+  .btn { border:0; border-radius:12px; padding:9px 13px; font-size:15px; font-weight:bold; cursor:pointer; color:#fff;
+         background:rgba(255,255,255,.18); box-shadow:inset 0 -3px 0 rgba(0,0,0,.2); white-space:nowrap; font-family:inherit; }
+  .btn:active { transform:translateY(2px); box-shadow:none; }
+  .btn:disabled { opacity:.35; }
+  .btn.edit-on { background:#facc15; color:#422006; }
+  select.btn { appearance:none; padding-right:13px; }
+  select.btn option { color:#111; }
+  /* ===== 編集中バー（アンドン） ===== */
+  #editBar { display:none; background:repeating-linear-gradient(45deg,#facc15 0 18px,#1f2937 18px 36px); padding:3px; z-index:25; }
+  #editBar div { background:#facc15; color:#422006; font-weight:bold; text-align:center; padding:4px; font-size:14px; border-radius:6px; }
+  body.editing #editBar { display:block; }
+  /* ===== 本体 ===== */
+  .main { flex:1; display:flex; overflow:hidden; }
+  aside { width:320px; background:#111827; border-right:1px solid #1f2937; overflow-y:auto; padding:10px; flex-shrink:0; }
+  aside.hide { display:none; }
+  .panel { background:#1f2937; border-radius:14px; padding:10px; margin-bottom:10px; }
+  .panel h3 { margin:0 0 8px; font-size:14px; color:#f9a8d4; }
+  .row { display:flex; gap:6px; align-items:center; margin-bottom:6px; }
+  .row input, .row select { flex:1; min-width:0; font-size:15px; padding:7px 8px; border-radius:8px; border:1px solid #374151;
+                            background:#0b1020; color:#fff; font-family:inherit; }
+  .mini { border:0; border-radius:8px; padding:7px 10px; font-size:14px; cursor:pointer; font-weight:bold; font-family:inherit; }
+  .mini.add { background:#10b981; color:#fff; } .mini.del { background:#e11d48; color:#fff; } .mini.gray { background:#374151; color:#fff; }
+  .chips { display:flex; flex-wrap:wrap; gap:6px; }
+  .chip { border:0; border-radius:10px; padding:6px 8px; font-size:12px; font-weight:bold; cursor:pointer; font-family:inherit;
+          box-shadow:inset 0 -3px 0 rgba(0,0,0,.25); }
+  .legend { display:grid; grid-template-columns:1fr 1fr; gap:4px 8px; font-size:12px; }
+  .legend span { display:flex; align-items:center; gap:5px; }
+  .legend i { width:14px; height:14px; border-radius:4px; display:inline-block; flex-shrink:0; border:1px solid rgba(255,255,255,.3); }
+  .note { font-size:12px; color:#cbd5e1; line-height:1.6; margin:0; padding-left:16px; }
+  .hint { font-size:12px; color:#9ca3af; margin:4px 0 0; }
+  .mface { width:30px; height:38px; flex-shrink:0; }
+  .staff { border-bottom:1px solid #374151; padding-bottom:4px; margin-bottom:6px; }
+  .mface .spark { display:none; }
+  .trow { font-size:14px; color:#cbd5e1; gap:4px; padding-left:36px; }
+  .row.trow select { flex:1 1 0; font-size:14px; padding:5px 4px; }
+  #shipTxt { width:100%; font-size:14px; line-height:1.5; padding:8px; border-radius:8px; border:1px solid #374151;
+             background:#0b1020; color:#fff; font-family:inherit; resize:vertical; }
+  /* ===== マップ ===== */
+  #view { flex:1; overflow:auto; position:relative; background:radial-gradient(circle at 30% 20%,#1e293b,#0b1020 70%); }
+  #wrap { position:relative; margin:16px; }
+  #stage { position:absolute; left:0; top:0; transform-origin:0 0; border-radius:18px;
+           background-color:#d6d9de; box-shadow:0 10px 40px rgba(0,0,0,.6); }
+  /* マス目は編集のときだけ表示 */
+  body.editing #stage { background-color:#eef2f7;
+           background-image:linear-gradient(to right,rgba(71,85,105,.35) 1px,transparent 1px),linear-gradient(to bottom,rgba(71,85,105,.35) 1px,transparent 1px);
+           background-size:var(--g) var(--g); }
+  /* ブロック（レゴ風：上にポッチ、下に厚み） */
+  .blk { position:absolute; border-radius:9px; display:flex; align-items:center; justify-content:center; text-align:center;
+         font-weight:900; line-height:1.15; overflow:hidden; padding:3px;
+         box-shadow:inset 0 -6px 0 rgba(0,0,0,.18), inset 0 2px 0 rgba(255,255,255,.35), 0 2px 3px rgba(0,0,0,.25); }
+  .blk::before { content:""; position:absolute; inset:0; pointer-events:none; opacity:.22;
+                 background-image:radial-gradient(circle at 10px 10px, rgba(255,255,255,.9) 4px, rgba(0,0,0,.15) 5px, transparent 6px);
+                 background-size:20px 20px; }
+  .blk .lb { position:relative; white-space:pre-line; word-break:break-all; }
+  .blk.v .lb { writing-mode:vertical-rl; text-orientation:upright; letter-spacing:-1px; }
+  .blk .wd { position:absolute; left:3px; bottom:6px; font-size:10px; background:rgba(255,255,255,.85); color:#111;
+             border-radius:5px; padding:0 4px; font-weight:bold; }
+  .blk.flat { box-shadow:none; border-radius:2px; } .blk.flat::before { display:none; }
+  /* 歩行帯：緑＋白い破線 */
+  .blk.walk { background-image:repeating-linear-gradient(45deg,rgba(255,255,255,.18) 0 10px,transparent 10px 20px) !important; }
+  .blk.pillar { border-radius:3px; box-shadow:0 2px 3px rgba(0,0,0,.5); } .blk.pillar::before { display:none; }
+  /* 脱脂ライン（動くコンベア＋泡） */
+  .blk.line { box-shadow:inset 0 0 0 4px #60a5fa, 0 3px 10px rgba(0,0,0,.35); }
+  .blk.line::before { opacity:.25; background-image:repeating-linear-gradient(90deg,rgba(255,255,255,.35) 0 14px,transparent 14px 40px);
+                      background-size:40px 100%; animation:belt 1.6s linear infinite; }
+  @keyframes belt { to { background-position:40px 0; } }
+  .blk.line .lb { font-size:46px; opacity:.35; letter-spacing:4px; }
+  .bub { position:absolute; bottom:-14px; border-radius:50%; background:rgba(255,255,255,.55); animation:rise linear infinite; pointer-events:none; }
+  @keyframes rise { to { transform:translateY(-420px); opacity:0; } }
+  /* 編集モード */
+  body.editing .blk { cursor:grab; outline:1px dashed rgba(0,0,0,.25); touch-action:none; }
+  body.editing .blk.sel { outline:4px solid #facc15; z-index:50; }
+  .x, .rz { display:none; position:absolute; z-index:60; }
+  body.editing .blk.sel .x { display:flex; right:2px; top:2px; width:36px; height:36px; border-radius:50%; background:#e11d48; color:#fff;
+       font-size:22px; align-items:center; justify-content:center; cursor:pointer; box-shadow:0 2px 4px rgba(0,0,0,.4); }
+  body.editing .blk.sel .rz { display:block; right:0; bottom:0; width:40px; height:40px; cursor:nwse-resize;
+       background:linear-gradient(135deg,transparent 50%,#facc15 50%); border-bottom-right-radius:8px; }
+  /* マスコット */
+  .ms { position:absolute; width:58px; height:75px; z-index:40; cursor:pointer; transition:filter .2s; }
+  .ms svg { width:100%; height:100%; overflow:visible; }
+  .ms.left svg { transform:scaleX(-1); }
+  .ms.walk .legL { animation:legA .35s infinite alternate; transform-origin:16px 38px; }
+  .ms.walk .legR { animation:legA .35s infinite alternate-reverse; transform-origin:24px 38px; }
+  @keyframes legA { from { transform:rotate(-18deg); } to { transform:rotate(18deg); } }
+  .ms.walk .bodyG { animation:bob .35s infinite alternate; }
+  @keyframes bob { to { transform:translateY(-1.5px); } }
+  .ms.work .arm { animation:hammer .3s infinite alternate; transform-origin:28px 29px; }
+  @keyframes hammer { from { transform:rotate(-40deg); } to { transform:rotate(25deg); } }
+  .ms .spark { display:none; position:absolute; right:-12px; top:-6px; font-size:20px; animation:twk .5s infinite alternate; }
+  .ms.work .spark { display:block; }
+  @keyframes twk { from { transform:scale(.6) rotate(0); opacity:.5; } to { transform:scale(1.1) rotate(20deg); opacity:1; } }
+  .ms.hop { animation:hop .5s; }
+  @keyframes hop { 40% { transform:translateY(-22px); } }
+  body.editing .ms { opacity:.35; pointer-events:none; }
+  /* 出勤・退勤の演出（交代の見える化）：上からぴょんと出る／手をふって小さくなって消える */
+  .ms.dIn { animation:msIn .9s ease-out; }
+  @keyframes msIn { 0% { transform:translateY(-46px) scale(.2); opacity:0; } 55% { transform:translateY(4px) scale(1.18); opacity:1; }
+                    75% { transform:translateY(-6px) scale(.95); } 100% { transform:none; } }
+  .ms.dOut { animation:msOut 1.6s ease-in forwards; }
+  @keyframes msOut { 0%,15% { transform:none; } 25% { transform:translateY(-14px); } 35% { transform:none; } 45% { transform:translateY(-14px); }
+                     55% { transform:none; opacity:1; } 100% { transform:translateY(-30px) scale(.1); opacity:0; } }
+  .ms .fx { position:absolute; left:50%; top:-26px; transform:translateX(-50%); font-size:24px; pointer-events:none;
+            animation:fxUp 1.6s ease-out forwards; }
+  @keyframes fxUp { 0% { opacity:0; transform:translate(-50%,10px) scale(.5); } 20% { opacity:1; transform:translate(-50%,0) scale(1.2); }
+                    80% { opacity:1; } 100% { opacity:0; transform:translate(-50%,-24px) scale(1); } }
+  /* リフトのマスコット（何も置いていない床＝リフト走行エリアを走る） */
+  .ms.lift { width:70px; height:52px; }
+  .ms.lift .wh { transform-box:fill-box; transform-origin:center; }
+  .ms.lift.walk .wh { animation:spinW .5s linear infinite; }
+  @keyframes spinW { to { transform:rotate(360deg); } }
+  .ms.lift .pat { animation:blink .5s infinite alternate; }
+  @keyframes blink { from { opacity:.3; } to { opacity:1; } }
+  .ms.lift.work .fork { animation:forkUp 1.4s ease-in-out infinite alternate; }
+  @keyframes forkUp { from { transform:translateY(0); } to { transform:translateY(-12px); } }
+  .ms.lift .spark { display:none !important; }
+  .ms.lift .name { bottom:56px; }
+  /* 持っている荷物（緑＝素材、銀＝完成品） */
+  .carry { display:none; position:absolute; left:50%; top:-6px; width:16px; height:12px; transform:translateX(-50%); border-radius:3px;
+           border:1px solid rgba(0,0,0,.45); box-shadow:0 1px 2px rgba(0,0,0,.4); pointer-events:none; }
+  .ms.carry-mat .carry { display:block; background:#92d050; }
+  .ms.carry-fin .carry { display:block; background:linear-gradient(135deg,#ffffff,#94a3b8); }
+  .ms.lift .carry { left:80%; top:10px; width:18px; height:14px; }
+  .mface .carry { display:none !important; }
+  /* 周回コンベア（脱脂ラインの中） */
+  .cvLayer { position:absolute; inset:0; z-index:3; pointer-events:none; }
+  .cvLayer svg { position:absolute; inset:0; width:100%; height:100%; overflow:visible; }
+  .cvLayer .rail { fill:none; stroke:#93c5fd; stroke-width:10; stroke-linejoin:round; opacity:.9; }
+  .cvLayer .rail2 { fill:none; stroke:#1e3a8a; stroke-width:2; stroke-dasharray:8 10; animation:railGo 1s linear infinite; }
+  @keyframes railGo { to { stroke-dashoffset:-18; } }
+  .cvLayer .tag { position:absolute; transform:translate(-50%,-50%); font-size:11px; font-weight:bold; color:#fff; background:#1e3a8a;
+                  border:2px solid #93c5fd; border-radius:8px; padding:0 5px; white-space:nowrap; }
+  .hg { position:absolute; left:0; top:0; width:14px; height:22px; margin:-3px 0 0 -7px; }
+  .hg::before { content:""; position:absolute; left:6px; top:0; width:2px; height:9px; background:#cbd5e1; }
+  .hg i { display:none; position:absolute; left:0; top:8px; width:14px; height:12px; border-radius:2px; border:1px solid rgba(0,0,0,.4); }
+  .hg.raw i { display:block; background:#92d050; }
+  .hg.done i { display:block; background:linear-gradient(135deg,#ffffff,#94a3b8); box-shadow:0 0 6px #fff; }
+  /* 個数（投入バッファ・完成品置き・山積み）と、異常のアンドン */
+  .cnt { position:absolute; z-index:30; pointer-events:none; display:flex; flex-direction:column; justify-content:flex-end; align-items:center; padding:2px; }
+  .cnt .stack { display:flex; flex-wrap:wrap-reverse; justify-content:center; gap:1px; max-width:100%; }
+  .cnt i { display:block; width:10px; height:7px; border-radius:2px; border:1px solid rgba(0,0,0,.35); }
+  .cnt i.mat { background:#92d050; } .cnt i.fin { background:linear-gradient(135deg,#ffffff,#94a3b8); }
+  .cnt.pile .stack { flex-direction:column-reverse; flex-wrap:nowrap; } .cnt.pile i { width:22px; height:8px; }
+  .cnt b { font-size:11px; background:rgba(17,24,39,.85); color:#fff; border-radius:6px; padding:0 4px; white-space:nowrap; margin-top:1px; }
+  .cnt.warn b { background:#e11d48; animation:blink .5s infinite alternate; }
+  .cnt.call b { background:#f59e0b; color:#111; }
+  .row select.role { flex:0 0 78px; font-size:13px; padding:6px 3px; }
+  .name { position:absolute; left:50%; bottom:80px; transform:translateX(-50%); white-space:nowrap; pointer-events:none;
+          background:#fff; color:#be185d; border:3px solid #ec4899; border-radius:14px; padding:3px 10px; font-size:16px; font-weight:900;
+          box-shadow:0 3px 0 #9d174d; animation:pop 2.2s forwards; }
+  .name::after { content:""; position:absolute; left:50%; bottom:-9px; transform:translateX(-50%); border:6px solid transparent; border-top-color:#ec4899; }
+  @keyframes pop { 0% { opacity:0; transform:translateX(-50%) scale(.4); } 12% { opacity:1; transform:translateX(-50%) scale(1.1); }
+                   20% { transform:translateX(-50%) scale(1); } 85% { opacity:1; } 100% { opacity:0; } }
+  /* トースト */
+  #toast { position:fixed; left:50%; bottom:24px; transform:translateX(-50%); background:#111827; border:2px solid #f472b6;
+           padding:10px 18px; border-radius:14px; font-weight:bold; font-size:16px; display:none; z-index:100; box-shadow:0 6px 20px rgba(0,0,0,.5);
+           white-space:pre-line; text-align:center; text-wrap:balance; max-width:92vw; }
+  /* 作業手順メニュー（4つの工程） */
+  #tjMenu { display:none; position:fixed; z-index:60; background:#1f2937; border:3px solid #f472b6; border-radius:16px; padding:10px;
+            grid-template-columns:1fr 1fr; gap:8px; box-shadow:0 10px 30px rgba(0,0,0,.6); }
+  #tjMenu.show { display:grid; }
+  #tjMenu a { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; min-width:110px; min-height:84px;
+              padding:10px; border-radius:14px; color:#fff; font-weight:bold; font-size:16px; text-decoration:none; text-align:center;
+              box-shadow:inset 0 -4px 0 rgba(0,0,0,.25); }
+  #tjMenu a b { font-size:30px; line-height:1; }
+  #tjMenu a:active { transform:translateY(2px); box-shadow:none; }
+  /* スマホ（せまい画面）：ボタンを小さく。たて画面はマップが上・パネルが下（☰でパネルを消すとマップが全体に広がる）
+     よこ画面はパネルを左に、少しせまくして出す */
+  @media (max-height:500px) { aside { width:260px; } }
+  @media (max-width:760px) {
+    header { padding:5px 6px; gap:4px; }
+    header h1 { font-size:14px; margin-right:0; }
+    .ver { font-size:9px; margin-left:3px; }
+    .btn { padding:6px 7px; font-size:12px; border-radius:9px; }
+    .sp { display:none; }
+    #editBar div { font-size:12px; }
+  }
+  @media (max-width:760px) and (orientation:portrait) {
+    .main { flex-direction:column; }
+    #view { order:1; flex:0 0 42%; min-height:0; }
+    aside { order:2; width:auto; flex:1 1 auto; min-height:0; border-right:0; border-top:3px solid #db2777; }
+    aside.hide + #view { flex:1 1 auto; }
+    #wrap { margin:8px; }
+  }
+  /* 印刷：レイアウト図だけを出す */
+  @media print {
+    header, aside, #editBar, #toast, #tjMenu, .ms, .cnt, .hg, .cvLayer .tag { display:none !important; }
+    body, #view { background:#fff; overflow:visible; height:auto; }
+    #stage { box-shadow:none; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>🧱 <span id="t-title"></span><span class="ver">ver 2026-11-28</span></h1>
+  <button class="btn" onclick="toggleSide()">☰</button>
+  <button class="btn" id="bEdit" onclick="toggleEdit()"></button>
+  <button class="btn" id="bUndo" onclick="undo()" disabled>↩ <span id="t-undo"></span></button>
+  <button class="btn" id="bXout" onclick="exportXlsx()"></button>
+  <button class="btn" id="bXin" onclick="$('impX').click()" style="display:none"></button>
+  <input type="file" id="impX" accept=".xlsx" style="display:none" onchange="importXlsx(this)">
+  <span class="sp"></span>
+  <button class="btn" id="bTj" onclick="toggleTj(event)"></button>
+  <button class="btn" onclick="zoom(1/1.2)">－</button>
+  <button class="btn" onclick="fit()" id="bFit"></button>
+  <button class="btn" onclick="zoom(1.2)">＋</button>
+  <select class="btn" id="lang" onchange="setLang(this.value)">
+    <option value="ja">🇯🇵 日本語</option>
+    <option value="id">🇮🇩 Indonesia</option>
+    <option value="tl">🇵🇭 Tagalog</option>
+    <option value="en">🇺🇸 English</option>
+  </select>
+</header>
+<div id="editBar"><div id="t-editing"></div></div>
+
+<div class="main">
+  <aside id="side">
+    <!-- 編集モードのときだけ出る：選んだブロックの変更 -->
+    <div class="panel" id="pSel" style="display:none">
+      <h3 id="t-selT"></h3>
+      <div class="row"><input id="sLabel" oninput="editSel('label',this.value)"></div>
+      <div class="row"><select id="sCat" onchange="editSel('cat',this.value)"></select>
+        <select id="sWd" onchange="editSel('wd',this.value)" style="flex:0 0 70px">
+          <option value="">-</option><option>A</option><option>B</option><option>C</option><option>D</option></select></div>
+      <div class="row"><button class="mini gray" onclick="dupSel()" id="t-dup"></button>
+        <button class="mini del" onclick="delSel()" id="t-del"></button></div>
+    </div>
+    <div class="panel" id="pAdd" style="display:none">
+      <h3 id="t-addT"></h3>
+      <div class="chips" id="addChips"></div>
+      <p class="hint" id="t-addH"></p>
+    </div>
+    <div class="panel" id="pTools" style="display:none">
+      <h3 id="t-toolT"></h3>
+      <div class="row"><button class="mini gray" onclick="exportFile()" id="t-exp"></button>
+        <button class="mini gray" onclick="document.getElementById('imp').click()" id="t-imp"></button></div>
+      <div class="row"><button class="mini gray" onclick="window.print()" id="t-print"></button>
+        <button class="mini del" onclick="resetAll()" id="t-reset"></button></div>
+      <input type="file" id="imp" accept=".json" style="display:none" onchange="importFile(this)">
+      <p class="hint" id="t-toolH"></p>
+    </div>
+    <!-- いつでも出る -->
+    <div class="panel">
+      <h3 id="t-msT"></h3>
+      <div id="msList"></div>
+      <button class="mini add" onclick="addMascot('man')" id="t-msAdd"></button>
+      <!-- 編集モードのときだけ：役割の名前を変える（言語ごと。空にすると最初の名前） -->
+      <div id="roleEd" style="display:none; margin-top:8px">
+        <p class="hint" id="t-roleEdT"></p>
+        <div class="row"><input data-nk="roleIn" maxlength="10" oninput="editName(this)"><input data-nk="roleOut" maxlength="10" oninput="editName(this)"><input data-nk="rolePat" maxlength="10" oninput="editName(this)"></div>
+      </div>
+      <p class="hint" id="t-msH"></p>
+    </div>
+    <div class="panel">
+      <h3 id="t-pkT"></h3>
+      <div id="pkList"></div>
+      <button class="mini add" onclick="addMascot('pick')" id="t-pkAdd"></button>
+      <p class="hint" id="t-pkH"></p>
+    </div>
+    <div class="panel">
+      <h3 id="t-lfT"></h3>
+      <div id="lfList"></div>
+      <button class="mini add" onclick="addMascot('lift')" id="t-lfAdd"></button>
+      <p class="hint" id="t-lfH"></p>
+    </div>
+    <div class="panel">
+      <h3 id="t-lgT"></h3>
+      <div class="legend" id="legend"></div>
+      <p class="hint" style="margin-top:8px">A=130cm　B=120cm　C=170cm<br><span id="t-tape"></span></p>
+    </div>
+    <div class="panel">
+      <h3 id="t-shipT"></h3>
+      <ul class="note" id="shipNote"></ul>
+      <!-- 編集モードのときだけ：出荷時間の文を直す（言語ごと） -->
+      <div id="shipEd" style="display:none">
+        <p class="hint" id="t-shipTitleH" style="margin:0 0 4px"></p>
+        <div class="row"><input data-nk="shipT" maxlength="20" oninput="editName(this)"></div>
+        <textarea id="shipTxt" rows="9" oninput="editShip(this.value)"></textarea>
+        <p class="hint" id="t-shipEdH"></p>
+        <button class="mini gray" onclick="resetShip()" id="t-shipReset"></button>
+      </div>
+    </div>
+  </aside>
+  <div id="view"><div id="wrap"><div id="stage"></div></div></div>
+</div>
+<div id="toast"></div>
+<!-- 作業手順：工程を選ぶと tejun.html（別ファイル）で手順書を出す -->
+<div id="tjMenu"></div>
+
+<script>
+/* ============================================================
+   脱脂レイアウト図
+   ・ふだん：表示だけ（触っても動かない＝うっかり移動のポカヨケ）
+   ・✏️編集モード：ドラッグで移動、右下の黄色い角でサイズ変更、×で削除
+   ・マスコットは「脱脂ライン」の中を上下左右に歩いて働く。タップで名前
+   ============================================================ */
+
+/* ===== 色分け（Excelの凡例と同じ色） ===== */
+const CATS = {
+  material:{bg:'#92d050', fg:'#14532d', ja:'素材', id:'Material', tl:'Materyales', en:'Material'},
+  empty:   {bg:'#00b0f0', fg:'#082f49', ja:'空箱', id:'Kotak kosong', tl:'Walang lamang kahon', en:'Empty box'},
+  shipFin: {bg:'#ffff00', fg:'#422006', ja:'完成品出荷', id:'Kirim barang jadi', tl:'Padala ng tapos na produkto', en:'Finished goods shipping'},
+  stockFin:{bg:'#d9d9d9', fg:'#1f2937', ja:'完成品在庫', id:'Stok barang jadi', tl:'Stock ng tapos na produkto', en:'Finished goods stock'},
+  charger: {bg:'#ffc000', fg:'#422006', ja:'リフト充電器', id:'Pengisi daya forklift', tl:'Charger ng forklift', en:'Forklift charger'},
+  aisle:   {bg:'#14532d', fg:'#fff',    ja:'歩行帯', id:'Jalur pejalan kaki', tl:'Daanan ng tao', en:'Walkway'},
+  shipArea:{bg:'#7030a0', fg:'#fff',    ja:'集荷エリア', id:'Area pengumpulan', tl:'Lugar ng pagkolekta', en:'Pickup area'},
+  daiko:   {bg:'#002060', fg:'#fff',    ja:'大幸ゾーン', id:'Zona Daiko', tl:'Zona ng Daiko', en:'Daiko zone'},
+  aoi:     {bg:'#fac090', fg:'#431407', ja:'あおいゾーン（パレット物）', id:'Zona Aoi (palet)', tl:'Zona ng Aoi (pallet)', en:'Aoi zone (pallet)'},
+  obara:   {bg:'#b1a0c7', fg:'#2e1065', ja:'小原小物素材エリアその他', id:'Area material kecil Obara', tl:'Maliit na materyales ng Obara', en:'Obara small parts area'},
+  daisha:  {bg:'#31869b', fg:'#fff',    ja:'代車管理の在庫', id:'Stok troli pengganti', tl:'Stock ng kapalit na cart', en:'Spare cart stock'},
+  hasu:    {bg:'#da9694', fg:'#450a0a', ja:'端数', id:'Sisa (pecahan)', tl:'Sobra / tira', en:'Odd lot'},
+  temp:    {bg:'#fde9d9', fg:'#431407', ja:'出荷一時置き', id:'Tempat sementara kirim', tl:'Pansamantalang lagayan', en:'Shipping temp area'},
+  inBuf:   {bg:'#ccff99', fg:'#14532d', ja:'投入バッファ', id:'Buffer input', tl:'Buffer ng input', en:'Input buffer'},
+  outBuf:  {bg:'#ffd966', fg:'#422006', ja:'完成品置き', id:'Tempat barang jadi', tl:'Lagayan ng tapos na produkto', en:'Finished goods rack'},
+  line:    {bg:'#1f4e79', fg:'#fff',    ja:'脱脂ライン', id:'Lini degreasing', tl:'Linya ng degreasing', en:'Degreasing line'},
+  pillar:  {bg:'#000000', fg:'#fff',    ja:'柱', id:'Tiang', tl:'Haligi', en:'Pillar'},
+  wall:    {bg:'#808080', fg:'#fff',    ja:'壁', id:'Dinding', tl:'Pader', en:'Wall'},
+  other:   {bg:'#ffffff', fg:'#111827', ja:'その他', id:'Lainnya', tl:'Iba pa', en:'Other'}
+};
+
+/* ===== 画面の言葉 ===== */
+const I18N = {
+  ja:{ dutyIn:'👋 出勤：{n}', dutyOut:'🙇 おつかれさま：{n}', nameSep:'・', tj:'📋 作業手順', tjKake:'掛け', tjKensa:'検査', tjLift:'リフト', tjShuka:'集荷', title:'脱脂レイアウト図', lfT:'🚜 リフト', lfAdd:'➕ リフト追加', lfH:'荷物を置いていない床＝リフト走行エリアを走ります。タップで名前', liftArea:'リフト走行エリア（何も置いていない床）', cells:'マス', newLift:'リフト',  edit:'✏️ 編集', editOn:'✅ 編集おわり', undo:'戻す', fit:'全体',
+       editing:'✏️ 編集中：マス目に沿って移動／黄色い角でサイズ変更／× で削除。終わったら「編集おわり」', selT:'🎯 選んだブロック',
+       dup:'📄 コピー', del:'🗑 削除', addT:'➕ ブロックを追加', addH:'色を押すと画面の真ん中に追加されます',
+       toolT:'💾 保存・共有', exp:'⬇ ファイルに保存', imp:'⬆ ファイルを読込', print:'🖨 印刷', reset:'初期化',
+       toolH:'他のタブレットに同じ配置を入れるときは「ファイルに保存」→ 相手で「ファイルを読込」',
+       msT:'👷 ラインスタッフ', msAdd:'➕ ラインスタッフ追加', msH:'脱脂ラインの中で働きます。働く時間の外はマップに出ません。タップで名前',
+       lgT:'🎨 色の意味', tape:'※テープの外から外で計測（テープ幅5cm）', shipT:'🕗 出荷時間', newBlk:'新しい置き場', newMs:'新人',
+       cDel:'このブロックを削除しますか？', cReset:'レイアウトとマスコットを最初の状態に戻しますか？',
+       saved:'保存しました', loaded:'読み込みました', bad:'ファイルが読めませんでした', noLine:'「脱脂ライン」のブロックがないので、ラインスタッフはお休み中です',
+       ship:['8時 パネル出荷 → 10時に戻ってパネル素材を引いてくる。出荷後、パネル在庫をパネル出荷レーンへ移動',
+             '8時 BC向け1便（出荷レーンに置いてある）','10時すぎ BC向け2便（出荷レーン）','10時 ニイテック出荷（夜勤で準備）',
+             '18時 BC向け3便（一時置き場に置く。出荷レーンには1便が置いてある）','19時 ニイテック出荷（昼が準備・夜が確認）','21時 BC向け4便（1便の前に置く）'] },
+  id:{ dutyIn:'👋 Mulai kerja: {n}', dutyOut:'🙇 Terima kasih, selesai kerja: {n}', nameSep:', ', tj:'📋 Prosedur Kerja', tjKake:'Gantung', tjKensa:'Inspeksi', tjLift:'Forklift', tjShuka:'Pengumpulan', title:'Peta Layout Degreasing', lfT:'🚜 Forklift', lfAdd:'➕ Tambah forklift', lfH:'Lantai tanpa barang = area jalan forklift. Ketuk untuk nama', liftArea:'Area jalan forklift (lantai kosong)', cells:'kotak', newLift:'Forklift',  edit:'✏️ Edit', editOn:'✅ Selesai edit', undo:'Batal', fit:'Semua',
+       editing:'✏️ Mode edit: seret untuk pindah / sudut kuning untuk ubah ukuran / × untuk hapus', selT:'🎯 Blok terpilih',
+       dup:'📄 Salin', del:'🗑 Hapus', addT:'➕ Tambah blok', addH:'Tekan warna untuk menambah di tengah layar',
+       toolT:'💾 Simpan & bagi', exp:'⬇ Simpan file', imp:'⬆ Buka file', print:'🖨 Cetak', reset:'Reset',
+       toolH:'Untuk tablet lain: "Simpan file" lalu "Buka file" di tablet itu',
+       msT:'👷 Staf lini', msAdd:'➕ Tambah staf lini', msH:'Bekerja di lini degreasing. Di luar jam kerja tidak tampil di peta. Ketuk untuk nama',
+       lgT:'🎨 Arti warna', tape:'*Diukur dari luar ke luar selotip (lebar 5 cm)', shipT:'🕗 Jam pengiriman', newBlk:'Tempat baru', newMs:'Baru',
+       cDel:'Hapus blok ini?', cReset:'Kembalikan layout dan maskot ke awal?',
+       saved:'Tersimpan', loaded:'Berhasil dibuka', bad:'File tidak bisa dibaca', noLine:'Tidak ada blok lini degreasing, staf lini sedang istirahat',
+       ship:['08:00 Kirim panel → kembali 10:00 bawa material panel. Setelah kirim, pindahkan stok panel ke jalur kirim panel',
+             '08:00 BC rit 1 (sudah di jalur kirim)','Lewat 10:00 BC rit 2 (jalur kirim)','10:00 Kirim Niytec (disiapkan shift malam)',
+             '18:00 BC rit 3 (taruh di tempat sementara; rit 1 ada di jalur kirim)','19:00 Kirim Niytec (siang siapkan, malam cek)','21:00 BC rit 4 (taruh di depan rit 1)'] },
+  tl:{ dutyIn:'👋 Pasok na: {n}', dutyOut:'🙇 Salamat sa trabaho: {n}', nameSep:', ', tj:'📋 Pamamaraan sa Trabaho', tjKake:'Pagsasabit', tjKensa:'Inspeksyon', tjLift:'Forklift', tjShuka:'Pagkolekta', title:'Mapa ng Layout ng Degreasing', lfT:'🚜 Forklift', lfAdd:'➕ Magdagdag ng forklift', lfH:'Sahig na walang kargamento = daanan ng forklift. I-tap para sa pangalan', liftArea:'Daanan ng forklift (bakanteng sahig)', cells:'kahon', newLift:'Forklift',  edit:'✏️ I-edit', editOn:'✅ Tapos na', undo:'Ibalik', fit:'Lahat',
+       editing:'✏️ Edit mode: i-drag para ilipat / dilaw na sulok para palakihin / × para burahin', selT:'🎯 Napiling block',
+       dup:'📄 Kopyahin', del:'🗑 Burahin', addT:'➕ Magdagdag ng block', addH:'Pindutin ang kulay para idagdag sa gitna ng screen',
+       toolT:'💾 I-save at ibahagi', exp:'⬇ I-save sa file', imp:'⬆ Buksan ang file', print:'🖨 I-print', reset:'I-reset',
+       toolH:'Para sa ibang tablet: "I-save sa file" tapos "Buksan ang file" doon',
+       msT:'👷 Staff ng linya', msAdd:'➕ Magdagdag ng staff ng linya', msH:'Nagtatrabaho sa degreasing line. Wala sa mapa sa labas ng oras ng trabaho. I-tap para sa pangalan',
+       lgT:'🎨 Kahulugan ng kulay', tape:'*Sinusukat mula labas hanggang labas ng tape (5 cm)', shipT:'🕗 Oras ng padala', newBlk:'Bagong lagayan', newMs:'Bago',
+       cDel:'Burahin ang block na ito?', cReset:'Ibalik sa simula ang layout at maskot?',
+       saved:'Na-save', loaded:'Nabuksan', bad:'Hindi mabasa ang file', noLine:'Walang degreasing line block, nagpapahinga ang staff ng linya',
+       ship:['8:00 Padala ng panel → babalik 10:00 dala ang materyales. Pagkatapos, ilipat ang panel stock sa panel lane',
+             '8:00 BC biyahe 1 (nasa shipping lane)','Lampas 10:00 BC biyahe 2 (shipping lane)','10:00 Padala sa Niytec (inihanda ng night shift)',
+             '18:00 BC biyahe 3 (sa pansamantalang lagayan; nasa lane ang biyahe 1)','19:00 Padala sa Niytec (araw naghanda, gabi nag-check)','21:00 BC biyahe 4 (sa harap ng biyahe 1)'] },
+  en:{ dutyIn:'👋 Clocked in: {n}', dutyOut:'🙇 Good work today: {n}', nameSep:', ', tj:'📋 Work Steps', tjKake:'Hanging', tjKensa:'Inspection', tjLift:'Forklift', tjShuka:'Collection', title:'Degreasing Layout Map', lfT:'🚜 Forklifts', lfAdd:'➕ Add forklift', lfH:'Empty floor = forklift driving area. Tap for the name', liftArea:'Forklift area (empty floor)', cells:'cells', newLift:'Forklift',  edit:'✏️ Edit', editOn:'✅ Done', undo:'Undo', fit:'Fit',
+       editing:'✏️ Editing: drag to move / yellow corner to resize / × to delete. Press "Done" when finished', selT:'🎯 Selected block',
+       dup:'📄 Copy', del:'🗑 Delete', addT:'➕ Add block', addH:'Tap a color to add it in the middle of the screen',
+       toolT:'💾 Save & share', exp:'⬇ Save to file', imp:'⬆ Load file', print:'🖨 Print', reset:'Reset',
+       toolH:'For other tablets: "Save to file", then "Load file" on that tablet',
+       msT:'👷 Line staff', msAdd:'➕ Add line staff', msH:'Works on the degreasing line. Not shown on the map outside working hours. Tap for the name',
+       lgT:'🎨 Color meaning', tape:'*Measured outside to outside of tape (5 cm wide)', shipT:'🕗 Shipping times', newBlk:'New area', newMs:'Rookie',
+       cDel:'Delete this block?', cReset:'Reset layout and mascots to the initial state?',
+       saved:'Saved', loaded:'Loaded', bad:'Could not read the file', noLine:'No degreasing line block, line staff are resting',
+       ship:['8:00 Panel shipping → back at 10:00 with panel material. After shipping, move panel stock to the panel lane',
+             '8:00 BC trip 1 (already in the shipping lane)','After 10:00 BC trip 2 (shipping lane)','10:00 Niytec shipping (prepared by night shift)',
+             '18:00 BC trip 3 (put in temp area; trip 1 is in the lane)','19:00 Niytec shipping (day prepares, night checks)','21:00 BC trip 4 (put in front of trip 1)'] }
+};
+
+/* ===== Excel出力・読込と、出荷時間の編集の言葉（4言語） ===== */
+Object.assign(I18N.ja, {
+  xOut:'📊 Excel出力', xIn:'📥 Excel読込', xSaved:'Excelに出力しました', xLoaded:'Excelから読み込みました',
+  cXlsx:'Excelの{n}個のブロックで、今の配置を全部入れ替えます。\nよろしいですか？（「↩戻す」で元に戻せます）',
+  xErr:'Excelにまちがいがあるので、読み込みを止めました。\n直してから、もう一度読み込んでください。',
+  xErrColor:'{r}：この色は区分にありません（区分一覧の色を使ってください）', xEmpty:'Excelに置き場がありません',
+  xNotPic:'レイアウト図のExcelではありません（色を付けたセルがありません）',
+  xOld:'このExcelは、このタブレットでは読めません（ブラウザを新しくしてください）',
+  colCat:'区分',
+  sh1:'レイアウト図', sh2:'区分一覧', colLang:'言語ごとの名前',
+  xNote:['1マス＝1セルです。左上のセル（A1）が画面の左上です。',
+         '置き場は「セルを結合」して色を付け、名前を書きます。結合した1つが1つの置き場です。',
+         '色で区分が決まります。このシートの左の列のセルをコピーして色を付けてください。',
+         '幅記号は名前の後ろに【A】【B】【C】【D】と書きます。',
+         '置き場を消すときは、結合を解除して「すべてクリア」します。色のないセルは床（リフト走行エリア）です。',
+         'マスコットと出荷時間はExcelに入りません。「ファイルに保存」を使ってください。'],
+  shipEdH:'1行に1つ書きます。直すと、この言語の文だけ変わります', shipReset:'↺ 最初の文に戻す',
+  cShip:'出荷時間の文（この言語）を最初の文に戻しますか？'
+});
+Object.assign(I18N.id, {
+  xOut:'📊 Ekspor Excel', xIn:'📥 Impor Excel', xSaved:'Excel tersimpan', xLoaded:'Excel berhasil dibuka',
+  cXlsx:'Semua layout akan diganti dengan {n} blok dari Excel.\nLanjutkan? (Bisa dikembalikan dengan "↩ Batal")',
+  xErr:'Ada kesalahan di Excel, impor dihentikan.\nPerbaiki lalu impor lagi.',
+  xErrColor:'{r}: warna ini bukan kategori (pakai warna dari daftar kategori)', xEmpty:'Tidak ada tempat di Excel',
+  xNotPic:'Ini bukan Excel peta layout (tidak ada sel berwarna)',
+  xOld:'Excel ini tidak bisa dibaca di tablet ini (perbarui browser)',
+  colCat:'Kategori',
+  sh1:'Peta layout', sh2:'Daftar kategori', colLang:'Nama tiap bahasa',
+  xNote:['1 kotak = 1 sel. Sel kiri atas (A1) = kiri atas layar.',
+         'Untuk tempat: gabungkan sel (merge), beri warna, tulis nama. Satu gabungan = satu tempat.',
+         'Warna menentukan kategori. Salin sel di kolom kiri sheet ini untuk memberi warna.',
+         'Kode lebar ditulis di belakang nama: 【A】【B】【C】【D】.',
+         'Untuk menghapus tempat: batalkan gabungan lalu "Hapus semua". Sel tanpa warna = lantai (area forklift).',
+         'Maskot dan jam pengiriman tidak masuk Excel. Pakai "Simpan file".'],
+  shipEdH:'Satu baris satu catatan. Hanya bahasa ini yang berubah', shipReset:'↺ Kembali ke teks awal',
+  cShip:'Kembalikan jam pengiriman (bahasa ini) ke teks awal?'
+});
+Object.assign(I18N.tl, {
+  xOut:'📊 I-export sa Excel', xIn:'📥 Mag-import ng Excel', xSaved:'Na-export sa Excel', xLoaded:'Nabuksan ang Excel',
+  cXlsx:'Papalitan ang buong layout ng {n} block mula sa Excel.\nItuloy? (Maibabalik gamit ang "↩ Ibalik")',
+  xErr:'May mali sa Excel, itinigil ang import.\nAyusin at i-import ulit.',
+  xErrColor:'{r}: walang uri na may ganitong kulay (gamitin ang kulay sa listahan ng uri)', xEmpty:'Walang lagayan sa Excel',
+  xNotPic:'Hindi ito Excel ng mapa ng layout (walang may kulay na cell)',
+  xOld:'Hindi mabasa ang Excel na ito sa tablet na ito (i-update ang browser)',
+  colCat:'Uri',
+  sh1:'Mapa ng layout', sh2:'Listahan ng uri', colLang:'Pangalan sa bawat wika',
+  xNote:['1 kahon = 1 cell. Ang kaliwang itaas na cell (A1) = kaliwang itaas ng screen.',
+         'Para sa lagayan: i-merge ang mga cell, kulayan, isulat ang pangalan. Isang merge = isang lagayan.',
+         'Ang kulay ang nagsasabi ng uri. Kopyahin ang cell sa kaliwang column ng sheet na ito.',
+         'Isulat ang code ng lapad sa likod ng pangalan: 【A】【B】【C】【D】.',
+         'Para burahin: i-unmerge at "Clear All". Ang cell na walang kulay = sahig (daanan ng forklift).',
+         'Hindi kasama ang maskot at oras ng padala. Gamitin ang "I-save sa file".'],
+  shipEdH:'Isang tala bawat linya. Ang wikang ito lang ang nagbabago', shipReset:'↺ Ibalik sa unang teksto',
+  cShip:'Ibalik sa unang teksto ang oras ng padala (wikang ito)?'
+});
+Object.assign(I18N.en, {
+  xOut:'📊 Export Excel', xIn:'📥 Import Excel', xSaved:'Exported to Excel', xLoaded:'Imported from Excel',
+  cXlsx:'Replace the whole layout with {n} blocks from Excel?\n(You can undo with "↩ Undo")',
+  xErr:'The Excel file has errors, so the import was stopped.\nFix them and import again.',
+  xErrColor:'{r}: this color is not a category (use a color from the category list)', xEmpty:'No areas in the Excel file',
+  xNotPic:'This is not a layout map Excel file (no colored cells)',
+  xOld:'This tablet cannot read this Excel file (please update the browser)',
+  colCat:'Category',
+  sh1:'Layout map', sh2:'Categories', colLang:'Name in each language',
+  xNote:['1 grid cell = 1 Excel cell. The top left cell (A1) is the top left of the screen.',
+         'For an area: merge cells, color them and write the name. One merged range = one area.',
+         'The color decides the category. Copy a cell from the left column of this sheet to color.',
+         'Write the width code after the name: 【A】【B】【C】【D】.',
+         'To delete an area: unmerge and "Clear All". Cells without color = floor (forklift area).',
+         'Mascots and shipping times are not in Excel. Use "Save to file".'],
+  shipEdH:'One note per line. Only this language changes', shipReset:'↺ Back to the original text',
+  cShip:'Reset the shipping times (this language) to the original text?'
+});
+
+/* ===== スタッフ（ライン・集荷）と働く時間の言葉 ===== */
+Object.assign(I18N.ja, { pkT:'📦 集荷スタッフ', pkAdd:'➕ 集荷スタッフ追加', newPk:'集荷',
+  pkH:'集荷エリアの中で働きます。働く時間の外はマップに出ません。タップで名前',
+  noPick:'「集荷エリア」のブロックがないので、集荷スタッフはお休み中です' });
+Object.assign(I18N.id, { pkT:'📦 Staf pengumpulan', pkAdd:'➕ Tambah staf pengumpulan', newPk:'Kumpul',
+  pkH:'Bekerja di area pengumpulan. Di luar jam kerja tidak tampil di peta. Ketuk untuk nama',
+  noPick:'Tidak ada blok area pengumpulan, staf pengumpulan sedang istirahat' });
+Object.assign(I18N.tl, { pkT:'📦 Staff ng pagkolekta', pkAdd:'➕ Magdagdag ng staff ng pagkolekta', newPk:'Kolekta',
+  pkH:'Nagtatrabaho sa lugar ng pagkolekta. Wala sa mapa sa labas ng oras ng trabaho. I-tap para sa pangalan',
+  noPick:'Walang block ng lugar ng pagkolekta, nagpapahinga ang staff ng pagkolekta' });
+Object.assign(I18N.en, { pkT:'📦 Pickup staff', pkAdd:'➕ Add pickup staff', newPk:'Pickup',
+  pkH:'Works in the pickup area. Not shown on the map outside working hours. Tap for the name',
+  noPick:'No pickup area block, pickup staff are resting' });
+
+/* ===== コンベア・役割・運搬の言葉 ===== */
+Object.assign(I18N.ja, { roleIn:'投入', roleOut:'取出し', rolePat:'巡回', noMat:'素材なし', full:'満杯', waitLift:'リフト待ち', wash:'脱脂',
+  liftNG:'リフトが行けません（通り道がふさがっています）',
+  msH:'役割：投入＝素材をハンガーに掛ける、取出し＝完成品をおろす、巡回＝ラインを見回る。時間外はマップに出ません',
+  pkH:'完成品置きから集荷エリアのリフト側へ運んで山積みします。時間外はマップに出ません',
+  lfH:'ふだんは空いている床を走ります。素材が減る・山積みが5個たまると、自動で運びます。タップで名前' });
+Object.assign(I18N.id, { roleIn:'Input', roleOut:'Ambil', rolePat:'Patroli', noMat:'Material habis', full:'Penuh', waitLift:'Tunggu forklift', wash:'Degreasing',
+  liftNG:'Forklift tidak bisa lewat (jalan tertutup)',
+  msH:'Peran: Input = gantung material, Ambil = turunkan barang jadi, Patroli = keliling lini. Di luar jam kerja tidak tampil',
+  pkH:'Bawa dari tempat barang jadi ke sisi forklift area pengumpulan lalu tumpuk. Di luar jam kerja tidak tampil',
+  lfH:'Biasanya jalan di lantai kosong. Saat material sedikit atau tumpukan 5, otomatis mengangkut. Ketuk untuk nama' });
+Object.assign(I18N.tl, { roleIn:'Input', roleOut:'Kuha', rolePat:'Ronda', noMat:'Walang materyales', full:'Puno', waitLift:'Hinihintay ang forklift', wash:'Degreasing',
+  liftNG:'Hindi makadaan ang forklift (sarado ang daan)',
+  msH:'Tungkulin: Input = isabit ang materyales, Kuha = ibaba ang tapos na produkto, Ronda = libutin ang linya. Wala sa mapa sa labas ng oras',
+  pkH:'Dalhin mula sa lagayan ng tapos na produkto papunta sa gilid ng forklift at isalansan. Wala sa mapa sa labas ng oras',
+  lfH:'Karaniwang tumatakbo sa bakanteng sahig. Kapag kaunti na ang materyales o 5 na ang salansan, kusang magdadala. I-tap para sa pangalan' });
+Object.assign(I18N.en, { roleIn:'Load', roleOut:'Unload', rolePat:'Patrol', noMat:'No material', full:'Full', waitLift:'Waiting for forklift', wash:'Degreasing',
+  liftNG:'The forklift cannot get there (path blocked)',
+  msH:'Roles: Load = hang material, Unload = take off finished goods, Patrol = walk around the line. Not shown outside working hours',
+  pkH:'Carries from the finished goods rack to the forklift side of the pickup area and stacks. Not shown outside working hours',
+  lfH:'Usually drives on empty floor. Refills material and takes a stack of 5 to the shipping lane automatically. Tap for the name' });
+
+/* ===== 名前を変える欄の言葉 ===== */
+Object.assign(I18N.ja, { roleEdT:'役割の名前（空欄＝最初の名前）', shipTitleH:'見出し（空欄＝最初の名前）' });
+Object.assign(I18N.id, { roleEdT:'Nama peran (kosong = nama awal)', shipTitleH:'Judul (kosong = nama awal)' });
+Object.assign(I18N.tl, { roleEdT:'Pangalan ng tungkulin (blangko = orihinal)', shipTitleH:'Pamagat (blangko = orihinal)' });
+Object.assign(I18N.en, { roleEdT:'Role names (empty = original)', shipTitleH:'Heading (empty = original)' });
+
+/* ===== 初期レイアウト（Excel「脱脂レイアウト」シートから作成。ここを書き換えれば初期配置を変えられる） =====
+   [区分, 表示名, x, y, 幅, 高さ, 幅記号(A/B/C/D)] */
+const DEFAULT_LAYOUT = [
+  ['wall','',0,0,1600,34], ['wall','',1530,34,70,920],
+  ['aisle','',0,34,36,190], ['aisle','',0,410,36,560], ['aisle','',36,954,1564,18], ['aisle','',786,576,34,378],
+  ['aisle','',572,746,214,34], ['aisle','',572,848,214,34],   // 集荷エリア横のグレー部分も歩行帯
+  ['charger','リフト充電器',36,34,70,202,'D'],
+  ['shipFin','パネル出荷',106,34,108,101,'C'], ['shipFin','BC向け出荷品\n一時置き',106,135,108,101],
+  ['stockFin','パネル在庫',214,34,108,101,'C'], ['shipFin','BC向け出荷品\n一時置き',214,135,108,101],
+  ['stockFin','小原在庫601',322,34,108,202,'C'],
+  ['empty','パネル空箱',430,34,106,101,'C'], ['stockFin','小原翌日分',430,135,106,101],
+  ['stockFin','V017',536,34,72,101,'C'], ['empty','ニイテック空箱',536,135,72,101],
+  ['material','パネル素材',608,34,72,202,'C'], ['material','ニイテック素材',680,34,72,202,'C'],
+  ['empty','⑪空箱',752,34,72,202,'A'], ['empty','⑩空箱',824,34,72,202,'A'], ['empty','⑨空箱',896,34,72,202,'A'],
+  ['empty','⑧空箱',968,34,72,202,'A'], ['empty','⑦空箱',1040,34,72,202,'A'],
+  ['material','⑥素材',1112,34,72,202,'A'], ['material','⑤素材',1184,34,72,202,'A'], ['material','④素材',1256,34,72,202,'A'],
+  ['material','③素材',1328,34,72,202,'A'], ['material','②D016',1400,34,65,202,'B'], ['material','①D083',1465,34,65,202,'B'],
+  ['material','A048＆A049',1356,372,174,68], ['other','ハンガー台車',1458,474,72,102],
+  ['shipFin','ニイテック出荷',36,442,70,68,'A'], ['material','601素材',36,510,70,68],
+  ['stockFin','750',36,578,70,68], ['stockFin','520',36,646,70,68], ['material','351D',36,714,70,68],
+  ['material','900B',36,782,70,68], ['material','459D',36,850,70,68], ['stockFin','951',36,918,70,36],
+  ['empty','小原箱',106,680,72,274,'A'],
+  ['empty','運転手が持ってきた箱＆素材置場',178,442,72,512,'A'],
+  ['empty','素材の箱＆鉄パレ置場（返却）',250,442,72,512,'A'],
+  ['shipFin','出荷レーン',322,442,72,440,'A'], ['stockFin','直納在庫',394,442,106,440,'A'],
+  ['empty','パネル試作パレット',322,882,214,72],
+  ['daiko','大幸ゾーン',500,610,72,272],
+  ['shipArea','集荷エリア',572,576,214,102], ['aoi','あおいゾーン',572,678,142,68], ['temp','出荷\n一時置き',714,678,72,68],
+  ['obara','小原小物素材エリア\nその他ゾーン',572,780,214,68], ['daisha','代車管理の在庫',572,882,214,34],
+  ['other','ラック',572,916,70,38], ['hasu','端数',642,916,72,38], ['other','棚',714,916,72,38],
+  ['line','脱脂ライン',820,576,710,378],
+  ['inBuf','投入バッファ',1188,576,72,54], ['outBuf','完成品置き',828,576,54,90],   // 投入はライン右上の内側（リフトは外から補充）、完成品置きはラインの左上の角
+  ['pillar','',526,24,20,20], ['pillar','',1030,34,20,20], ['pillar','',1522,40,20,20],
+  ['pillar','',536,566,20,20], ['pillar','',1034,566,20,20], ['pillar','',1516,566,20,20]
+];
+const DEFAULT_MASCOTS = ['サントソ','デウィ','アウン','佐藤','鈴木'];
+const DEFAULT_LIFTS = ['リフト1号'];   // リフトは1台
+const DEFAULT_ROLES = {'サントソ':'in', 'デウィ':'in', 'アウン':'out', '佐藤':'out', '鈴木':'patrol'};   // 投入・取出し・巡回
+const LIFT_COLORS = ['#f59e0b','#ef4444','#22c55e','#3b82f6','#a855f7','#ec4899'];
+const HATS = ['#facc15','#f472b6','#38bdf8','#4ade80','#fb923c','#a78bfa','#f87171','#2dd4bf'];
+const SHIRTS = ['#3b82f6','#8b5cf6','#0ea5e9','#22c55e','#f97316','#ec4899','#64748b','#14b8a6'];
+
+const KEY = 'dasshi_map_v2';
+const G = 18;      // 1マスの大きさ。移動・サイズ変更はマス単位だけ（指でもきれいに揃う）
+let uid = 1;
+// 初期配置もマス目に合わせる（四隅をマスに丸めるので、隣どうしの隙間ができない）
+const g = v => Math.round(v / G) * G;
+const mkBlocks = () => DEFAULT_LAYOUT.map(a => {
+  const x = g(a[2]), y = g(a[3]);
+  const pil = a[0] === 'pillar';   // 柱は1マス
+  return {id:uid++, cat:a[0], label:a[1], x, y, w: pil ? G : Math.max(G, g(a[2]+a[4]) - x), h: pil ? G : Math.max(G, g(a[3]+a[5]) - y), wd:a[6]||''};
+});
+const DEF_FROM = '08:00', DEF_TO = '17:00';   // 働く時間の初期値
+const DEFAULT_PICKERS = ['集荷1'];
+const mkPickers = () => DEFAULT_PICKERS.map((n,i) => ({id:uid++, kind:'pick', name:n, c:4 + i, from:DEF_FROM, to:DEF_TO}));
+const mkMascots = () => [...DEFAULT_MASCOTS.map((n,i) => ({id:uid++, kind:'man', name:n, c:i, from:DEF_FROM, to:DEF_TO, role:DEFAULT_ROLES[n] || 'patrol'})),
+                         ...mkPickers(),
+                         ...DEFAULT_LIFTS.map((n,i) => ({id:uid++, kind:'lift', name:n, c:i}))];
+const REV = 6;
+
+let S = {blocks:mkBlocks(), mascots:mkMascots(), rev:REV};
+let lang = 'ja', editing = false, selId = null, Z = 1, undoStack = [];
+try {
+  const d = JSON.parse(localStorage.getItem(KEY) || 'null');
+  if (d && Array.isArray(d.blocks)) S = d;
+  lang = localStorage.getItem('dasshi_lang') || 'ja';
+} catch(e) {}
+if (!I18N[lang]) lang = 'ja';
+uid = Math.max(0, ...S.blocks.map(b=>+b.id||0), ...S.mascots.map(m=>+m.id||0)) + 1;
+/* 前の版で保存したデータに、版を上げたとき足したものだけを入れる（現場が直した配置は消さない） */
+function migrate() {
+  if (!S.rev) {        // rev 3：歩行帯2本
+    DEFAULT_LAYOUT.filter(a => a[0] === 'aisle' && a[2] === 572).forEach(a => {
+      const x = g(a[2]), y = g(a[3]);
+      S.blocks.push({id:uid++, cat:'aisle', label:'', x, y, w:g(a[2]+a[4]) - x, h:g(a[3]+a[5]) - y, wd:''});
+    });
+    S.rev = 3;
+  }
+  if (S.rev < 4) {     // rev 4：出荷エリア → 集荷エリア、集荷スタッフ
+    S.blocks.forEach(b => { if (b.cat === 'shipArea' && b.label === '出荷エリア') b.label = '集荷エリア'; });
+    if (!S.mascots.some(m => m.kind === 'pick')) S.mascots.push(...mkPickers());
+    S.rev = 4;
+  }
+  if (S.rev < 5) {     // rev 5：投入バッファ・完成品置き、スタッフの役割、リフトは1台
+    DEFAULT_LAYOUT.filter(a => ['inBuf','outBuf'].includes(a[0]) && !S.blocks.some(b => b.cat === a[0])).forEach(a => {
+      const x = g(a[2]), y = g(a[3]);
+      S.blocks.push({id:uid++, cat:a[0], label:a[1], x, y, w:g(a[2]+a[4]) - x, h:g(a[3]+a[5]) - y, wd:''});
+    });
+    S.mascots.forEach(m => { if (m.kind === 'man' && !m.role) m.role = DEFAULT_ROLES[m.name] || 'patrol'; });
+    S.mascots = S.mascots.filter(m => !(m.kind === 'lift' && ['リフト2号','リフト3号'].includes(m.name)));   // 名前を変えていない2号・3号だけ消す
+    S.rev = 5;
+  }
+  if (S.rev < 6) {     // rev 6：投入バッファ・完成品置きを新しい場所へ（前の初期位置のままのときだけ）
+    const mv = (cat, ox, oy, a) => { const b = S.blocks.find(b => b.cat === cat && b.x === ox && b.y === oy && b.w === 72 - (cat === 'outBuf' ? 18 : 0));
+      if (b) { b.x = g(a[2]); b.y = g(a[3]); b.w = g(a[2] + a[4]) - b.x; b.h = g(a[3] + a[5]) - b.y; } };
+    mv('inBuf', 882, 522, DEFAULT_LAYOUT.find(a => a[0] === 'inBuf'));
+    mv('outBuf', 828, 738, DEFAULT_LAYOUT.find(a => a[0] === 'outBuf'));
+    S.rev = 6;
+  }
+}
+if ((S.rev || 0) < REV) { migrate(); try { localStorage.setItem(KEY, JSON.stringify(S)); } catch(e) {} }
+
+const T = () => I18N[lang];
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch(e) {} };
+const snap = v => Math.round(v / G) * G;
+const catOf = b => CATS[b.cat] || CATS.other;
+function toast(msg, ms = 2200) { const t = $('toast'); t.textContent = msg; t.style.display = 'block'; clearTimeout(toast.h); toast.h = setTimeout(() => t.style.display = 'none', ms); }
+
+/* ===== 元に戻す（削除・移動のやり直し＝失敗しても大丈夫） ===== */
+function pushUndo() { undoStack.push(JSON.stringify(S.blocks)); if (undoStack.length > 30) undoStack.shift(); $('bUndo').disabled = false; }
+function undo() { if (!undoStack.length) return; S.blocks = JSON.parse(undoStack.pop()); $('bUndo').disabled = !undoStack.length; save(); renderBlocks(); }
+
+/* ===== マップ描画 ===== */
+function stageSize() {
+  let w = 400, h = 300;
+  S.blocks.forEach(b => { w = Math.max(w, b.x + b.w); h = Math.max(h, b.y + b.h); });
+  return {w: w + 20, h: h + 20};
+}
+function applyZoom() {
+  const s = stageSize(), st = $('stage');
+  st.style.width = s.w + 'px'; st.style.height = s.h + 'px'; st.style.setProperty('--g', G + 'px'); st.style.transform = `scale(${Z})`;
+  $('wrap').style.width = s.w * Z + 'px'; $('wrap').style.height = s.h * Z + 'px';
+}
+function fit() { const v = $('view'), s = stageSize(); Z = Math.max(.2, Math.min((v.clientWidth - 32) / s.w, (v.clientHeight - 32) / s.h)); applyZoom(); }
+function zoom(k) { Z = Math.max(.2, Math.min(3, Z * k)); applyZoom(); }
+
+// 文字の大きさと向き：横書き・縦書きのうち、文字が大きく入る方を自動で選ぶ（Excel出力でも使う）
+function textFit(b) {
+  const lines = String(b.label || ' ').split('\n'), len = Math.max(...lines.map(l => l.length)) || 1;
+  const fsH = Math.min((b.w - 8) / (len + .3), (b.h - 10) / (lines.length * 1.3));
+  const fsV = Math.min((b.h - 10) / (len + .3), (b.w - 8) / (lines.length * 1.3));
+  const vert = fsV > fsH * 1.15;
+  return {vert, fs:Math.max(8, Math.min(20, vert ? fsV : fsH))};
+}
+function renderBlocks() {
+  const st = $('stage');
+  st.querySelectorAll('.blk').forEach(e => e.remove());
+  S.blocks.forEach(b => {
+    const c = catOf(b), el = document.createElement('div');
+    const {vert, fs} = textFit(b);
+    el.className = 'blk' + (b.id === selId ? ' sel' : '') + (b.cat === 'line' ? ' line' : '') +
+                   (['wall','aisle'].includes(b.cat) ? ' flat' : '') + (b.cat === 'aisle' ? ' walk' : '') + (b.cat === 'pillar' ? ' pillar' : '') +
+                   (vert ? ' v' : '');
+    el.dataset.id = b.id;
+    el.style.cssText = `left:${b.x}px;top:${b.y}px;width:${b.w}px;height:${b.h}px;background:${c.bg};color:${c.fg};font-size:${fs}px`;
+    el.innerHTML = `<span class="lb">${esc(b.label)}</span>${b.wd ? `<span class="wd">${esc(b.wd)}</span>` : ''}
+                    <div class="x">×</div><div class="rz"></div>`;
+    if (b.cat === 'line') for (let i = 0; i < 9; i++) {           // 脱脂の泡
+      const s = 6 + Math.random() * 12, bu = document.createElement('span');
+      bu.className = 'bub';
+      bu.style.cssText = `left:${Math.random()*95}%;width:${s}px;height:${s}px;animation-duration:${5+Math.random()*6}s;animation-delay:${-Math.random()*8}s`;
+      el.appendChild(bu);
+    }
+    st.appendChild(el);
+  });
+  applyZoom();
+  renderSel();
+}
+
+/* ===== ドラッグ・サイズ変更・選択（マウスとタッチ両対応） ===== */
+let act = null;
+$('stage').addEventListener('pointerdown', e => {
+  const el = e.target.closest('.blk');
+  if (!el) { if (editing) { selId = null; renderBlocks(); } return; }
+  const b = S.blocks.find(x => x.id == el.dataset.id);
+  if (!editing) {                                     // ふだんはタップで名前を表示（小さい置き場も読める）
+    if (b.label) toast(`${b.label.replace(/\n/g,'')}（${catOf(b)[lang]}）`);
+    return;
+  }
+  if (e.target.classList.contains('x')) { delSel(); return; }
+  e.preventDefault();
+  if (selId !== b.id) { selId = b.id; renderBlocks(); }
+  act = {b, mode: e.target.classList.contains('rz') ? 'rz' : 'mv', sx:e.clientX, sy:e.clientY,
+         ox:b.x, oy:b.y, ow:b.w, oh:b.h, moved:false};
+});
+document.addEventListener('pointermove', e => {
+  if (!act) return;
+  const dx = (e.clientX - act.sx) / Z, dy = (e.clientY - act.sy) / Z;
+  if (!act.moved && Math.abs(dx) + Math.abs(dy) < G / 2) return;
+  if (!act.moved) { pushUndo(); act.moved = true; }
+  const b = act.b, el = $('stage').querySelector(`.blk[data-id="${b.id}"]`);
+  if (act.mode === 'mv') { b.x = Math.max(0, snap(act.ox + dx)); b.y = Math.max(0, snap(act.oy + dy)); }
+  else { b.w = Math.max(G, snap(act.ow + dx)); b.h = Math.max(G, snap(act.oh + dy)); toast(`${b.w / G} × ${b.h / G} ${T().cells}`); }
+  Object.assign(el.style, {left:b.x+'px', top:b.y+'px', width:b.w+'px', height:b.h+'px'});
+});
+document.addEventListener('pointerup', () => {
+  if (!act) return;
+  if (act.moved) { save(); renderBlocks(); }
+  act = null;
+});
+
+/* ===== 選んだブロックの編集 ===== */
+function renderSel() {
+  const b = S.blocks.find(x => x.id === selId);
+  $('pSel').style.display = editing && b ? '' : 'none';
+  if (!b) return;
+  if (document.activeElement !== $('sLabel')) $('sLabel').value = b.label;
+  $('sCat').value = b.cat; $('sWd').value = b.wd || '';
+}
+let typingUndo = false;
+function editSel(k, v) {
+  const b = S.blocks.find(x => x.id === selId); if (!b) return;
+  if (k !== 'label' || !typingUndo) pushUndo();
+  typingUndo = (k === 'label');
+  b[k] = v; save(); renderBlocks();
+}
+$('sLabel').addEventListener('blur', () => typingUndo = false);
+function delSel() {
+  const b = S.blocks.find(x => x.id === selId); if (!b) return;
+  if (!confirm(T().cDel + (b.label ? `\n「${b.label.replace(/\n/g,'')}」` : ''))) return;
+  pushUndo(); S.blocks = S.blocks.filter(x => x !== b); selId = null; save(); renderBlocks();
+}
+function dupSel() {
+  const b = S.blocks.find(x => x.id === selId); if (!b) return;
+  pushUndo(); const n = {...b, id:uid++, x:b.x + 20, y:b.y + 20}; S.blocks.push(n); selId = n.id; save(); renderBlocks();
+}
+function addBlock(cat) {
+  pushUndo();
+  const v = $('view');
+  const cx = snap((v.scrollLeft + v.clientWidth / 2 - 16) / Z - 60), cy = snap((v.scrollTop + v.clientHeight / 2 - 16) / Z - 40);
+  const big = cat === 'line';
+  const n = {id:uid++, cat, label: cat === 'pillar' ? '' : (big ? CATS.line.ja : T().newBlk),
+             x:Math.max(0,cx), y:Math.max(0,cy), w: G * (cat === 'pillar' ? 1 : big ? 22 : 6), h: G * (cat === 'pillar' ? 1 : big ? 13 : 4), wd:''};
+  S.blocks.push(n); selId = n.id; save(); renderBlocks();
+}
+
+/* ===== 編集モード切替 ===== */
+function toggleEdit() {
+  editing = !editing; selId = null;
+  document.body.classList.toggle('editing', editing);
+  if (editing) $('side').classList.remove('hide');
+  renderTexts(); renderBlocks();
+}
+function toggleSide() { $('side').classList.toggle('hide'); setTimeout(fit, 50); }
+
+/* ===== マスコット（脱脂ラインの中を上下左右に歩いて働く） ===== */
+function mascotSVG(m) {
+  const tool = m.kind === 'pick'
+    ? '<rect x="24.5" y="35" width="10" height="8" rx="1" fill="#d6a46b" stroke="#a16207" stroke-width=".8"/><path d="M24.5 38.6 h10" stroke="#a16207" stroke-width=".8"/>'
+    : '<rect x="28" y="36" width="2.6" height="7" rx="1" fill="#94a3b8"/><circle cx="29.3" cy="43.5" r="2.2" fill="none" stroke="#94a3b8" stroke-width="1.6"/>';
+  const hat = HATS[m.c % HATS.length], shirt = SHIRTS[m.c % SHIRTS.length];
+  return `<svg viewBox="0 0 40 52">
+    <ellipse cx="20" cy="50" rx="11" ry="2.5" fill="rgba(0,0,0,.25)"/>
+    <rect class="legL" x="14" y="38" width="5" height="10" rx="2.5" fill="#1e293b"/>
+    <rect class="legR" x="21" y="38" width="5" height="10" rx="2.5" fill="#1e293b"/>
+    <g class="bodyG">
+      <rect x="10.5" y="27" width="19" height="14" rx="6.5" fill="${shirt}"/>
+      <rect x="10.5" y="33" width="19" height="2.4" fill="#fde047"/>
+      <g class="arm"><rect x="27" y="28" width="4.5" height="10" rx="2.2" fill="${shirt}"/>${tool}</g>
+      <rect x="8.5" y="28" width="4.5" height="10" rx="2.2" fill="${shirt}"/>
+      <circle cx="20" cy="18" r="10.5" fill="#fcd9b6"/>
+      <circle cx="16.3" cy="19.5" r="1.6" fill="#1f2937"/><circle cx="23.7" cy="19.5" r="1.6" fill="#1f2937"/>
+      <circle cx="16.8" cy="19" r=".5" fill="#fff"/><circle cx="24.2" cy="19" r=".5" fill="#fff"/>
+      <ellipse cx="13.5" cy="22.5" rx="2" ry="1.2" fill="#fda4af"/><ellipse cx="26.5" cy="22.5" rx="2" ry="1.2" fill="#fda4af"/>
+      <path d="M18 23.2 q2 1.8 4 0" stroke="#7c2d12" stroke-width="1.1" fill="none" stroke-linecap="round"/>
+      <path d="M8.8 15.5 a11.2 10.5 0 0 1 22.4 0 z" fill="${hat}"/>
+      <rect x="6.5" y="14.5" width="27" height="3.2" rx="1.6" fill="${hat}" stroke="rgba(0,0,0,.15)" stroke-width=".6"/>
+      <rect x="18.6" y="5.6" width="2.8" height="9" rx="1.2" fill="rgba(255,255,255,.55)"/>
+    </g></svg><span class="spark">✨</span><span class="carry"></span>`;
+}
+function liftSVG(m) {
+  const col = LIFT_COLORS[m.c % LIFT_COLORS.length];
+  return `<svg viewBox="0 0 70 52">
+    <ellipse cx="34" cy="49" rx="27" ry="3" fill="rgba(0,0,0,.25)"/>
+    <rect x="50" y="6" width="4.5" height="36" rx="1.5" fill="#475569"/>
+    <g class="fork"><rect x="53" y="38" width="15" height="3" rx="1" fill="#334155"/><rect x="52" y="24" width="3" height="17" fill="#334155"/>
+      <rect x="55.5" y="26" width="12" height="11.5" rx="1.5" fill="#d6a46b" stroke="#a16207" stroke-width=".8"/>
+      <path d="M55.5 31.5 h12" stroke="#a16207" stroke-width=".8"/></g>
+    <rect x="3" y="20" width="12" height="20" rx="5" fill="#334155"/>
+    <rect x="9" y="23" width="42" height="17" rx="6" fill="${col}"/>
+    <rect x="9" y="31" width="42" height="2.5" fill="rgba(0,0,0,.18)"/>
+    <path d="M15 23 V7 H46 V23" fill="none" stroke="#1e293b" stroke-width="2.6" stroke-linejoin="round"/>
+    <circle class="pat" cx="30" cy="4.5" r="3" fill="#fb923c"/>
+    <circle cx="31" cy="16" r="6.5" fill="#fcd9b6"/>
+    <path d="M24.3 14.5 a6.8 6.3 0 0 1 13.4 0 z" fill="#facc15"/><rect x="23" y="13.8" width="16" height="2.2" rx="1.1" fill="#facc15"/>
+    <circle cx="33.5" cy="17.5" r="1.2" fill="#1f2937"/><ellipse cx="35.5" cy="19.8" rx="1.5" ry=".9" fill="#fda4af"/>
+    <g class="wh"><circle cx="18" cy="41" r="7" fill="#111827"/><circle cx="18" cy="41" r="2.6" fill="#9ca3af"/><rect x="17.3" y="35" width="1.4" height="3" fill="#9ca3af"/></g>
+    <g class="wh"><circle cx="44" cy="42" r="6" fill="#111827"/><circle cx="44" cy="42" r="2.2" fill="#9ca3af"/><rect x="43.3" y="37" width="1.4" height="2.6" fill="#9ca3af"/></g>
+  </svg><span class="carry"></span>`;
+}
+const LW = 70, LH = 52;    // リフトの大きさ（当たり判定）
+const live = new Map();    // マスコットの動き（保存しない）
+function lineBlock() { return S.blocks.find(b => b.cat === 'line'); }
+const ovl = (a, b) => a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+// リフトが入れる場所か？（置き場・壁・歩行帯・脱脂ライン・他のリフトと重ならない）
+function liftFree(x, y, self) {
+  const s = stageSize(), r = {x, y, w:LW, h:LH};
+  if (x < 0 || y < 0 || x + LW > s.w - 20 || y + LH > s.h - 20) return false;
+  if (S.blocks.some(b => ovl(r, b))) return false;
+  for (const [id, p] of live) if (id !== self && p.kind === 'lift' && p.el && p.el.style.display !== 'none' && ovl(r, {x:p.x, y:p.y, w:LW, h:LH})) return false;
+  return true;
+}
+function liftSpot(self) {
+  const s = stageSize();
+  for (let i = 0; i < 400; i++) {
+    const x = Math.floor(Math.random() * (s.w - LW) / G) * G, y = Math.floor(Math.random() * (s.h - LH) / G) * G;
+    if (liftFree(x, y, self)) return {x, y};
+  }
+  return null;
+}
+function renderMascots() {
+  const st = $('stage');
+  st.querySelectorAll('.ms').forEach(e => e.remove());
+  const cnt = {};
+  S.mascots.forEach(m => {
+    if (!m.kind) m.kind = 'man';
+    const i = cnt[m.kind] = (cnt[m.kind] ?? -1) + 1;   // 同じ種類の中で何人目か（はじめの立ち位置をずらす）
+    const el = document.createElement('div');
+    el.className = 'ms work' + (m.kind === 'lift' ? ' lift' : '');
+    el.innerHTML = m.kind === 'lift' ? liftSVG(m) : mascotSVG(m);
+    el.addEventListener('pointerdown', e => { e.stopPropagation(); showName(m, el); });
+    st.appendChild(el);
+    let p = live.get(m.id);
+    if (!p) {
+      if (m.kind === 'lift') { const sp = liftSpot(m.id); p = {kind:'lift', x:sp ? sp.x : -999, y:sp ? sp.y : -999, mode:'work', until:0, left:false}; }
+      else p = {kind:m.kind, x: 20 + (i * 97) % 600, y: 20 + (i * 61) % 300, tx:0, ty:0, mode:'work', until:0, left:false};   // エリアの中に自動で収まる
+    }
+    if (p) { p.el = el; live.set(m.id, p); }
+  });
+  renderMsList();
+}
+function showName(m, el) {
+  const p = live.get(m.id); if (p) { p.mode = 'work'; p.until = performance.now() + 2300; }
+  el.querySelectorAll('.name').forEach(n => n.remove());
+  const n = document.createElement('div'); n.className = 'name';
+  n.textContent = (m.name || '？') + (m.kind === 'man' ? `（${roleName(m.role)}）` : '') + (m.kind === 'lift' ? '' : `　${hm(m.from || DEF_FROM)}〜${hm(m.to || DEF_TO)}`);
+  el.appendChild(n); setTimeout(() => n.remove(), 2200);
+  el.classList.remove('hop'); void el.offsetWidth; el.classList.add('hop');
+}
+function setCls(p) { p.el.className = 'ms ' + p.mode + (p.kind === 'lift' ? ' lift' : '') + (p.left ? ' left' : '') + (p.carry ? ' carry-' + p.carry : '') + (p.el.classList.contains('hop') ? ' hop' : '') + (p.fxCls ? ' ' + p.fxCls : ''); }
+
+/* 働く時間（夜勤のように日をまたぐ時間も入れられる。はじめと終わりが同じなら24時間） */
+const toMin = v => { const r = /^(\d{1,2}):(\d{2})/.exec(v || ''); return r ? +r[1] * 60 + +r[2] : null; };
+const hm = v => String(v || '').replace(/^0(\d)/, '$1');      // 08:00 → 8:00
+function onDuty(m, mins) {
+  if (m.kind === 'lift') return true;
+  const f = toMin(m.from || DEF_FROM), t = toMin(m.to || DEF_TO);
+  if (f === null || t === null || f === t) return true;
+  return f < t ? (mins >= f && mins < t) : (mins >= f || mins < t);
+}
+// 時間は一覧から選ぶ（15分きざみ・24時間表示。打ちまちがいがないポカヨケ）
+const TIMES = Array.from({length:96}, (_, i) => String(Math.floor(i / 4)).padStart(2, '0') + ':' + String(i % 4 * 15).padStart(2, '0'));
+const timeOpts = v => (TIMES.includes(v) ? TIMES : [...TIMES, v].sort())
+  .map(x => `<option value="${esc(x)}"${x === v ? ' selected' : ''}>${esc(hm(x))}</option>`).join('');
+const areaOf = kind => kind === 'pick' ? S.blocks.find(b => b.cat === 'shipArea') : lineBlock();
+/* スタッフ：ラインスタッフは脱脂ライン、集荷スタッフは集荷エリアの中を上下左右に歩く。時間外は出ない */
+// 出勤：上からぴょんと出る＋✨／退勤：手をふる＋👋 のあと、小さくなって消える
+function dutyFx(p, on, now) {
+  p.fxCls = on ? 'dIn' : 'dOut'; p.fxUntil = now + (on ? 900 : 1600);
+  p.leaveUntil = on ? 0 : now + 1600;
+  const fx = document.createElement('span'); fx.className = 'fx'; fx.textContent = on ? '✨' : '👋';
+  p.el.appendChild(fx); setTimeout(() => fx.remove(), 1700);
+}
+function tickStaff(p, now, dt, L) {
+  p.el.style.display = L ? '' : 'none';
+  if (!L) return;
+  const maxX = Math.max(0, L.w - 60), maxY = Math.max(0, L.h - 78);
+  p.x = Math.min(Math.max(p.x, 0), maxX); p.y = Math.min(Math.max(p.y, 0), maxY);   // ラインが動いても中に留まる
+  if (p.mode === 'work' && now > p.until) {
+    const dir = Math.floor(Math.random() * 4), dist = 50 + Math.random() * 180;
+    p.tx = p.x; p.ty = p.y;
+    if (dir === 0) p.tx = Math.min(maxX, p.x + dist); if (dir === 1) p.tx = Math.max(0, p.x - dist);
+    if (dir === 2) p.ty = Math.min(maxY, p.y + dist); if (dir === 3) p.ty = Math.max(0, p.y - dist);
+    if (dir < 2) p.left = p.tx < p.x;
+    p.mode = 'walk';
+  }
+  if (p.mode === 'walk') {
+    const sp = 45 * dt, dx = p.tx - p.x, dy = p.ty - p.y, d = Math.hypot(dx, dy);
+    if (d <= sp) { p.x = p.tx; p.y = p.ty; p.mode = 'work'; p.until = now + 1500 + Math.random() * 3000; }
+    else { p.x += dx / d * sp; p.y += dy / d * sp; }
+  }
+  p.el.style.left = (L.x + p.x) + 'px'; p.el.style.top = (L.y + p.y) + 'px';
+  p.el.style.zIndex = 40 + Math.round(p.y);
+}
+/* リフト：何も置いていない床を上下左右に走る。前がふさがったら止まって荷役（フォーク上下） */
+function tickLift(p, id, now, dt) {
+  if (p.x < -100 || !liftFree(p.x, p.y, id)) {        // 置き場を動かして重なったら空いている床へ移る
+    const sp = liftSpot(id);
+    if (!sp) { p.el.style.display = 'none'; p.x = -999; return; }
+    p.x = sp.x; p.y = sp.y; p.mode = 'work'; p.until = now + 800;
+  }
+  p.el.style.display = '';
+  if (p.mode === 'work' && now > p.until) {
+    p.dir = Math.floor(Math.random() * 4); p.rest = G * (3 + Math.floor(Math.random() * 14));
+    if (p.dir < 2) p.left = p.dir === 1;
+    p.mode = 'walk';
+  }
+  if (p.mode === 'walk') {
+    const v = Math.min(p.rest, 70 * dt), nx = p.x + (p.dir === 0 ? v : p.dir === 1 ? -v : 0), ny = p.y + (p.dir === 2 ? v : p.dir === 3 ? -v : 0);
+    if (v > 0 && liftFree(nx, ny, id)) { p.x = nx; p.y = ny; p.rest -= v; }
+    else p.rest = 0;
+    if (p.rest <= 0) { p.mode = 'work'; p.until = now + 1200 + Math.random() * 2500; }
+  }
+  p.el.style.left = p.x + 'px'; p.el.style.top = p.y + 'px';
+  p.el.style.zIndex = 45 + Math.round(p.y / 10);
+}
+/* ===== 脱脂ラインの周回コンベアと、投入・取出し・集荷・リフトの連携
+   ※ 個数は動きで見せるためのお話です（本当の在庫数ではありません。保存もしません）
+   流れ：リフト → 投入バッファ → 投入担当がハンガーに掛ける → コンベアで脱脂 → 取出し担当がおろす
+        → 完成品置き → 集荷スタッフが集荷エリアのリフト側に山積み → 5個でリフトが出荷レーンへ ===== */
+const IN_CAP = 8, IN_LOW = 5, OUT_CAP = 6, PILE_CAP = 5, CV_GAP = 70, CV_SPEED = 15, CONV_BG = '#93c5fd';
+const CV = {in:IN_CAP, out:0, pile:0, off:0, hs:[], geo:'', layer:null, ov:{}, jobs:[], ngAt:0};
+// 自分たちで変えた名前（言語ごと。S.names[言語][キー]）。なければ最初の名前
+const nm = k => { const v = S.names && S.names[lang] && S.names[lang][k]; return v ? (k === 'shipT' ? '🕗 ' + v : v) : T()[k]; };
+const nmDef = k => T()[k].replace(/^🕗\s*/, '');
+function editName(inp) {
+  const k = inp.dataset.nk, v = inp.value.trim();
+  S.names = S.names || {}; S.names[lang] = S.names[lang] || {};
+  if (v) S.names[lang][k] = v; else delete S.names[lang][k];   // 空にすると最初の名前にもどる
+  save(); CV.geo = ''; $('t-shipT').textContent = nm('shipT');
+  if (k !== 'shipT') renderMsList();
+}
+const roleName = r => nm({in:'roleIn', out:'roleOut'}[r] || 'rolePat');
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const cvOK = L => L && L.w >= 12 * G && L.h >= 8 * G;           // 小さすぎるラインにはコンベアを出さない
+// コンベアのレール（マスの真ん中を通る。Excelの図と同じ位置）
+const cvRect = L => ({x0:L.x + 5.5 * G, y0:L.y + 3.5 * G, x1:L.x + L.w - 2.5 * G, y1:L.y + L.h - 2.5 * G});
+function cvCtx() {
+  const L = lineBlock(), c = {L, ok:false, conv:false};
+  if (!cvOK(L)) return c;
+  const r = cvRect(L), tw = r.x1 - r.x0, rh = r.y1 - r.y0;
+  Object.assign(c, {r, conv:true, len:2 * (tw + rh),
+    inB:S.blocks.find(b => b.cat === 'inBuf'), outB:S.blocks.find(b => b.cat === 'outBuf'), A:S.blocks.find(b => b.cat === 'shipArea')});
+  c.lane = S.blocks.find(b => /出荷レーン/.test(b.label || '')) || S.blocks.find(b => b.cat === 'shipFin') || S.blocks.find(b => b.cat === 'stockFin');
+  // 投入はバッファの真下（上の辺）、取出しは完成品置きの横（左の辺）、脱脂がおわるのは下の辺のまん中
+  c.dIn = clamp((c.inB ? c.inB.x + c.inB.w + 48 : r.x0 + tw * .15) - r.x0, 12, tw - 12);   // 投入はバッファの右どなり
+  c.dOut = tw + rh + tw + clamp(r.y1 - (c.outB ? c.outB.y + c.outB.h / 2 : (r.y0 + r.y1) / 2), 12, rh - 12);
+  c.dDone = tw + rh + tw / 2;
+  c.ok = !!(c.inB && c.outB);
+  if (c.A) c.P = {x:c.A.x + c.A.w - 56, y:c.A.y + 2, w:54, h:Math.min(c.A.h - 4, 72)};   // 山積み：集荷エリアのリフト側（上）
+  return c;
+}
+function cvPt(c, d) {                                    // レールの上の位置（時計回り：上→右→下→左）
+  const {x0, y0, x1, y1} = c.r, tw = x1 - x0, rh = y1 - y0; d = ((d % c.len) + c.len) % c.len;
+  if (d < tw) return [x0 + d, y0]; d -= tw;
+  if (d < rh) return [x1, y0 + d]; d -= rh;
+  if (d < tw) return [x1 - d, y1]; d -= tw;
+  return [x0, y1 - d];
+}
+const cvDist = (c, a, b) => { const d = Math.abs(a - b) % c.len; return Math.min(d, c.len - d); };
+function cvHanger(c, d, st) {                            // 持ち場の前に来ているハンガー
+  const gap = c.len / CV.hs.length;
+  return CV.hs.find((h, i) => h.st === st && cvDist(c, CV.off + i * gap, d) < gap / 2);
+}
+function cvUpdate(c, dt) {
+  const st = $('stage');
+  if (!CV.layer || !CV.layer.isConnected) {
+    CV.layer = document.createElement('div'); CV.layer.className = 'cvLayer'; CV.geo = '';
+    CV.layer.innerHTML = '<svg><path class="rail"/><path class="rail2"/></svg><span class="tag" data-k="in"></span><span class="tag" data-k="out"></span><span class="tag" data-k="wash"></span>';
+    st.appendChild(CV.layer);
+  }
+  CV.layer.style.display = c.conv ? '' : 'none';
+  if (!c.conv) return;
+  const {x0, y0, x1, y1} = c.r, geo = [x0, y0, x1, y1, c.dIn, c.dOut, lang].join();
+  const n = Math.max(6, Math.floor(c.len / CV_GAP));
+  if (CV.hs.length !== n) {                              // ハンガーの数：はじめは 投入〜脱脂＝素材、脱脂〜取出し＝完成品
+    CV.layer.querySelectorAll('.hg').forEach(e => e.remove());
+    CV.hs = Array.from({length:n}, (_, i) => {
+      const e = document.createElement('div'); e.className = 'hg'; e.innerHTML = '<i></i>'; CV.layer.appendChild(e);
+      const d = (CV.off + i * c.len / n) % c.len, a = c.dIn, b = c.dDone, o = c.dOut;
+      return {el:e, st: d > a && d < b ? 'raw' : d >= b && d < o ? 'done' : 'empty'};
+    });
+  }
+  if (CV.geo !== geo) {
+    CV.geo = geo;
+    const path = `M${x0} ${y0} H${x1} V${y1} H${x0} Z`;
+    CV.layer.querySelectorAll('path').forEach(e => e.setAttribute('d', path));
+    const t = T(), tag = (k, txt, [x, y]) => { const e = CV.layer.querySelector(`[data-k="${k}"]`); e.textContent = txt; e.style.left = x + 'px'; e.style.top = y + 'px'; };
+    tag('in', roleName('in'), [cvPt(c, c.dIn)[0] + 30, y0 + 16]);
+    tag('out', roleName('out'), [x0 + 30, cvPt(c, c.dOut)[1]]);
+    tag('wash', '🫧 ' + t.wash, [x1 - 34, (y0 + y1) / 2]);
+  }
+  const gap = c.len / n, prev = CV.off;
+  CV.off = (CV.off + CV_SPEED * dt) % c.len;
+  CV.hs.forEach((h, i) => {
+    const a = prev + i * gap, b = a + CV_SPEED * dt;     // 脱脂の場所を通ったら、素材 → 完成品
+    const da = ((a % c.len) + c.len) % c.len, db = da + (b - a);
+    if (h.st === 'raw' && ((da < c.dDone && db >= c.dDone) || (da < c.dDone + c.len && db >= c.dDone + c.len))) h.st = 'done';
+    const [x, y] = cvPt(c, CV.off + i * gap);
+    h.el.style.transform = `translate(${x}px,${y}px)`;
+    if (h.el._st !== h.st) { h.el._st = h.st; h.el.className = 'hg ' + h.st; }
+  });
+}
+function cvBadge(key, b, n, cap, kind, warn, call) {     // 個数の表示（異常は赤で点滅＝アンドン、呼び出しは黄色）
+  let e = CV.ov[key];
+  if (!e || !e.isConnected) { e = CV.ov[key] = document.createElement('div'); $('stage').appendChild(e); e._sig = ''; }
+  if (!b) { e.style.display = 'none'; return; }
+  e.style.display = ''; e.className = 'cnt' + (key === 'pile' ? ' pile' : '') + (warn ? ' warn' : '') + (call ? ' call' : '');
+  Object.assign(e.style, {left:b.x + 'px', top:b.y + 'px', width:b.w + 'px', height:b.h + 'px'});
+  const sig = [n, warn, call, lang].join();
+  if (e._sig === sig) return; e._sig = sig;
+  e.innerHTML = `<div class="stack">${`<i class="${kind}"></i>`.repeat(n)}</div><b>${warn ? '⚠ ' + esc(warn) : call ? '🚜 ' + esc(call) : `${n}/${cap}`}</b>`;
+}
+function cvBadges(c) {
+  const t = T(), on = c.ok;
+  cvBadge('in', on && c.inB, CV.in, IN_CAP, 'mat');   // 素材なしの表示は出さない（早めに補充する）
+  cvBadge('out', on && c.outB, CV.out, OUT_CAP, 'fin', CV.out >= OUT_CAP && t.full);
+  cvBadge('pile', on && c.P, CV.pile, PILE_CAP, 'fin', false, CV.pile >= PILE_CAP && t.waitLift);
+}
+/* スタッフ：決まった場所の間を歩いて、掛ける・おろす・運ぶ */
+function absStart(p, L) {
+  if (p.ax != null) return;
+  p.ax = (parseFloat(p.el.style.left) || (L ? L.x + 20 : 0)) + 29; p.ay = (parseFloat(p.el.style.top) || (L ? L.y + 20 : 0)) + 70;
+}
+function walkTo(p, [tx, ty], dt) {
+  const sp = 60 * dt, dx = tx - p.ax, dy = ty - p.ay, d = Math.hypot(dx, dy);
+  if (d <= sp) { p.ax = tx; p.ay = ty; return true; }
+  p.ax += dx / d * sp; p.ay += dy / d * sp; p.mode = 'walk'; if (Math.abs(dx) > 1) p.left = dx < 0;
+  return false;
+}
+function placeAbs(p) {
+  p.el.style.display = '';
+  p.el.style.left = (p.ax - 29) + 'px'; p.el.style.top = (p.ay - 70) + 'px'; p.el.style.zIndex = 40 + Math.round(p.ay / 4);
+}
+function cvRelease(p) {                                  // 持ち場をはなれる（時間外など）：持っていた荷物は元へもどす
+  if (p.carry === 'mat') CV.in = Math.min(IN_CAP, CV.in + 1);
+  if (p.carry === 'fin') CV.out = Math.min(OUT_CAP, CV.out + 1);
+  p.carry = null; p.fsm = null; p.st = null;
+}
+const OFFS = [0, 34, -34, 68], OUT_TOP = [0, 60, 120, 150];   // 取出し：1人目は左の辺、2人目からは上の辺の左側
+function tickRole(p, m, now, dt, c, idx) {
+  if (p.fsm !== m.role) { cvRelease(p); p.fsm = m.role; absStart(p, c.L); }
+  const r = c.r, off = OFFS[idx % OFFS.length];
+  if (m.role === 'in') {                                 // 投入：バッファから素材をとる → ハンガーに掛ける
+    const io = Math.abs(off);                             // 投入担当はバッファの右に並ぶ
+    const bufPt = [c.inB.x + c.inB.w + 10 + io * .5, Math.min(c.inB.y + c.inB.h + 4, r.y0 - 3)];
+    const hangPt = [cvPt(c, c.dIn)[0] + io, r.y0 - 3];
+    if (!p.st) p.st = 'toBuf';
+    if (p.st === 'toBuf') { if (walkTo(p, bufPt, dt)) { p.mode = 'work'; if (CV.in > 0) { CV.in--; p.carry = 'mat'; p.st = 'toHang'; } } }
+    else if (p.st === 'toHang') { if (walkTo(p, hangPt, dt)) { p.mode = 'work'; const h = cvHanger(c, c.dIn, 'empty');
+      if (h) { h.st = 'raw'; p.carry = null; p.st = 'rest'; p.until = now + 700; } } }
+    else { p.mode = 'work'; if (now > p.until) p.st = 'toBuf'; }
+  } else {                                               // 取出し：完成品をおろす → 完成品置きへ
+    const k = idx % OUT_TOP.length, dSt = k ? OUT_TOP[k] : c.dOut;   // 持ち場：左の辺（取出し口）か、上の辺の左側
+    const outPt = k ? [r.x0 + OUT_TOP[k], r.y0 - 3] : [r.x0 - 14, cvPt(c, c.dOut)[1] + 30];
+    const dropPt = [c.outB.x + c.outB.w + 6, Math.min(c.outB.y + c.outB.h / 2 + 30, r.y0 - 3)];
+    if (!p.st) p.st = 'atOut';
+    if (p.st === 'atOut') { if (walkTo(p, outPt, dt)) { p.mode = 'work'; const h = cvHanger(c, dSt, 'done');
+      if (h) { h.st = 'empty'; p.carry = 'fin'; p.st = 'toDrop'; } } }
+    else if (p.st === 'toDrop') { if (walkTo(p, dropPt, dt)) { p.mode = 'work'; if (CV.out < OUT_CAP) { CV.out++; p.carry = null; p.st = 'rest'; p.until = now + 600; } } }
+    else { p.mode = 'work'; if (now > p.until) p.st = 'atOut'; }
+  }
+  placeAbs(p);
+}
+function tickPick(p, now, dt, c) {                       // 集荷：完成品置きからとる → 集荷エリアのリフト側に山積み
+  if (p.fsm !== 'pick') { cvRelease(p); p.fsm = 'pick'; absStart(p, c.A); }
+  const takePt = [c.outB.x - 6, c.outB.y + c.outB.h / 2 + 30], pilePt = [c.P.x - 8, c.P.y + c.P.h - 2];
+  if (!p.st) p.st = 'idle';
+  if (p.st === 'idle') { if (walkTo(p, pilePt, dt)) { p.mode = 'work'; if (CV.out > 0 && CV.pile < PILE_CAP) p.st = 'toTake'; } }
+  else if (p.st === 'toTake') { if (walkTo(p, takePt, dt)) { if (CV.out > 0) { CV.out--; p.carry = 'fin'; p.st = 'toPile'; } else p.st = 'idle'; } }
+  else if (p.st === 'toPile') { if (walkTo(p, pilePt, dt)) { p.mode = 'work'; if (CV.pile < PILE_CAP) { CV.pile++; p.carry = null; p.st = 'rest'; p.until = now + 600; } } }
+  else { p.mode = 'work'; if (now > p.until) p.st = 'idle'; }
+  placeAbs(p);
+}
+/* リフト：素材が減ったら補充、山積みがたまったら出荷レーンへ（通り道は空いている床をさがす） */
+const near = b => (x, y) => b && ovl({x:x - G, y:y - G, w:LW + 2 * G, h:LH + 2 * G}, b);
+function liftPath(p, id, goal) {
+  const s = stageSize(), W = Math.floor((s.w - 20 - LW) / G) + 1, H = Math.floor((s.h - 20 - LH) / G) + 1;
+  let sx = Math.round(p.x / G), sy = Math.round(p.y / G);
+  if (!liftFree(sx * G, sy * G, id)) { const sp = liftSpot(id); if (!sp) return null; p.x = sp.x; p.y = sp.y; sx = sp.x / G; sy = sp.y / G; }
+  if (sx < 0 || sy < 0 || sx >= W || sy >= H) return null;
+  const prev = new Int32Array(W * H).fill(-2), q = [sy * W + sx]; prev[q[0]] = -1;
+  for (let i = 0; i < q.length; i++) {
+    const k = q[i], x = k % W, y = (k - x) / W;
+    if (goal(x * G, y * G)) { const path = []; for (let j = k; j !== -1; j = prev[j]) path.push([(j % W) * G, Math.floor(j / W) * G]); return path.reverse(); }
+    for (const [dx, dy] of [[1,0],[-1,0],[0,1],[0,-1]]) {
+      const nx = x + dx, ny = y + dy; if (nx < 0 || ny < 0 || nx >= W || ny >= H) continue;
+      const nk = ny * W + nx; if (prev[nk] !== -2) continue; prev[nk] = k;
+      if (liftFree(nx * G, ny * G, id)) q.push(nk);
+    }
+  }
+  return null;
+}
+function cvJobs(c, now) {
+  if (!c.ok) { CV.jobs.forEach(j => { const p = live.get(j.lift); if (p) { p.job = null; p.carry = null; } }); CV.jobs = []; return; }
+  const has = t => CV.jobs.some(j => j.type === t);
+  if (CV.in <= IN_LOW && !has('refill')) CV.jobs.unshift({type:'refill', lift:null, retry:0});   // 補充は出荷より先にする
+  if (CV.pile >= PILE_CAP && c.A && c.lane && !has('collect')) CV.jobs.push({type:'collect', lift:null, retry:0});
+  CV.jobs.forEach(j => {                                 // 手が空いているリフトにまかせる（リフトは1台なら順番に）
+    if (j.lift !== null && !live.get(j.lift)) j.lift = null;
+    if (j.lift !== null || now < j.retry) return;
+    const m = S.mascots.find(m => m.kind === 'lift' && live.get(m.id) && !live.get(m.id).job && live.get(m.id).x > -100);
+    if (m) { const p = live.get(m.id); j.lift = m.id; p.job = j; p.ph = 'go1'; p.path = null; }
+  });
+}
+function tickJobLift(p, id, now, dt, c) {
+  const j = p.job, t = T();
+  if (!liftFree(p.x, p.y, id)) { const sp = liftSpot(id); if (sp) { p.x = sp.x; p.y = sp.y; } p.path = null; }
+  const src = j.type === 'refill' ? (x, y) => S.blocks.some(b => b.cat === 'material' && near(b)(x, y)) : near(c.A);
+  const dst = j.type === 'refill' ? near(c.inB) : near(c.lane);
+  if (p.ph === 'go1' || p.ph === 'go2') {
+    if (!p.path) {
+      p.path = liftPath(p, id, p.ph === 'go1' ? src : dst);
+      if (!p.path) {                                     // 行けない：止めて知らせる（自働化）。少ししてからやり直す
+        if (now - CV.ngAt > 20000) { CV.ngAt = now; toast(t.liftNG); }
+        j.lift = null; j.retry = now + 4000; p.job = null; if (p.ph === 'go2' && j.type === 'refill') p.carry = null; return tickLift(p, id, now, dt);
+      }
+    }
+    while (p.path.length && Math.abs(p.path[0][0] - p.x) < .5 && Math.abs(p.path[0][1] - p.y) < .5) p.path.shift();
+    if (!p.path.length) { p.path = null; p.ph = p.ph === 'go1' ? 'load' : 'unload'; p.until = now + 1300; p.mode = 'work'; }
+    else {
+      const [tx, ty] = p.path[0];
+      if (!liftFree(tx, ty, id)) p.path = null;           // 置き場が動いた：道をさがしなおす
+      else { const v = 110 * dt, dx = tx - p.x, dy = ty - p.y, d = Math.hypot(dx, dy);
+        if (d <= v) { p.x = tx; p.y = ty; } else { p.x += dx / d * v; p.y += dy / d * v; }
+        if (Math.abs(dx) > .5) p.left = dx < 0; p.mode = 'walk'; }
+    }
+  } else if (now > p.until) {
+    if (p.ph === 'load') {
+      if (j.type === 'collect') CV.pile = Math.max(0, CV.pile - PILE_CAP);
+      p.carry = j.type === 'refill' ? 'mat' : 'fin'; p.ph = 'go2'; p.path = null;
+    } else {
+      if (j.type === 'refill') CV.in = IN_CAP;
+      p.carry = null; p.job = null; CV.jobs = CV.jobs.filter(x => x !== j); p.mode = 'work'; p.until = now + 1500;
+    }
+  } else p.mode = 'work';
+  p.el.style.display = ''; p.el.style.left = p.x + 'px'; p.el.style.top = p.y + 'px'; p.el.style.zIndex = 45 + Math.round(p.y / 10);
+}
+let lastT = performance.now();
+const warned = {};
+function tick(now) {
+  const dt = Math.min(.1, (now - lastT) / 1000); lastT = now;
+  const d = new Date(), mins = d.getHours() * 60 + d.getMinutes();
+  const A = {man:areaOf('man'), pick:areaOf('pick')};
+  [['man','noLine'],['pick','noPick']].forEach(([k, msg]) => {   // 異常は知らせる：働く場所のブロックがない
+    if (A[k]) warned[k] = false;
+    else if (!warned[k] && S.mascots.some(m => m.kind === k)) { warned[k] = true; toast(T()[msg]); }
+  });
+  const c = cvCtx(), ridx = {};
+  cvUpdate(c, dt); cvJobs(c, now); cvBadges(c);
+  const dIn = [], dOut = [];
+  S.mascots.forEach(m => {
+    const p = live.get(m.id); if (!p || !p.el) return;
+    if (p.kind !== 'lift') {                             // 出勤・退勤（時間になったら出る・消える）を見つける
+      const on = onDuty(m, mins);
+      if (p.duty !== undefined && p.duty !== on) {       // 開いたときは演出しない（変わったときだけ）
+        dutyFx(p, on, now); (on ? dIn : dOut).push(m.name || '？');
+      }
+      p.duty = on;
+    }
+    if (p.kind === 'lift') { if (p.job) tickJobLift(p, m.id, now, dt, c); else tickLift(p, m.id, now, dt); }
+    else {
+      const on = onDuty(m, mins);
+      if (on && c.ok && m.kind === 'man' && (m.role === 'in' || m.role === 'out')) {
+        ridx[m.role] = (ridx[m.role] ?? -1) + 1; tickRole(p, m, now, dt, c, ridx[m.role]);
+      } else if (on && c.ok && m.kind === 'pick' && c.A) tickPick(p, now, dt, c);
+      else {
+        if (p.fsm) {                                     // 役割の動きから、ふつうの歩き（エリアの中）にもどる
+          const B = A[m.kind]; cvRelease(p); if (B && p.ax != null) { p.x = p.ax - 29 - B.x; p.y = p.ay - 70 - B.y; }
+        }
+        p.ax = null;
+        if (p.leaveUntil > now) { p.el.style.display = ''; p.mode = ''; }   // 退勤の演出が終わるまでは、その場に残す
+        else tickStaff(p, now, dt, on ? A[m.kind] : null);   // 時間外はマップに出さない
+      }
+    }
+    if (p.fxCls && now > p.fxUntil) p.fxCls = '';
+    setCls(p);
+  });
+  if (dIn.length || dOut.length) {                       // 交代はトーストで知らせる（見える化）
+    const t = T(), j = a => a.join(t.nameSep);
+    toast([dIn.length ? t.dutyIn.replace('{n}', j(dIn)) : '', dOut.length ? t.dutyOut.replace('{n}', j(dOut)) : ''].filter(Boolean).join('\n'), 4000);   // 出勤と退勤は1行ずつ
+  }
+  requestAnimationFrame(tick);
+}
+function renderMsList() {
+  [['man','msList'],['pick','pkList'],['lift','lfList']].forEach(([kind, box]) => {
+    const el = $(box); el.innerHTML = '';
+    S.mascots.filter(m => (m.kind || 'man') === kind).forEach(m => {
+      const r = document.createElement('div'); r.className = kind === 'lift' ? '' : 'staff';
+      r.innerHTML = `<div class="row"><div class="mface" style="${kind === 'lift' ? 'width:42px;height:32px' : ''}">${kind === 'lift' ? liftSVG(m) : mascotSVG(m)}</div>
+        <input value="${esc(m.name)}" maxlength="12">${kind === 'man' ? `<select class="role">${['in','out','patrol'].map(v =>
+          `<option value="${v}"${(m.role || 'patrol') === v ? ' selected' : ''}>${esc(roleName(v))}</option>`).join('')}</select>` : ''}<button class="mini gray">🎨</button><button class="mini del">×</button></div>` +
+        (kind === 'lift' ? '' : `<div class="row trow">🕗<select>${timeOpts(m.from || DEF_FROM)}</select>〜<select>${timeOpts(m.to || DEF_TO)}</select></div>`);
+      r.querySelector('input').onchange = e => { m.name = e.target.value.trim(); save(); };
+      if (kind !== 'lift') {
+        const [fi, ti] = r.querySelectorAll('.trow select');
+        if (kind === 'man') r.querySelector('select.role').onchange = e => { m.role = e.target.value; save(); };
+        fi.onchange = () => { m.from = fi.value; save(); };
+        ti.onchange = () => { m.to = ti.value; save(); };
+      }
+      r.querySelectorAll('button')[0].onclick = () => { m.c = (m.c + 1) % (kind === 'lift' ? LIFT_COLORS.length : HATS.length); save(); renderMascots(); };
+      r.querySelectorAll('button')[1].onclick = () => { S.mascots = S.mascots.filter(x => x !== m); live.delete(m.id); save(); renderMascots(); };
+      el.appendChild(r);
+    });
+  });
+}
+function addMascot(kind) {
+  const same = S.mascots.filter(m => (m.kind || 'man') === kind);
+  if (same.length >= 12) return;
+  const n = same.length;
+  S.mascots.push(kind === 'lift' ? {id:uid++, kind, name:`${T().newLift}${n + 1}`, c:n}
+               : {id:uid++, kind, name: kind === 'pick' ? `${T().newPk}${n + 1}` : T().newMs, c: kind === 'pick' ? 4 + n : n, from:DEF_FROM, to:DEF_TO,
+                  ...(kind === 'man' ? {role:'patrol'} : {})});
+  save(); renderMascots();
+}
+
+/* ===== ファイル保存・読込（Wi-Fiなしで他のタブレットへ同じ配置を渡す） ===== */
+function exportFile() {
+  const d = new Date(), ymd = d.getFullYear() + String(d.getMonth()+1).padStart(2,'0') + String(d.getDate()).padStart(2,'0');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([JSON.stringify({app:'dasshi_map', ver:'2026-11-28', ...S}, null, 1)], {type:'application/json'}));
+  a.download = `脱脂レイアウト_${ymd}.json`; a.click(); toast(T().saved);
+}
+function importFile(inp) {
+  const f = inp.files[0]; if (!f) return;
+  f.text().then(t => {
+    const d = JSON.parse(t);
+    if (!Array.isArray(d.blocks)) throw 0;           // 違うファイルは読まない（ポカヨケ）
+    pushUndo(); S = {blocks:d.blocks, mascots:Array.isArray(d.mascots) ? d.mascots : S.mascots,
+                     ship: d.ship && typeof d.ship === 'object' ? d.ship : S.ship,
+                     names: d.names && typeof d.names === 'object' ? d.names : S.names, rev:+d.rev || 0};
+    uid = Math.max(0, ...S.blocks.map(b=>+b.id||0), ...S.mascots.map(m=>+m.id||0)) + 1; migrate();
+    uid = Math.max(0, ...S.blocks.map(b=>+b.id||0), ...S.mascots.map(m=>+m.id||0)) + 1;
+    live.clear(); save(); renderBlocks(); renderMascots(); fit(); toast(T().loaded);
+  }).catch(() => toast(T().bad)).finally(() => inp.value = '');
+}
+function resetAll() {
+  if (!confirm(T().cReset)) return;
+  pushUndo(); uid = 1; S = {blocks:mkBlocks(), mascots:mkMascots(), rev:REV, ship:S.ship, names:S.names}; live.clear(); selId = null;
+  save(); renderBlocks(); renderMascots(); fit();
+}
+
+/* ===== 出荷時間の文（言語ごとに直せる。直していない言語は最初の文のまま） ===== */
+const shipLines = () => (S.ship && Array.isArray(S.ship[lang])) ? S.ship[lang] : T().ship;
+function renderShip() {
+  $('shipNote').innerHTML = shipLines().map(s => `<li>${esc(s)}</li>`).join('');
+  if (document.activeElement !== $('shipTxt')) $('shipTxt').value = shipLines().join('\n');
+}
+function editShip(v) {
+  S.ship = S.ship || {};
+  S.ship[lang] = v.split('\n').map(s => s.trim()).filter(Boolean);
+  save(); renderShip();
+}
+function resetShip() {
+  if (!confirm(T().cShip)) return;
+  if (S.ship) delete S.ship[lang];
+  save(); $('shipTxt').blur(); renderShip();
+}
+
+/* ===== Excel（.xlsx）の出力・読込
+   ネットなしで動くように、外部ライブラリを使わず zip を自分で作る・ほどく。
+   形：1行＝1ブロック（区分・名前・X・Y・幅・高さ・幅記号）。数字はマスの数。 ===== */
+const CRC_T = (() => { const t = new Uint32Array(256);
+  for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; }
+  return t; })();
+const crc32 = u => { let c = 0xFFFFFFFF; for (let i = 0; i < u.length; i++) c = CRC_T[(c ^ u[i]) & 255] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; };
+function zipStore(files) {                          // 圧縮なしの zip（Excel はこれで開ける）
+  const enc = new TextEncoder(), parts = [], cen = []; let off = 0;
+  files.forEach(([name, text]) => {
+    const n = enc.encode(name), d = enc.encode(text), crc = crc32(d);
+    const h = new DataView(new ArrayBuffer(30));
+    h.setUint32(0, 0x04034b50, true); h.setUint16(4, 20, true); h.setUint16(6, 0x0800, true); h.setUint16(12, 0x21, true);
+    h.setUint32(14, crc, true); h.setUint32(18, d.length, true); h.setUint32(22, d.length, true); h.setUint16(26, n.length, true);
+    const c = new DataView(new ArrayBuffer(46));
+    c.setUint32(0, 0x02014b50, true); c.setUint16(4, 20, true); c.setUint16(6, 20, true); c.setUint16(8, 0x0800, true); c.setUint16(14, 0x21, true);
+    c.setUint32(16, crc, true); c.setUint32(20, d.length, true); c.setUint32(24, d.length, true); c.setUint16(28, n.length, true); c.setUint32(42, off, true);
+    parts.push(h, n, d); cen.push(c, n); off += 30 + n.length + d.length;
+  });
+  const size = cen.reduce((a, p) => a + p.byteLength, 0), e = new DataView(new ArrayBuffer(22));
+  e.setUint32(0, 0x06054b50, true); e.setUint16(8, files.length, true); e.setUint16(10, files.length, true);
+  e.setUint32(12, size, true); e.setUint32(16, off, true);
+  return new Blob([...parts, ...cen, e], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+}
+function unzip(buf) {
+  const u = new Uint8Array(buf), v = new DataView(buf), out = {};
+  let e = -1;
+  for (let i = u.length - 22; i >= Math.max(0, u.length - 65557); i--) if (v.getUint32(i, true) === 0x06054b50) { e = i; break; }
+  if (e < 0) throw 'zip';
+  let p = v.getUint32(e + 16, true);
+  for (let k = v.getUint16(e + 10, true); k > 0; k--) {
+    if (v.getUint32(p, true) !== 0x02014b50) throw 'zip';
+    const nl = v.getUint16(p + 28, true), lo = v.getUint32(p + 42, true);
+    const name = new TextDecoder().decode(u.subarray(p + 46, p + 46 + nl));
+    const ds = lo + 30 + v.getUint16(lo + 26, true) + v.getUint16(lo + 28, true);
+    out[name] = {method:v.getUint16(p + 10, true), data:u.subarray(ds, ds + v.getUint32(p + 20, true))};
+    p += 46 + nl + v.getUint16(p + 30, true) + v.getUint16(p + 32, true);
+  }
+  return out;
+}
+async function zipText(z, name) {
+  const f = z[name]; if (!f) return null;
+  if (f.method === 0) return new TextDecoder().decode(f.data);
+  if (f.method !== 8 || typeof DecompressionStream === 'undefined') throw 'deflate';
+  return new Response(new Blob([f.data]).stream().pipeThrough(new DecompressionStream('deflate-raw'))).text();
+}
+const xmlDoc = t => new DOMParser().parseFromString(t, 'application/xml');
+const kids = (el, nm) => [...el.children].filter(c => c.localName === nm);
+// 文字の取り出し（ふりがな <rPh> は読まない）
+const siText = si => kids(si, 't').length ? kids(si, 't').map(x => x.textContent).join('')
+                                          : kids(si, 'r').map(r => kids(r, 't').map(x => x.textContent).join('')).join('');
+const refRC = ref => { let c = 0; for (const ch of ref.replace(/[0-9$]/g, '')) c = c * 26 + ch.charCodeAt(0) - 64;
+                       return {r:+ref.replace(/[^0-9]/g, '') - 1, c:c - 1}; };
+const colA = c => { let t = ''; c++; while (c > 0) { const m = (c - 1) % 26; t = String.fromCharCode(65 + m) + t; c = (c - m - 1) / 26; } return t; };
+// テーマ色（Excelの色パレットの上の段）＋明るさ（tint）を #rrggbb にする
+function tintHex(hex, tint) {
+  let [r, g2, b] = [0, 2, 4].map(i => parseInt(hex.slice(i, i + 2), 16) / 255);
+  const mx = Math.max(r, g2, b), mn = Math.min(r, g2, b); let h = 0, sa = 0, l = (mx + mn) / 2;
+  if (mx !== mn) { const d = mx - mn; sa = l > .5 ? d / (2 - mx - mn) : d / (mx + mn);
+    h = mx === r ? (g2 - b) / d + (g2 < b ? 6 : 0) : mx === g2 ? (b - r) / d + 2 : (r - g2) / d + 4; h /= 6; }
+  l = tint < 0 ? l * (1 + tint) : l * (1 - tint) + tint;
+  const f = (p, q, t) => { t = (t + 1) % 1; return t < 1/6 ? p + (q - p) * 6 * t : t < .5 ? q : t < 2/3 ? p + (q - p) * (2/3 - t) * 6 : p; };
+  const q = l < .5 ? l * (1 + sa) : l + sa - l * sa, p = 2 * l - q;
+  return [f(p, q, h + 1/3), f(p, q, h), f(p, q, h - 1/3)].map(v => Math.round((sa ? v : l) * 255).toString(16).padStart(2, '0')).join('');
+}
+async function readXlsxSheet(buf) {                 // 1枚目のシートの、セル（文字・塗りの色）と結合を読む
+  const z = unzip(buf), wbT = await zipText(z, 'xl/workbook.xml');
+  if (!wbT) throw 'zip';
+  const sh = xmlDoc(wbT).getElementsByTagNameNS('*', 'sheet')[0];
+  if (!sh) throw 'zip';
+  const rid = sh.getAttributeNS('http://schemas.openxmlformats.org/officeDocument/2006/relationships', 'id');
+  let path = 'xl/worksheets/sheet1.xml';
+  const relT = await zipText(z, 'xl/_rels/workbook.xml.rels');
+  if (relT) {
+    const r = [...xmlDoc(relT).getElementsByTagNameNS('*', 'Relationship')].find(r => r.getAttribute('Id') === rid);
+    if (r) { const tg = r.getAttribute('Target'); path = tg.startsWith('/') ? tg.slice(1) : 'xl/' + tg.replace(/^\.\//, ''); }
+  }
+  const sstT = await zipText(z, 'xl/sharedStrings.xml');
+  const ss = sstT ? kids(xmlDoc(sstT).documentElement, 'si').map(siText) : [];
+  // 色：スタイル番号 → 塗りの色（'rrggbb'、塗りなしは null、読めない色は '?'）
+  const theme = [], thT = await zipText(z, 'xl/theme/theme1.xml');
+  if (thT) { const cs = xmlDoc(thT).getElementsByTagNameNS('*', 'clrScheme')[0];
+    if (cs) [...cs.children].forEach(e => { const c = e.firstElementChild; theme.push(c ? (c.getAttribute('lastClr') || c.getAttribute('val') || '') : ''); }); }
+  const colorOf = el => {
+    const rgb = el.getAttribute('rgb'), th = el.getAttribute('theme'), tint = +(el.getAttribute('tint') || 0);
+    if (rgb) return rgb.slice(-6).toLowerCase();
+    if (th !== null) { const base = theme[[1, 0, 3, 2][+th] ?? +th]; return base ? tintHex(base, tint) : '?'; }
+    return '?';
+  };
+  let xfFill = [];
+  const stT = await zipText(z, 'xl/styles.xml');
+  if (stT) {
+    const st = xmlDoc(stT).documentElement, fillsEl = kids(st, 'fills')[0], xfsEl = kids(st, 'cellXfs')[0];
+    const fills = fillsEl ? kids(fillsEl, 'fill').map(f => {
+      const pf = kids(f, 'patternFill')[0];
+      if (!pf) return kids(f, 'gradientFill').length ? '?' : null;
+      const pt = pf.getAttribute('patternType'); if (!pt || pt === 'none') return null;
+      const fg = kids(pf, 'fgColor')[0]; return fg ? colorOf(fg) : '?';
+    }) : [];
+    xfFill = xfsEl ? kids(xfsEl, 'xf').map(xf => fills[+xf.getAttribute('fillId') || 0] ?? null) : [];
+  }
+  const wsT = await zipText(z, path); if (!wsT) throw 'zip';
+  const ws = xmlDoc(wsT), cells = new Map();
+  [...ws.getElementsByTagNameNS('*', 'row')].forEach((row, ri) => {
+    const rn = (+row.getAttribute('r') || ri + 1) - 1; let ci = 0;
+    kids(row, 'c').forEach(c => {
+      const ref = c.getAttribute('r'); if (ref) ci = refRC(ref).c;
+      const t = c.getAttribute('t'), vEl = kids(c, 'v')[0], v = vEl ? vEl.textContent : '';
+      const text = t === 's' ? (ss[+v] ?? '') : t === 'inlineStr' ? kids(c, 'is').map(siText).join('') : v;
+      cells.set(rn + ',' + ci, {v:text, color:xfFill[+c.getAttribute('s') || 0] ?? null});
+      ci++;
+    });
+  });
+  const merges = [...ws.getElementsByTagNameNS('*', 'mergeCell')].map(m => {
+    const [a, b] = m.getAttribute('ref').split(':'), p = refRC(a), q = refRC(b || a);
+    return {r0:Math.min(p.r, q.r), c0:Math.min(p.c, q.c), r1:Math.max(p.r, q.r), c1:Math.max(p.c, q.c)};
+  });
+  return {cells, merges};
+}
+const xe = s => String(s ?? '').replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '')
+                               .replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function sheetXml(rows, widths, extra) {            // rows：セルは 値 か {v, s:スタイル番号}
+  const data = rows.map((r, ri) => `<row r="${ri + 1}">` + r.map((c, ci) => {
+    const o = (c && typeof c === 'object') ? c : {v:c}, ref = String.fromCharCode(65 + ci) + (ri + 1), st = o.s ? ` s="${o.s}"` : '';
+    if (o.v == null || o.v === '') return o.s ? `<c r="${ref}"${st}/>` : '';
+    return typeof o.v === 'number' ? `<c r="${ref}"${st}><v>${o.v}</v></c>`
+                                   : `<c r="${ref}"${st} t="inlineStr"><is><t xml:space="preserve">${xe(o.v)}</t></is></c>`;
+  }).join('') + '</row>').join('');
+  return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+    '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
+    '<sheetViews><sheetView workbookViewId="0"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>' +
+    `<cols>${widths.map((w, i) => `<col min="${i + 1}" max="${i + 1}" width="${w}" customWidth="1"/>`).join('')}</cols>` +
+    `<sheetData>${data}</sheetData>${extra || ''}</worksheet>`;
+}
+function exportXlsx() {
+  const t = T(), keys = Object.keys(CATS), cs = k => 3 + Math.max(0, keys.indexOf(k));   // 区分ごとの色のスタイル番号
+  const argb = h => 'FF' + (h.length === 4 ? h.slice(1).replace(/./g, c => c + c) : h.slice(1)).toUpperCase();   // #fff → FFFFFFFF
+  const styles = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+    '<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
+    `<fonts count="${2 + keys.length * 2}"><font><sz val="11"/><name val="Meiryo UI"/></font>` +
+    '<font><b/><sz val="11"/><color rgb="FFFFFFFF"/><name val="Meiryo UI"/></font>' +
+    keys.map(k => `<font><b/><sz val="11"/><color rgb="${argb(CATS[k].fg)}"/><name val="Meiryo UI"/></font>`).join('') +
+    keys.map(k => `<font><b/><sz val="8"/><color rgb="${argb(CATS[k].fg)}"/><name val="Meiryo UI"/></font>`).join('') + '</fonts>' +
+    `<fills count="${4 + keys.length}"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill>` +
+    '<fill><patternFill patternType="solid"><fgColor rgb="FF374151"/></patternFill></fill>' +
+    keys.map(k => `<fill><patternFill patternType="solid"><fgColor rgb="${argb(CATS[k].bg)}"/></patternFill></fill>`).join('') +
+    `<fill><patternFill patternType="solid"><fgColor rgb="${argb(CONV_BG)}"/></patternFill></fill></fills>` +
+    '<borders count="2"><border><left/><right/><top/><bottom/><diagonal/></border>' +
+    ['left','right','top','bottom'].reduce((a, e) => a + `<${e} style="thin"><color rgb="FF6B7280"/></${e}>`, '<border>') + '<diagonal/></border></borders>' +
+    '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>' +
+    `<cellXfs count="${4 + keys.length * 4}"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>` +
+    '<xf numFmtId="0" fontId="1" fillId="2" borderId="0" xfId="0" applyFont="1" applyFill="1"/>' +
+    '<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0" applyAlignment="1"><alignment wrapText="1" vertical="center"/></xf>' +
+    keys.map((k, i) => `<xf numFmtId="0" fontId="${2 + i}" fillId="${3 + i}" borderId="0" xfId="0" applyFont="1" applyFill="1"/>`).join('') +
+    keys.map((k, i) => [0, 255].map(rot =>     // 図の置き場：横書き・縦書き
+      `<xf numFmtId="0" fontId="${2 + keys.length + i}" fillId="${3 + i}" borderId="${['wall','aisle'].includes(k) ? 0 : 1}" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1">` +
+      `<alignment horizontal="center" vertical="center" wrapText="1"${rot ? ` textRotation="${rot}"` : ''}/></xf>`).join('')).join('') +
+    keys.map((k, i) =>                         // 柱などで一部がかくれた置き場：線なし、名前は行のまん中に
+      `<xf numFmtId="0" fontId="${2 + keys.length + i}" fillId="${3 + i}" borderId="0" xfId="0" applyFont="1" applyFill="1" applyAlignment="1">` +
+      `<alignment horizontal="centerContinuous" vertical="center"/></xf>`).join('') +
+    `<xf numFmtId="0" fontId="0" fillId="${3 + keys.length}" borderId="0" xfId="0" applyFill="1"/>` +   // コンベア
+    '</cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>';
+  const H = s => ({v:s, s:1});
+  // 図：重なっているところは、あとのブロック（画面で上に見える方）のマスにする
+  const W = Math.ceil(Math.max(1, ...S.blocks.map(b => b.x + b.w)) / G), Hh = Math.ceil(Math.max(1, ...S.blocks.map(b => b.y + b.h)) / G);
+  const own = new Int32Array(W * Hh).fill(-1), box = b => [Math.round(b.x / G), Math.round(b.y / G), Math.max(1, Math.round(b.w / G)), Math.max(1, Math.round(b.h / G))];
+  S.blocks.forEach((b, i) => { const [x, y, w, h] = box(b); for (let r = y; r < y + h; r++) for (let c = x; c < x + w; c++) own[r * W + c] = i; });
+  const grid = new Map(), merges = [];
+  S.blocks.forEach((b, i) => {
+    const [x, y, w, h] = box(b), k = CATS[b.cat] ? b.cat : 'other', st = 3 + keys.length + keys.indexOf(k) * 2 + (textFit(b).vert ? 1 : 0);
+    const vis = [];
+    for (let r = y; r < y + h; r++) for (let c = x; c < x + w; c++) if (own[r * W + c] === i) vis.push([r, c]);
+    if (!vis.length) return;                             // ほかのブロックに全部かくれている
+    const conv = b.cat === 'line' && cvOK(b);            // コンベアのある脱脂ラインは結合せず、レールを色のセルで描く
+    const text = (b.label || '') + (b.wd ? `【${b.wd}】` : ''), full = vis.length === w * h && !conv;
+    const sp = full ? st : 3 + keys.length * 3 + keys.indexOf(k);
+    const ring = (r, c) => { const a = x + 5, z = x + w - 3, t = y + 3, u = y + h - 3;
+      return conv && r >= t && r <= u && c >= a && c <= z && (r === t || r === u || c === a || c === z); };
+    vis.forEach(([r, c]) => grid.set(r + ',' + c, {s: ring(r, c) ? 3 + keys.length * 4 : sp}));
+    if (full && vis.length > 1) merges.push(`${colA(x)}${y + 1}:${colA(x + w - 1)}${y + h}`);
+    if (text) {                                          // 名前：結合したら左上、一部かくれたら まん中の行の左はし
+      const mid = y + (h >> 1), at = full ? [y, x] : conv && grid.has(mid + ',' + (x + 6)) ? [mid, x + 6] : (vis.find(q => q[0] === mid) || vis[0]);
+      grid.get(at.join(',')).v = text;
+    }
+  });
+  let pic = '';
+  for (let r = 0; r < Hh; r++) {
+    let row = '';
+    for (let c = 0; c < W; c++) { const o = grid.get(r + ',' + c); if (!o) continue;
+      row += o.v ? `<c r="${colA(c)}${r + 1}" s="${o.s}" t="inlineStr"><is><t xml:space="preserve">${xe(o.v)}</t></is></c>` : `<c r="${colA(c)}${r + 1}" s="${o.s}"/>`; }
+    pic += `<row r="${r + 1}" ht="18" customHeight="1">${row}</row>`;
+  }
+  const sheet1 = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+    '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
+    '<sheetPr><pageSetUpPr fitToPage="1"/></sheetPr>' +   // 印刷は1枚に収める
+    '<sheetViews><sheetView workbookViewId="0" zoomScale="70" zoomScaleNormal="70"/></sheetViews>' +
+    '<sheetFormatPr defaultRowHeight="18" customHeight="1"/>' +
+    `<cols><col min="1" max="${W + 20}" width="2.6" customWidth="1"/></cols><sheetData>${pic}</sheetData>` +
+    (merges.length ? `<mergeCells count="${merges.length}">${merges.map(m => `<mergeCell ref="${m}"/>`).join('')}</mergeCells>` : '') +
+    '<pageSetup orientation="landscape" fitToWidth="1" fitToHeight="1"/></worksheet>';
+  const rows2 = [[H(t.colCat), H(t.colLang), H(''), H(''), H('')],
+    ...keys.map(k => [{v:CATS[k][lang], s:cs(k)}, CATS[k].ja, CATS[k].id, CATS[k].tl, CATS[k].en]),
+    [], ...t.xNote.map(n => [n])];
+  const sh2 = t.sh2.replace(/[\[\]:*?\/\\]/g, '').slice(0, 31) || 'list';
+  const NS = 'http://schemas.openxmlformats.org/', head = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>';
+  const blob = zipStore([
+    ['[Content_Types].xml', head + `<Types xmlns="${NS}package/2006/content-types">` +
+      `<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/>` +
+      `<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>` +
+      `<Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>` +
+      `<Override PartName="/xl/worksheets/sheet2.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>` +
+      `<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>`],
+    ['_rels/.rels', head + `<Relationships xmlns="${NS}package/2006/relationships">` +
+      `<Relationship Id="rId1" Type="${NS}officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>`],
+    ['xl/workbook.xml', head + `<workbook xmlns="${NS}spreadsheetml/2006/main" xmlns:r="${NS}officeDocument/2006/relationships"><sheets>` +
+      `<sheet name="${xe(t.sh1)}" sheetId="1" r:id="rId1"/><sheet name="${xe(sh2)}" sheetId="2" r:id="rId2"/></sheets></workbook>`],
+    ['xl/_rels/workbook.xml.rels', head + `<Relationships xmlns="${NS}package/2006/relationships">` +
+      `<Relationship Id="rId1" Type="${NS}officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>` +
+      `<Relationship Id="rId2" Type="${NS}officeDocument/2006/relationships/worksheet" Target="worksheets/sheet2.xml"/>` +
+      `<Relationship Id="rId3" Type="${NS}officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>`],
+    ['xl/styles.xml', styles],
+    ['xl/worksheets/sheet1.xml', sheet1],
+    ['xl/worksheets/sheet2.xml', sheetXml(rows2, [30, 30, 24, 28, 28])]
+  ]);
+  const d = new Date(), ymd = d.getFullYear() + String(d.getMonth()+1).padStart(2,'0') + String(d.getDate()).padStart(2,'0');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = `脱脂レイアウト_${ymd}.xlsx`; a.click(); toast(t.xSaved);
+}
+// 色 → 区分（区分一覧の色に近いものを選ぶ。遠い色はまちがいとして止める）
+function catOfColor(col) {
+  if (col === null) return null;
+  if (col === '?' || !/^[0-9a-f]{6}$/.test(col)) return '?';
+  const rgb = h => { h = h.slice(1); if (h.length === 3) h = h.replace(/./g, c => c + c); return [0, 2, 4].map(i => parseInt(h.slice(i, i + 2), 16)); };
+  const v = rgb('#' + col); let best = '?', bd = 40;
+  if (Math.hypot(...rgb(CONV_BG).map((x, i) => x - v[i])) < 20) return 'line';   // コンベアの線＝脱脂ラインの中
+  Object.keys(CATS).forEach(k => { const d = Math.hypot(...rgb(CATS[k].bg).map((x, i) => x - v[i])); if (d < bd) { bd = d; best = k; } });
+  return best;
+}
+function blocksFromSheet({cells, merges}, errs) {
+  const t = T(), out = [], used = new Set(), key = (r, c) => r + ',' + c;
+  const text = o => String(o && o.v || '').replace(/\r\n?/g, '\n').trim();
+  const mk = (cat, raw, c, r, w, h) => {                 // 名前の後ろの【C】は幅記号
+    const m = /【\s*([A-DＡ-Ｄa-d])\s*】\s*$/.exec(raw), wd = m ? String.fromCharCode(m[1].toUpperCase().charCodeAt(0) - (m[1] > '~' ? 0xFEE0 : 0)).toUpperCase() : '';
+    out.push({cat, label: m ? raw.slice(0, m.index).trim() : raw, x:c * G, y:r * G, w:w * G, h:h * G, wd});
+  };
+  merges.forEach(m => {                                   // 結合したセル＝1つの置き場
+    for (let r = m.r0; r <= m.r1; r++) for (let c = m.c0; c <= m.c1; c++) used.add(key(r, c));
+    const o = cells.get(key(m.r0, m.c0)), tx = text(o); let k = catOfColor(o ? o.color : null);
+    if (k === '?') { errs.push(t.xErrColor.replace('{r}', colA(m.c0) + (m.r0 + 1))); return; }
+    if (!k) { if (!tx) return; k = 'other'; }              // 色なしでも名前があれば「その他」
+    mk(k, tx, m.c0, m.r0, m.c1 - m.c0 + 1, m.r1 - m.r0 + 1);
+  });
+  // 結合していない色のセル：同じ色でつながったまとまりごとに置き場にする
+  const under = [], cat = new Map();
+  [...cells.keys()].forEach(s => {
+    if (used.has(s)) return;
+    const [r, c] = s.split(',').map(Number), o = cells.get(s), k = catOfColor(o.color), tx = text(o);
+    if (k === '?') { errs.push(t.xErrColor.replace('{r}', colA(c) + (r + 1))); used.add(s); return; }
+    if (!k) { if (tx) mk('other', tx, c, r, 1, 1); used.add(s); return; }
+    cat.set(s, k);
+  });
+  const filled = (r, c) => { const s = key(r, c), o = cells.get(s); return used.has(s) || cat.has(s) || !!(o && o.color); };
+  [...cat.keys()].map(s => s.split(',').map(Number)).sort((a, b) => a[0] - b[0] || a[1] - b[1]).forEach(([r, c]) => {
+    if (used.has(key(r, c))) return;
+    const k = cat.get(key(r, c)), comp = [], stack = [[r, c]];
+    used.add(key(r, c));
+    while (stack.length) {                                // 上下左右でつながった同じ区分のセル
+      const [rr, cc] = stack.pop(); comp.push([rr, cc]);
+      [[1,0],[-1,0],[0,1],[0,-1]].forEach(([dr, dc]) => { const s = key(rr + dr, cc + dc);
+        if (!used.has(s) && cat.get(s) === k) { used.add(s); stack.push([rr + dr, cc + dc]); } });
+    }
+    const rs = comp.map(q => q[0]), cs = comp.map(q => q[1]), r0 = Math.min(...rs), r1 = Math.max(...rs), c0 = Math.min(...cs), c1 = Math.max(...cs);
+    const texts = comp.map(([rr, cc]) => text(cells.get(key(rr, cc)))).filter(Boolean);
+    const inComp = new Set(comp.map(q => key(q[0], q[1])));
+    let ok = texts.length <= 1;                           // 四角のぬけた所が、ほかの置き場（柱など）でうまっていれば1つの置き場にする
+    for (let rr = r0; ok && rr <= r1; rr++) for (let cc = c0; ok && cc <= c1; cc++) if (!inComp.has(key(rr, cc)) && !filled(rr, cc)) ok = false;
+    if (ok) {
+      const n = out.length; mk(k, texts[0] || '', c0, r0, c1 - c0 + 1, r1 - r0 + 1);
+      if (comp.length < (r1 - r0 + 1) * (c1 - c0 + 1)) under.push(out.splice(n, 1)[0]);   // ほかの置き場の下に置く
+      return;
+    }
+    // うまらないときは、四角に分ける（名前のあるセルからは新しい置き場）
+    const left = new Set(inComp);
+    comp.sort((a, b) => a[0] - b[0] || a[1] - b[1]).forEach(([rr, cc]) => {
+      if (!left.has(key(rr, cc))) return;
+      const tx = text(cells.get(key(rr, cc))), same = (y, x) => left.has(key(y, x)) && !text(cells.get(key(y, x)));
+      left.delete(key(rr, cc));
+      let w = 1, h = 1;
+      while (same(rr, cc + w)) w++;
+      while ([...Array(w).keys()].every(i => same(rr + h, cc + i))) h++;
+      for (let y = rr; y < rr + h; y++) for (let x = cc; x < cc + w; x++) left.delete(key(y, x));
+      mk(k, tx, cc, rr, w, h);
+    });
+  });
+  out.unshift(...under);
+  return out;
+}
+function importXlsx(inp) {
+  const f = inp.files[0]; if (!f) return;
+  f.arrayBuffer().then(readXlsxSheet).then(sheet => {
+    const t = T(), errs = [], blocks = blocksFromSheet(sheet, errs);
+    // 自働化：まちがいが1つでもあれば、途中まで読まずに止めて知らせる
+    if (errs.length) { alert(t.xErr + '\n\n' + errs.slice(0, 10).join('\n') + (errs.length > 10 ? `\n…（${errs.length}）` : '')); return; }
+    if (!blocks.length) { toast(sheet.cells.size ? t.xNotPic : t.xEmpty); return; }
+    if (!confirm(t.cXlsx.replace('{n}', blocks.length))) return;
+    pushUndo(); blocks.forEach(b => b.id = uid++);
+    S.blocks = blocks; selId = null; save(); renderBlocks(); fit(); toast(t.xLoaded);
+  }).catch(e => toast(e === 'deflate' ? T().xOld : T().bad)).finally(() => inp.value = '');
+}
+
+/* ===== 言葉の切替 ===== */
+function renderTexts() {
+  const t = T();
+  document.documentElement.lang = lang; document.title = t.title;
+  $('t-title').textContent = t.title; $('bEdit').textContent = editing ? t.editOn : t.edit;
+  $('bEdit').classList.toggle('edit-on', editing);
+  ['undo','editing','selT','dup','del','addT','addH','toolT','exp','imp','print','reset','toolH','msT','msAdd','msH','lfT','lfAdd','lfH','pkT','pkAdd','pkH','lgT','tape','shipT','shipEdH','shipReset']
+    .forEach(k => $('t-' + k).textContent = t[k]);
+  $('bFit').textContent = t.fit; $('bTj').textContent = t.tj; renderTj();
+  ['pAdd','pTools'].forEach(id => $(id).style.display = editing ? '' : 'none');
+  $('sCat').innerHTML = Object.entries(CATS).map(([k,c]) => `<option value="${k}">${esc(c[lang])}</option>`).join('');
+  $('addChips').innerHTML = Object.entries(CATS).map(([k,c]) =>
+    `<button class="chip" style="background:${c.bg};color:${c.fg}" onclick="addBlock('${k}')">${esc(c[lang])}</button>`).join('');
+  $('legend').innerHTML = Object.entries(CATS).filter(([k]) => !['wall','other'].includes(k))
+    .map(([k,c]) => `<span><i style="background:${c.bg}"></i>${esc(c[lang])}</span>`).join('')
+    + `<span style="grid-column:1/-1"><i style="background:#d6d9de"></i>🚜 ${esc(t.liftArea)}</span>`;
+  $('bXout').textContent = t.xOut; $('bXin').textContent = t.xIn;
+  $('bXin').style.display = editing ? '' : 'none';
+  $('shipNote').style.display = editing ? 'none' : ''; $('shipEd').style.display = editing ? '' : 'none';
+  $('roleEd').style.display = editing ? '' : 'none';
+  $('t-shipT').textContent = nm('shipT'); $('t-roleEdT').textContent = t.roleEdT; $('t-shipTitleH').textContent = t.shipTitleH;
+  document.querySelectorAll('[data-nk]').forEach(e => {
+    e.placeholder = nmDef(e.dataset.nk);
+    if (document.activeElement !== e) e.value = (S.names && S.names[lang] && S.names[lang][e.dataset.nk]) || '';
+  });
+  CV.geo = '';
+  renderShip();
+  renderSel();
+}
+// ===== 作業手順：4つの工程ボタン → tejun.html#工程 =====
+const TJ_PROCS = [['kake','🪝','#16a34a'],['kensa','🔍','#2563eb'],['lift','🚜','#ea580c'],['shuka','📦','#9333ea']];
+function renderTj() {
+  const t = T();
+  $('tjMenu').innerHTML = TJ_PROCS.map(([k,ic,bg]) =>
+    `<a href="tejun.html#${k}" style="background:${bg}"><b>${ic}</b>${esc(t['tj' + k[0].toUpperCase() + k.slice(1)])}</a>`).join('');
+}
+function toggleTj(ev) {
+  ev.stopPropagation();
+  const m = $('tjMenu');
+  if (m.classList.toggle('show')) {
+    const r = $('bTj').getBoundingClientRect();
+    m.style.top = (r.bottom + 6) + 'px';
+    m.style.left = Math.max(8, Math.min(r.left, innerWidth - m.offsetWidth - 8)) + 'px';
+  }
+}
+document.addEventListener('pointerdown', e => {
+  if (!e.target.closest('#tjMenu') && !e.target.closest('#bTj')) $('tjMenu').classList.remove('show');
+});
+function setLang(l) { lang = l; try { localStorage.setItem('dasshi_lang', l); } catch(e) {} renderTexts(); renderMsList(); }
+
+/* ===== 起動 ===== */
+$('lang').value = lang;
+renderTexts(); renderBlocks(); renderMascots();
+setTimeout(fit, 30);
+window.addEventListener('resize', () => clearTimeout(window._r) || (window._r = setTimeout(fit, 200)));
+requestAnimationFrame(tick);
+// 画面のファイルをタブレットに入れておく（ネットなしでも開ける。sw.js）。https のときだけ
+if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost'))
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+</script>
+</body>
+</html>
