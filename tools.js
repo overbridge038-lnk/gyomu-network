@@ -9,7 +9,7 @@
      「新しい版があります」と表示されます
    ========================================================= */
 
-var SITE_VER = '2026-11-28b';
+var SITE_VER = '2026-11-28c';
 
 /* GitHub Pages の場所（各ツールのリポジトリはここの下にある） */
 var BASE = 'https://overbridge038-lnk.github.io/';
@@ -130,7 +130,7 @@ var TOOLS = [
 
   { id: 'sekisai', icon: '🚛', name: '積載効率プランナー',
     desc: '便別の積載を算出してExcel出力',
-    file: 'tools/sekisai-planner.html', ver: '2026-11-06' },
+    file: 'tools/sekisai-planner.html', ver: '2026-11-06-2' },
 
   { id: 'sango', icon: '🏭', name: '三五在庫管理',
     desc: '在庫管理表・内示PDF・受注CSVから在庫と素材発注を算出（ドライブで2台のPCが同じデータ）',
@@ -189,7 +189,7 @@ var TOOLS = [
   { id: 'shukka-more-view', icon: '👀', name: '出荷漏れ照合（閲覧用）',
     desc: '照合PCの最新の照合結果を表で見る（60秒ごとに読み直し。⚙ で接続を設定）',
     names: { id: 'Cek Kebocoran (Lihat)', tl: 'Shipping Miss Check (View)', en: 'Shipping Miss Check (View)' },
-    file: 'tools/shukka-more-view.html', ver: '2026-11-18l' },
+    file: 'tools/shukka-more-view.html', ver: '2026-11-18b' },
 
   { id: 'rinkan-yama', icon: '📚', name: '臨かん かんばん山積み',
     desc: '臨かんだけを品番・日付ごとにかんばん枚数で山積みしてExcel出力',

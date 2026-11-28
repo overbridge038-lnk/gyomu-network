@@ -635,20 +635,20 @@ window.addEventListener('offline',renderNet);
 /* ================= 各ツールの ver を読み取る ================= */
 /* 画面の「ver 2026-11-16」「ver.2026.11.16-1」「ver 2026/11/03」などを YYYY-MM-DD(+枝番) にそろえる */
 function normVer(txt){
-  var m=String(txt).match(/ver[\s.:]*(20\d{2})[-.\/](\d{1,2})[-.\/](\d{1,2})([a-z]|-\d+| \d{1,2}:\d{2})?/i);
+  var m=String(txt).match(/(?:ver|版)[\s.:]*(20\d{2})[-.\/](\d{1,2})[-.\/](\d{1,2})([a-z]|-\d+|\.\d+| \d{1,2}:\d{2})?/i);   /* 「版 2026-11-26c」も読む */
   if(!m) return '';
   return m[1]+'-'+('0'+m[2]).slice(-2)+'-'+('0'+m[3]).slice(-2)+(m[4]||'');
 }
 var verBusy=false;
 function refreshVers(){
   if(verBusy || !navigator.onLine) return; verBusy=true;
-  var list=TOOLS.filter(function(x){ return /^https?:/.test(x.verUrl||x.file); });
+  var list=TOOLS.filter(function(x){ return x.verUrl||x.file; });   /* このリポジトリの tools/ のツールも、ファイルそのものの ver を読む（tools.js の ver は予備） */
   Promise.all(list.map(function(x){
     return fetch(x.verUrl||x.file,{cache:'no-store',headers:{Range:'bytes=0-65535'}})
       .then(function(r){ if(!r.ok && r.status!==206) throw 0; return r.text(); })
       .then(function(txt){
         var v=normVer(txt); if(!v) return;
-        if(!liveVer[x.id] && seen[x.id]===x.ver) seen[x.id]=v;   // はじめて読み取ったときは「更新」にしない
+        if(!liveVer[x.id] && (seen[x.id]===x.ver || !/^https?:/.test(x.file))) seen[x.id]=v;   // はじめて読み取ったときは「更新」にしない
         liveVer[x.id]=v;
       }).catch(function(){});
   })).then(function(){
